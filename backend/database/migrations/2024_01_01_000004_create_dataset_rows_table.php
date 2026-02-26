@@ -1,0 +1,26 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('dataset_rows', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('dataset_id')->constrained()->onDelete('cascade');
+            $table->integer('row_index');
+            $table->json('values'); // Array of values for this row
+            $table->timestamps();
+
+            $table->index(['dataset_id', 'row_index']);
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('dataset_rows');
+    }
+};
