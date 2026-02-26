@@ -8,7 +8,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import AppLayout from './components/AppLayout.vue'
@@ -20,8 +20,16 @@ export default {
     const route = useRoute()
     const authStore = useAuthStore()
 
+    onMounted(async () => {
+      if (!authStore.user) {
+        try {
+          await authStore.fetchUser()
+        } catch (_) {}
+      }
+    })
+
     const showLayout = computed(() => {
-      return authStore.isAuthenticated && route.name !== 'login'
+      return authStore.isAuthenticated && route.meta?.requiresAuth
     })
 
     return { showLayout }

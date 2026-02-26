@@ -53,11 +53,11 @@ export default {
           labels: props.labels,
           datasets: props.datasets.map((ds, i) => ({
             ...ds,
-            borderColor: ['#6ee7b7', '#8b5cf6', '#0ea5a9'][i % 3],
+            borderColor: ['#1db954', '#1ed760', '#159947', '#5fcf8a', '#b3b3b3'][i % 5],
             backgroundColor:
               props.type === 'pie'
-                ? ['#6ee7b7', '#8b5cf6', '#0ea5a9', '#f59e0b', '#ec4899']
-                : `rgba(110, 231, 183, ${props.type === 'bar' ? 0.5 : 0.2})`,
+                ? ['#1db954', '#1ed760', '#159947', '#5fcf8a', '#b3b3b3']
+                : `rgba(29, 185, 84, ${props.type === 'bar' ? 0.42 : 0.2})`,
             fill: props.type === 'line',
           })),
         },
@@ -66,19 +66,19 @@ export default {
           maintainAspectRatio: false,
           plugins: {
             legend: {
-              labels: { color: '#94a3b8' },
+              labels: { color: '#b3b3b3' },
             },
             tooltip: {
-              backgroundColor: 'rgba(15, 23, 36, 0.9)',
-              titleColor: '#e6eef8',
-              bodyColor: '#94a3b8',
+              backgroundColor: 'rgba(24, 24, 24, 0.95)',
+              titleColor: '#ffffff',
+              bodyColor: '#b3b3b3',
             },
           },
           scales:
             props.type !== 'pie'
               ? {
-                  x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-                  y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                  x: { ticks: { color: '#b3b3b3' }, grid: { color: 'rgba(255, 255, 255, 0.08)' } },
+                  y: { ticks: { color: '#b3b3b3' }, grid: { color: 'rgba(255, 255, 255, 0.08)' } },
                 }
               : undefined,
         },

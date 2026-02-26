@@ -7,8 +7,11 @@ use App\Http\Controllers\Api\V1\DatasetImportController;
 use App\Http\Controllers\Api\V1\DatasetRowController;
 use App\Http\Controllers\Api\V1\DatasetStatisticsController;
 use App\Http\Controllers\Api\V1\DatasetSuggestionController;
+use App\Http\Controllers\Api\V1\UserAvatarController;
 
 Route::prefix('v1')->group(function () {
+    Route::get('/users/{user}/avatar', [UserAvatarController::class, 'show']);
+
     // Auth (SPA via Sanctum) — web middleware explicitly includes session, so we don't depend on Referer
     Route::middleware('web')->group(function () {
         Route::post('/auth/register', [AuthController::class, 'register']);
@@ -18,6 +21,7 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/auth/logout', [AuthController::class, 'logout']);
         Route::get('/auth/me', [AuthController::class, 'me']);
+        Route::post('/auth/avatar', [AuthController::class, 'uploadAvatar']);
 
         // Projects
         Route::get('/projects', [ProjectController::class, 'index']);

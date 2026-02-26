@@ -80,9 +80,10 @@ export default {
 
 <style>
 .data-table {
-  background: white;
-  border-radius: 4px;
+  background: transparent;
+  border-radius: 8px;
   overflow: hidden;
+  border: 1px solid #2a2a2a;
 }
 
 .tabulator {
@@ -90,7 +91,7 @@ export default {
 }
 
 .tabulator .tabulator-header {
-  background: #f8f9fa;
+  background: #161616;
   font-weight: 600;
 }
 
@@ -99,6 +100,6 @@ export default {
 }
 
 .tabulator .tabulator-row:hover {
-  background: #f0f0f0;
+  background: rgba(29, 185, 84, 0.12);
 }
 </style>

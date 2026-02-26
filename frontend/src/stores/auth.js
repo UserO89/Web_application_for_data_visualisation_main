@@ -50,6 +50,18 @@ export const useAuthStore = defineStore('auth', {
         this.user = response.user
       } catch (error) {
         this.user = null
+        throw error
+      }
+    },
+
+    async uploadAvatar(file) {
+      this.loading = true
+      try {
+        const response = await authApi.uploadAvatar(file)
+        this.user = response.user
+        return response
+      } finally {
+        this.loading = false
       }
     },
   },

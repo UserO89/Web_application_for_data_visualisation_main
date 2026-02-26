@@ -22,4 +22,17 @@ export const authApi = {
     const response = await http.get('/auth/me')
     return response.data
   },
+
+  async uploadAvatar(file) {
+    const formData = new FormData()
+    formData.append('avatar', file)
+
+    const response = await http.post('/auth/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+
+    return response.data
+  },
 }
