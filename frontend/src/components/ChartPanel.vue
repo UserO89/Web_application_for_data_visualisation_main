@@ -1,16 +1,21 @@
 <template>
-  <div class="chart-panel panel">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+  <div :class="['chart-panel', { panel: !embedded, embedded }]">
+    <div
+      v-if="!embedded"
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;"
+    >
       <div style="font-weight: 700;">Visualization</div>
       <div style="color: var(--muted); font-size: 13px;">Interactive area</div>
     </div>
-    <div class="chart-canvas">
+
+    <div ref="canvasHost" class="chart-canvas">
       <canvas ref="canvas"></canvas>
     </div>
-    <div style="display: flex; gap: 8px; justify-content: space-between; align-items: center; margin-top: 12px;">
+
+    <div class="chart-footer">
       <div style="color: var(--muted); font-size: 13px;">Hover over the chart for details.</div>
       <div style="display: flex; gap: 8px;">
-        <button class="btn" @click="exportPNG">Export PNG</button>
+        <button class="btn" type="button" @click="exportPNG">Export PNG</button>
         <button class="btn" @click="$emit('clear')">Clear</button>
       </div>
     </div>
@@ -18,7 +23,7 @@
 </template>
 
 <script>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onBeforeUnmount, onMounted, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
 
 Chart.register(...registerables)
@@ -29,11 +34,14 @@ export default {
     labels: { type: Array, default: () => [] },
     datasets: { type: Array, default: () => [] },
     type: { type: String, default: 'line' },
+    embedded: { type: Boolean, default: false },
   },
   emits: ['clear'],
   setup(props) {
     const canvas = ref(null)
+    const canvasHost = ref(null)
     let chart = null
+    let resizeObserver = null
 
     const createChart = () => {
       if (!canvas.value || !props.labels?.length) {
@@ -85,8 +93,34 @@ export default {
       })
     }
 
-    onMounted(createChart)
-    watch([() => props.labels, () => props.datasets, () => props.type], createChart)
+    const handleResize = () => {
+      if (!chart) return
+      chart.resize()
+    }
+
+    onMounted(() => {
+      createChart()
+
+      if (canvasHost.value && typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          handleResize()
+        })
+        resizeObserver.observe(canvasHost.value)
+      }
+    })
+
+    watch([() => props.labels, () => props.datasets, () => props.type], createChart, { deep: true })
+
+    onBeforeUnmount(() => {
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+        resizeObserver = null
+      }
+      if (chart) {
+        chart.destroy()
+        chart = null
+      }
+    })
 
     const exportPNG = () => {
       if (chart) {
@@ -98,21 +132,35 @@ export default {
       }
     }
 
-    return { canvas, exportPNG }
+    return { canvas, canvasHost, exportPNG }
   },
 }
 </script>
 
 <style scoped>
 .chart-panel {
-  height: 360px;
   display: flex;
   flex-direction: column;
+  height: 360px;
+  min-height: 220px;
+}
+
+.chart-panel.embedded {
+  height: 100%;
+  min-height: 0;
 }
 
 .chart-canvas {
   flex: 1;
-  min-height: 200px;
+  min-height: 160px;
   position: relative;
+}
+
+.chart-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
 }
 </style>

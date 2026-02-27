@@ -30,7 +30,9 @@ export const projectsApi = {
     const formData = new FormData()
     formData.append('file', file)
     if (options.delimiter) formData.append('delimiter', options.delimiter)
-    if (options.has_header !== undefined) formData.append('has_header', options.has_header)
+    if (options.has_header !== undefined) {
+      formData.append('has_header', options.has_header ? '1' : '0')
+    }
 
     const response = await http.post(`/projects/${projectId}/import`, formData, {
       headers: {

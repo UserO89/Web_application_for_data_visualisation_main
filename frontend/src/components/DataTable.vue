@@ -1,5 +1,5 @@
 <template>
-  <div ref="el" class="data-table"></div>
+  <div ref="el" class="tabulator-host"></div>
 </template>
 
 <script>
@@ -23,6 +23,7 @@ export default {
   setup(props, { emit }) {
     const el = ref(null)
     let table = null
+    let resizeObserver = null
 
     onMounted(() => {
       if (!el.value) return
@@ -30,6 +31,8 @@ export default {
       table = new Tabulator(el.value, {
         data: props.rows,
         columns: props.columns,
+        index: 'id',
+        height: '100%',
         layout: 'fitColumns',
         reactiveData: true,
         pagination: true,
@@ -45,6 +48,13 @@ export default {
           })
         },
       })
+
+      if (typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver(() => {
+          if (table) table.redraw(true)
+        })
+        resizeObserver.observe(el.value)
+      }
     })
 
     watch(
@@ -52,6 +62,7 @@ export default {
       (newRows) => {
         if (table) {
           table.replaceData(newRows)
+          table.redraw(true)
         }
       },
       { deep: true }
@@ -62,12 +73,17 @@ export default {
       (newColumns) => {
         if (table) {
           table.setColumns(newColumns)
+          table.redraw(true)
         }
       },
       { deep: true }
     )
 
     onBeforeUnmount(() => {
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+        resizeObserver = null
+      }
       if (table) {
         table.destroy()
       }
@@ -79,27 +95,70 @@ export default {
 </script>
 
 <style>
-.data-table {
-  background: transparent;
-  border-radius: 8px;
+.tabulator-host {
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  background: #141414;
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid #2a2a2a;
+  border: 1px solid var(--border);
 }
 
-.tabulator {
+.tabulator-host .tabulator {
   font-size: 14px;
+  background: transparent !important;
+  color: var(--text) !important;
+  border: none !important;
 }
 
-.tabulator .tabulator-header {
-  background: #161616;
+.tabulator-host .tabulator-header {
+  background: #161616 !important;
   font-weight: 600;
+  border-bottom: 1px solid var(--border) !important;
 }
 
-.tabulator .tabulator-cell {
+.tabulator-host .tabulator-header .tabulator-col {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border-right: 1px solid var(--border) !important;
+}
+
+.tabulator-host .tabulator-tableholder,
+.tabulator-host .tabulator-table,
+.tabulator-host .tabulator-row,
+.tabulator-host .tabulator-row.tabulator-row-even,
+.tabulator-host .tabulator-row.tabulator-row-odd {
+  background: #141414 !important;
+}
+
+.tabulator-host .tabulator-cell {
   padding: 0.75rem;
+  background: transparent !important;
+  color: var(--text) !important;
+  border-right: 1px solid var(--border) !important;
+  border-bottom: 1px dashed var(--border) !important;
 }
 
-.tabulator .tabulator-row:hover {
-  background: rgba(29, 185, 84, 0.12);
+.tabulator-host .tabulator-row.tabulator-selected {
+  background: rgba(29, 185, 84, 0.2) !important;
+}
+
+.tabulator-host .tabulator-footer {
+  background: #161616 !important;
+  color: var(--muted) !important;
+  border-top: 1px solid var(--border) !important;
+}
+
+.tabulator-host .tabulator-page {
+  color: var(--muted) !important;
+}
+
+.tabulator-host .tabulator-page.active {
+  color: var(--accent) !important;
+}
+
+.tabulator-host .tabulator-row:hover {
+  background: rgba(29, 185, 84, 0.12) !important;
 }
 </style>

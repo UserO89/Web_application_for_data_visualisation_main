@@ -14,8 +14,12 @@
         v-for="project in projectsStore.projects"
         :key="project.id"
         class="project-card panel"
+        @click="goToProject(project.id)"
+        tabindex="0"
+        role="button"
+        @keyup.enter="goToProject(project.id)"
       >
-        <div class="project-main" @click="goToProject(project.id)">
+        <div class="project-main">
           <div style="font-weight: 700; margin-bottom: 8px;">{{ project.title }}</div>
           <p v-if="project.description" style="color: var(--muted); font-size: 14px; margin-bottom: 12px;">{{ project.description }}</p>
           <div style="font-size: 12px; color: var(--muted);">
@@ -209,9 +213,10 @@ export default {
 }
 
 .project-card {
-  cursor: default;
+  cursor: pointer;
   padding: 0;
   overflow: hidden;
+  border: 1px solid transparent;
   transition: all 0.28s cubic-bezier(0.2, 0.9, 0.3, 1);
 }
 
@@ -220,9 +225,13 @@ export default {
   box-shadow: 0 12px 40px rgba(2, 6, 23, 0.65);
 }
 
+.project-card:focus-visible {
+  outline: none;
+  border-color: rgba(29, 185, 84, 0.45);
+}
+
 .project-main {
   padding: 16px;
-  cursor: pointer;
 }
 
 .project-main:hover {
