@@ -6,7 +6,8 @@
         <div class="title">DataViz</div>
       </router-link>
 
-      <router-link :to="{ name: 'home' }" class="home-btn">Home</router-link>
+      <router-link :to="{ name: 'home' }" class="nav-btn">Home</router-link>
+      <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="nav-btn">Admin</router-link>
     </div>
 
     <div class="header-right" ref="profileWrap">
@@ -77,6 +78,7 @@ export default {
     const showGuestLogin = computed(() => {
       return !authStore.isAuthenticated && route.name !== 'login'
     })
+    const isAdmin = computed(() => authStore.isAdmin)
 
     const displayName = computed(() => authStore.user?.name || 'User')
     const avatarUrl = computed(() => authStore.user?.avatar_url || null)
@@ -135,6 +137,7 @@ export default {
       menuOpen,
       profileWrap,
       showGuestLogin,
+      isAdmin,
       displayName,
       avatarUrl,
       initials,
@@ -165,7 +168,7 @@ export default {
   letter-spacing: 0.01em;
 }
 
-.home-btn {
+.nav-btn {
   text-decoration: none;
   color: var(--muted);
   border: 1px solid var(--border);
@@ -177,9 +180,15 @@ export default {
   transition: all 0.16s ease;
 }
 
-.home-btn:hover {
+.nav-btn:hover {
   color: var(--text);
   background: #2a2a2a;
+}
+
+.nav-btn.router-link-exact-active {
+  color: #b9f0c9;
+  border-color: rgba(29, 185, 84, 0.45);
+  background: rgba(29, 185, 84, 0.16);
 }
 
 .header-right {
@@ -305,8 +314,9 @@ export default {
     font-size: 18px;
   }
 
-  .home-btn {
-    display: none;
+  .nav-btn {
+    padding: 6px 8px;
+    font-size: 12px;
   }
 
   .profile-name {

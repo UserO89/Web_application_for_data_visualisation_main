@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\AdminController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\DatasetImportController;
@@ -43,5 +44,15 @@ Route::prefix('v1')->group(function () {
         // Stats + Suggestions
         Route::get('/projects/{project}/statistics', [DatasetStatisticsController::class, 'show']);
         Route::get('/projects/{project}/suggest-visualizations', [DatasetSuggestionController::class, 'index']);
+
+        Route::prefix('admin')->middleware('admin')->group(function () {
+            Route::get('/stats', [AdminController::class, 'stats']);
+            Route::get('/users', [AdminController::class, 'users']);
+            Route::patch('/users/{user}', [AdminController::class, 'updateUser']);
+            Route::delete('/users/{user}', [AdminController::class, 'destroyUser']);
+            Route::post('/users/{user}/projects', [AdminController::class, 'storeUserProject']);
+            Route::patch('/users/{user}/projects/{project}', [AdminController::class, 'updateUserProject']);
+            Route::delete('/users/{user}/projects/{project}', [AdminController::class, 'destroyUserProject']);
+        });
     });
 });

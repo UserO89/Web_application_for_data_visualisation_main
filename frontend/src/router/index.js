@@ -6,6 +6,7 @@ const LoginPage = () => import('../pages/LoginPage.vue')
 const ProjectsPage = () => import('../pages/ProjectsPage.vue')
 const ProjectPage = () => import('../pages/ProjectPage.vue')
 const ProfilePage = () => import('../pages/ProfilePage.vue')
+const AdminPage = () => import('../pages/AdminPage.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -34,6 +35,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
+      path: '/admin',
+      name: 'admin',
+      component: AdminPage,
+      meta: { requiresAuth: true, requiresAdmin: true },
+    },
+    {
       path: '/projects/:id',
       name: 'project',
       component: ProjectPage,
@@ -53,6 +60,8 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     next({ name: 'login' })
+  } else if (to.meta.requiresAdmin && !authStore.isAdmin) {
+    next({ name: 'home' })
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
     next({ name: 'projects' })
   } else {

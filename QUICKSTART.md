@@ -39,3 +39,10 @@ CREATE DATABASE dataviz CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ## Готово!
 
 Откройте http://localhost:5173 и начните работу!
+
+## Admin access
+
+```bash
+cd backend
+php artisan tinker --execute="App\Models\User::where('email', 'admin@example.com')->update(['role' => 'admin']);"
+```
