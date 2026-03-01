@@ -7,12 +7,14 @@ use App\Http\Requests\ImportDatasetRequest;
 use App\Models\Project;
 use App\Services\CsvImportService;
 use App\Services\ColumnTypeInferenceService;
+use App\Services\DatasetValidationService;
 
 class DatasetImportController extends Controller
 {
     public function __construct(
         private CsvImportService $csvImportService,
-        private ColumnTypeInferenceService $typeInferenceService
+        private ColumnTypeInferenceService $typeInferenceService,
+        private DatasetValidationService $datasetValidationService
     ) {}
 
     public function import(ImportDatasetRequest $request, Project $project)
@@ -45,6 +47,8 @@ class DatasetImportController extends Controller
 
         // Infer column types and create columns
         $columns = $this->typeInferenceService->infer($parsed['rows'], $hasHeader);
+        $rows = $hasHeader ? array_slice($parsed['rows'], 1) : $parsed['rows'];
+        $validated = $this->datasetValidationService->sanitizeImportedRows($rows, $columns);
 
         foreach ($columns as $index => $column) {
             $dataset->columns()->create([
@@ -54,9 +58,8 @@ class DatasetImportController extends Controller
             ]);
         }
 
-        // Import rows
-        $rows = $hasHeader ? array_slice($parsed['rows'], 1) : $parsed['rows'];
-        foreach ($rows as $rowIndex => $row) {
+        // Import sanitized rows
+        foreach ($validated['rows'] as $rowIndex => $row) {
             $dataset->rows()->create([
                 'row_index' => $rowIndex,
                 'values' => json_encode($row),
@@ -65,7 +68,11 @@ class DatasetImportController extends Controller
 
         return response()->json([
             'dataset' => $dataset->load('columns'),
-            'rows_count' => count($rows),
+            'rows_count' => count($validated['rows']),
+            'validation' => [
+                'summary' => $validated['summary'],
+                'issues' => $validated['issues'],
+            ],
         ], 201);
     }
 }

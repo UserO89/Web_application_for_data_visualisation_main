@@ -1,0 +1,7 @@
+Country,Year,GDP_per_capita,Internet_Users_%,Renewable_Energy_%,CO2_Emissions_tons,Education_Index,Innovation_Score,Region
+" Germany  ",2025-01-01,"52 300","96,7%","35.8","6,1","0,94","85.4"," Europe "
+Brazil,not_a_date,"$21,800",89.1,N/A,3.2,0.85,75,South America
+Kenya,2026-02-27,"6 400","58.7%","78,5",1.3,-,55," Africa"
+USA,2025-12-04,67k,97,29.7,12.5,0.94,90,North America
+China,2025-01-15,"23,000.0",91.3,24.2,8.0,0.86,80,Asia
+India,2024-06-01,"2,500"," 49.1 % ","18,7","2,4","0.71","58.9"," Asia "

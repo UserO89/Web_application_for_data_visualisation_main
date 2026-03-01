@@ -28,6 +28,24 @@ import { Chart, registerables } from 'chart.js'
 
 Chart.register(...registerables)
 
+const DEFAULT_PALETTE = [
+  '#1db954', '#35c9a3', '#4cc9f0', '#4895ef', '#4361ee',
+  '#3a0ca3', '#b5179e', '#f72585', '#f15bb5', '#ff8fab',
+  '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590',
+]
+
+const fallbackColor = (index) => DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]
+
+const hexToRgba = (hex, alpha) => {
+  const normalized = String(hex || '').replace('#', '')
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return `rgba(29, 185, 84, ${alpha})`
+  const int = parseInt(normalized, 16)
+  const r = (int >> 16) & 255
+  const g = (int >> 8) & 255
+  const b = int & 255
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
+
 export default {
   name: 'ChartPanel',
   props: {
@@ -59,15 +77,28 @@ export default {
         type: props.type || 'line',
         data: {
           labels: props.labels,
-          datasets: props.datasets.map((ds, i) => ({
-            ...ds,
-            borderColor: ['#1db954', '#1ed760', '#159947', '#5fcf8a', '#b3b3b3'][i % 5],
-            backgroundColor:
-              props.type === 'pie'
-                ? ['#1db954', '#1ed760', '#159947', '#5fcf8a', '#b3b3b3']
-                : `rgba(29, 185, 84, ${props.type === 'bar' ? 0.42 : 0.2})`,
-            fill: props.type === 'line',
-          })),
+          datasets: props.datasets.map((ds, i) => {
+            const color = ds.color || fallbackColor(i)
+            if (props.type === 'pie') {
+              const size = Array.isArray(ds.data) ? ds.data.length : 1
+              const pieColors = Array.from({ length: Math.max(1, size) }, (_, idx) => fallbackColor(i + idx))
+              if (ds.color) pieColors[0] = ds.color
+              return {
+                ...ds,
+                borderColor: pieColors,
+                backgroundColor: pieColors.map((c) => hexToRgba(c, 0.82)),
+                fill: false,
+              }
+            }
+            return {
+              ...ds,
+              borderColor: color,
+              pointBackgroundColor: color,
+              pointBorderColor: color,
+              backgroundColor: hexToRgba(color, props.type === 'bar' ? 0.42 : 0.2),
+              fill: props.type === 'line',
+            }
+          }),
         },
         options: {
           responsive: true,

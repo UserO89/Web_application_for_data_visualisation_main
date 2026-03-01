@@ -7,6 +7,48 @@
       </router-link>
 
       <router-link :to="{ name: 'home' }" class="nav-btn">Home</router-link>
+      <div v-if="authStore.isAuthenticated" class="projects-nav" ref="projectsWrap">
+        <button
+          class="nav-btn nav-dropdown"
+          type="button"
+          :class="{ active: isProjectsRoute }"
+          :aria-expanded="projectsMenuOpen.toString()"
+          aria-haspopup="menu"
+          @click="toggleProjectsMenu"
+        >
+          <span>Projects</span>
+          <span class="dropdown-chevron" :class="{ open: projectsMenuOpen }" aria-hidden="true">
+            <svg viewBox="0 0 16 16" fill="none">
+              <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+
+        <transition name="fade-slide">
+          <div v-if="projectsMenuOpen" class="projects-menu" role="menu">
+            <router-link :to="{ name: 'projects' }" class="projects-item projects-all" @click="closeProjectsMenu">
+              Open Projects
+            </router-link>
+            <div class="projects-divider"></div>
+
+            <div v-if="projectsStore.loading && !quickProjects.length" class="projects-empty">
+              Loading projects...
+            </div>
+            <template v-else-if="quickProjects.length">
+              <router-link
+                v-for="project in quickProjects"
+                :key="`quick-project-${project.id}`"
+                :to="{ name: 'project', params: { id: project.id } }"
+                class="projects-item"
+                @click="closeProjectsMenu"
+              >
+                <span class="projects-item-title">{{ projectTitle(project) }}</span>
+              </router-link>
+            </template>
+            <div v-else class="projects-empty">No projects yet.</div>
+          </div>
+        </transition>
+      </div>
       <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="nav-btn">Admin</router-link>
     </div>
 
@@ -65,6 +107,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useProjectsStore } from '../stores/projects'
 
 export default {
   name: 'AppHeader',
@@ -72,13 +115,27 @@ export default {
     const route = useRoute()
     const router = useRouter()
     const authStore = useAuthStore()
+    const projectsStore = useProjectsStore()
     const menuOpen = ref(false)
+    const projectsMenuOpen = ref(false)
     const profileWrap = ref(null)
+    const projectsWrap = ref(null)
 
     const showGuestLogin = computed(() => {
       return !authStore.isAuthenticated && route.name !== 'login'
     })
     const isAdmin = computed(() => authStore.isAdmin)
+    const isProjectsRoute = computed(() => route.name === 'projects' || route.name === 'project')
+    const quickProjects = computed(() => {
+      const list = Array.isArray(projectsStore.projects) ? projectsStore.projects : []
+      return [...list]
+        .sort((a, b) => {
+          const ta = Date.parse(a?.updated_at || a?.created_at || 0) || 0
+          const tb = Date.parse(b?.updated_at || b?.created_at || 0) || 0
+          return tb - ta
+        })
+        .slice(0, 12)
+    })
 
     const displayName = computed(() => authStore.user?.name || 'User')
     const avatarUrl = computed(() => authStore.user?.avatar_url || null)
@@ -97,27 +154,59 @@ export default {
       menuOpen.value = false
     }
 
+    const closeProjectsMenu = () => {
+      projectsMenuOpen.value = false
+    }
+
+    const loadProjects = async () => {
+      if (!authStore.isAuthenticated || projectsStore.loading) return
+      try {
+        await projectsStore.fetchProjects()
+      } catch (_) {}
+    }
+
+    const toggleProjectsMenu = async () => {
+      const willOpen = !projectsMenuOpen.value
+      projectsMenuOpen.value = willOpen
+      if (!willOpen) return
+      closeMenu()
+      await loadProjects()
+    }
+
     const toggleMenu = () => {
       menuOpen.value = !menuOpen.value
+      if (menuOpen.value) closeProjectsMenu()
     }
 
     const handleOutsideClick = (event) => {
-      if (!profileWrap.value) return
-      if (!profileWrap.value.contains(event.target)) {
+      const insideProfile = profileWrap.value?.contains(event.target)
+      const insideProjects = projectsWrap.value?.contains(event.target)
+      if (!insideProfile) {
         closeMenu()
+      }
+      if (!insideProjects) {
+        closeProjectsMenu()
       }
     }
 
     const handleKeydown = (event) => {
       if (event.key === 'Escape') {
         closeMenu()
+        closeProjectsMenu()
       }
     }
 
     const handleLogout = async () => {
       await authStore.logout()
       closeMenu()
+      closeProjectsMenu()
       router.push({ name: 'home' })
+    }
+
+    const projectTitle = (project) => {
+      const value = String(project?.title || '').trim()
+      if (value) return value
+      return `Project #${project?.id ?? ''}`.trim()
     }
 
     onMounted(() => {
@@ -130,20 +219,31 @@ export default {
       document.removeEventListener('keydown', handleKeydown)
     })
 
-    watch(() => route.fullPath, closeMenu)
+    watch(() => route.fullPath, () => {
+      closeMenu()
+      closeProjectsMenu()
+    })
 
     return {
       authStore,
+      projectsStore,
       menuOpen,
+      projectsMenuOpen,
       profileWrap,
+      projectsWrap,
       showGuestLogin,
       isAdmin,
+      isProjectsRoute,
+      quickProjects,
       displayName,
       avatarUrl,
       initials,
       closeMenu,
+      closeProjectsMenu,
+      toggleProjectsMenu,
       toggleMenu,
       handleLogout,
+      projectTitle,
     }
   },
 }
@@ -189,6 +289,99 @@ export default {
   color: #b9f0c9;
   border-color: rgba(29, 185, 84, 0.45);
   background: rgba(29, 185, 84, 0.16);
+}
+
+.projects-nav {
+  position: relative;
+}
+
+.nav-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dropdown-chevron {
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+  transition: transform 0.16s ease;
+}
+
+.dropdown-chevron svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+
+.dropdown-chevron.open {
+  transform: rotate(180deg);
+}
+
+.nav-btn.active,
+.nav-dropdown[aria-expanded="true"] {
+  color: #b9f0c9;
+  border-color: rgba(29, 185, 84, 0.45);
+  background: rgba(29, 185, 84, 0.16);
+}
+
+.projects-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 280px;
+  max-height: 360px;
+  overflow: auto;
+  background: #1d1d1d;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.45);
+  padding: 7px;
+  z-index: 35;
+}
+
+.projects-item {
+  display: block;
+  width: 100%;
+  padding: 10px 11px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 13px;
+  transition: all 0.14s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projects-item:hover {
+  background: #2a2a2a;
+  transform: translateX(2px);
+}
+
+.projects-item.projects-all {
+  color: #93f6b3;
+  font-weight: 600;
+}
+
+.projects-item-title {
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.projects-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 4px;
+}
+
+.projects-empty {
+  padding: 10px 11px;
+  font-size: 12px;
+  color: var(--muted);
 }
 
 .header-right {
@@ -324,6 +517,10 @@ export default {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .projects-menu {
+    width: min(280px, 86vw);
   }
 }
 </style>

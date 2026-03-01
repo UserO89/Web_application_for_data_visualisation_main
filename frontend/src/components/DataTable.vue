@@ -25,12 +25,18 @@ export default {
     let table = null
     let resizeObserver = null
 
+    const mapColumns = (columns) =>
+      columns.map((column) => {
+        const { metaType, ...mapped } = column
+        return mapped
+      })
+
     onMounted(() => {
       if (!el.value) return
 
       table = new Tabulator(el.value, {
         data: props.rows,
-        columns: props.columns,
+        columns: mapColumns(props.columns),
         index: 'id',
         height: '100%',
         layout: 'fitColumns',
@@ -40,6 +46,9 @@ export default {
         paginationSizeSelector: [25, 50, 100, 200],
         movableColumns: true,
         resizableColumns: true,
+        cellClick: (_e, cell) => {
+          if (cell) cell.edit(true)
+        },
         cellEdited: (cell) => {
           emit('cell-edited', {
             row: cell.getRow().getData(),
@@ -72,7 +81,7 @@ export default {
       () => props.columns,
       (newColumns) => {
         if (table) {
-          table.setColumns(newColumns)
+          table.setColumns(mapColumns(newColumns))
           table.redraw(true)
         }
       },
@@ -138,6 +147,12 @@ export default {
   color: var(--text) !important;
   border-right: 1px solid var(--border) !important;
   border-bottom: 1px dashed var(--border) !important;
+}
+
+.tabulator-host .tabulator-cell.cell-null {
+  background: rgba(255, 99, 99, 0.12) !important;
+  color: #ffb3b3 !important;
+  font-style: italic;
 }
 
 .tabulator-host .tabulator-row.tabulator-selected {

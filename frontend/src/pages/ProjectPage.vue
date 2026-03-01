@@ -45,11 +45,30 @@
     </div>
 
     <div v-else>
-      <div class="top-row">
-        <button class="btn" @click="$router.push({ name: 'projects' })"><- Back to Projects</button>
+      <div class="top-row top-row-actions">
+        <div class="top-row-left">
+          <button class="btn" @click="$router.push({ name: 'projects' })"><- Back to Projects</button>
+          <div class="view-mode-switch">
+            <button type="button" :class="['btn', { primary: viewMode === 'table' }]" @click="setViewMode('table')">Table</button>
+            <button type="button" :class="['btn', { primary: viewMode === 'visualization' }]" @click="setViewMode('visualization')">Visualization</button>
+            <button type="button" :class="['btn', { primary: viewMode === 'statistics' }]" @click="setViewMode('statistics')">Statistics</button>
+            <button type="button" :class="['btn', { primary: viewMode === 'workspace' }]" @click="setViewMode('workspace')">Workspace</button>
+          </div>
+        </div>
+        <div class="top-row-right">
+          <button
+            v-if="importValidation"
+            type="button"
+            class="btn"
+            @click="openValidationModal"
+          >
+            Validation Report
+            <span class="validation-pill">{{ importValidation.summary?.issue_count ?? 0 }}</span>
+          </button>
+        </div>
       </div>
 
-      <div class="panel layout-bar">
+      <div v-if="viewMode === 'workspace'" class="panel layout-bar">
         <div class="section-title">Workspace</div>
         <div class="layout-controls">
           <button type="button" class="btn" @click="applyPreset('default')">Default</button>
@@ -67,13 +86,13 @@
 
       <div ref="workspaceRef" class="workspace-canvas" :style="{ height: `${workspaceHeight}px` }">
         <section
-          v-for="panelId in panelIds"
+          v-for="panelId in visiblePanelIds"
           :key="panelId"
-          class="workspace-panel panel"
+          :class="['workspace-panel', 'panel', { 'swap-target': viewMode === 'workspace' && dragSwapTarget === panelId }]"
           :style="panelStyle(panelId)"
-          @mousedown="bringToFront(panelId)"
+          @mousedown="viewMode === 'workspace' && bringToFront(panelId)"
         >
-          <header class="drag-handle" @mousedown.left.prevent="startDrag(panelId, $event)">
+          <header class="drag-handle" @mousedown.left.prevent="viewMode === 'workspace' && startDrag(panelId, $event)">
             <div class="title">{{ panelConfig[panelId].title }}</div>
             <div class="sub">{{ panelConfig[panelId].subtitle }}</div>
           </header>
@@ -82,6 +101,9 @@
             <template v-if="panelId === 'table'">
               <div class="table-wrap table-fill">
                 <DataTable :columns="tableColumns" :rows="tableRows" @cell-edited="handleCellEdit" />
+              </div>
+              <div class="table-bottom-actions">
+                <button class="btn" type="button" @click="exportTableCsv">Export Table CSV</button>
               </div>
             </template>
 
@@ -109,6 +131,23 @@
               <div class="controls">
                 <button v-for="t in chartTypes" :key="t.key" :class="['btn', { primary: chartType === t.key }]" @click="chartType = t.key" type="button">{{ t.label }}</button>
               </div>
+              <div v-if="chartDatasets.length" class="series-colors">
+                <div class="series-colors-head">
+                  <div class="analysis-title">Series Colors</div>
+                  <button type="button" class="btn" @click="resetSeriesColors">Reset Colors</button>
+                </div>
+                <div class="series-colors-grid">
+                  <div v-for="(ds, i) in chartDatasets" :key="`series-color-${ds.label}-${i}`" class="series-color-item">
+                    <span class="series-color-name">{{ ds.label || `Series ${i + 1}` }}</span>
+                    <input
+                      type="color"
+                      class="series-color-input"
+                      :value="getSeriesColor(ds.label, i)"
+                      @input="setSeriesColor(ds.label, i, $event.target.value)"
+                    />
+                  </div>
+                </div>
+              </div>
               <div class="analysis-box">
                 <div class="analysis-title">Data Analysis</div>
                 <div v-if="suggestionsLoading" class="analysis-item">Loading...</div>
@@ -120,8 +159,68 @@
             </template>
           </div>
 
-          <div v-for="d in resizeDirs" :key="`${panelId}-${d}`" :class="['resize-handle', `h-${d}`]" @mousedown.left.stop.prevent="startResize(panelId, d, $event)"></div>
+          <div
+            v-if="viewMode === 'workspace'"
+            v-for="d in resizeDirs"
+            :key="`${panelId}-${d}`"
+            :class="['resize-handle', `h-${d}`]"
+            @mousedown.left.stop.prevent="startResize(panelId, d, $event)"
+          ></div>
         </section>
+      </div>
+
+    </div>
+
+    <div
+      v-if="validationModalOpen && importValidation"
+      class="validation-modal-backdrop"
+      @click.self="closeValidationModal"
+    >
+      <div class="validation-modal panel" role="dialog" aria-modal="true" aria-label="Data validation report">
+        <div class="validation-head">
+          <div class="validation-title">Data Validation Report</div>
+          <div class="validation-actions">
+            <button type="button" class="btn" @click="clearValidationReport">Clear Report</button>
+            <button type="button" class="btn" @click="closeValidationModal">Close</button>
+          </div>
+        </div>
+        <div class="validation-summary">
+          Rows checked: {{ importValidation.summary?.rows_checked ?? 0 }},
+          fixed cells: {{ importValidation.summary?.fixed_cells ?? 0 }},
+          replaced with null: {{ importValidation.summary?.nullified_cells ?? 0 }},
+          row shape fixes: {{ importValidation.summary?.row_shape_fixes ?? 0 }}.
+        </div>
+        <div v-if="importValidation.issues?.length" class="validation-list">
+          <div v-for="(issue, idx) in importValidation.issues" :key="`issue-modal-${idx}`" class="validation-item">
+            <div class="validation-item-meta">
+              <strong>Row {{ issue.row }}</strong>
+              <span v-if="issue.column">, {{ issue.column }}</span>
+              : {{ issue.message }}
+            </div>
+            <div class="validation-diff">Auto-fix: {{ formatIssueValue(issue.original) }} -> {{ formatIssueValue(issue.fixed) }}</div>
+
+            <div v-if="resolveIssueTarget(issue)" class="validation-edit-row">
+              <label class="validation-edit-label" :for="`validation-edit-${idx}`">Manual fix</label>
+              <input
+                :id="`validation-edit-${idx}`"
+                v-model="validationDrafts[idx]"
+                class="validation-edit-input"
+                type="text"
+                :placeholder="issue.fixed === null ? 'Enter corrected value' : 'Adjust value if needed'"
+              />
+            </div>
+            <div v-else class="validation-item-note">
+              This issue cannot be edited directly in modal.
+            </div>
+          </div>
+        </div>
+        <div v-else class="validation-summary">No issues found.</div>
+        <div class="validation-footer">
+          <div class="validation-save-state">{{ validationSaveState || 'Edit values and click save to update table data.' }}</div>
+          <button type="button" class="btn primary" :disabled="savingValidation" @click="applyValidationEdits">
+            {{ savingValidation ? 'Saving...' : 'Save Changes' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -136,6 +235,13 @@ import { projectsApi } from '../api/projects'
 
 const IDS = ['table', 'chart', 'stats', 'functions']
 const STORAGE_PREFIX = 'dataviz.workspace.layout.v1.'
+const VALIDATION_STORAGE_PREFIX = 'dataviz.validation.report.v1.'
+const CHART_COLORS_STORAGE_PREFIX = 'dataviz.chart.colors.v1.'
+const DEFAULT_CHART_PALETTE = [
+  '#1db954', '#35c9a3', '#4cc9f0', '#4895ef', '#4361ee',
+  '#3a0ca3', '#b5179e', '#f72585', '#f15bb5', '#ff8fab',
+  '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590',
+]
 const PRESETS = [
   { key: 'wide-stack', label: 'Table+Chart Full Width' },
   { key: 'analysis-focus', label: 'Analysis Focus' },
@@ -160,6 +266,12 @@ export default {
     const manualHeaders = ref(['Column 1', 'Column 2', 'Column 3'])
     const manualRowsInput = ref([createManualRow(3), createManualRow(3), createManualRow(3), createManualRow(3)])
     const manualError = ref('')
+    const importValidation = ref(null)
+    const validationModalOpen = ref(false)
+    const validationDrafts = ref({})
+    const savingValidation = ref(false)
+    const validationSaveState = ref('')
+    const viewMode = ref('workspace')
 
     const tableRows = ref([])
     const statistics = ref([])
@@ -169,10 +281,13 @@ export default {
     const chartType = ref('line')
     const chartLabels = ref([])
     const chartDatasets = ref([])
+    const seriesColors = ref({})
 
     const panelLayouts = ref({})
     const zCounter = ref(1)
     const interaction = ref(null)
+    const dragSwapTarget = ref(null)
+    const resizeTick = ref(0)
     const initializedForProjectId = ref(null)
     const activePreset = ref('default')
 
@@ -188,24 +303,80 @@ export default {
     const chartTypes = [{ key: 'line', label: 'Line' }, { key: 'bar', label: 'Bar' }, { key: 'pie', label: 'Pie' }]
 
     const cellField = (position) => `col_${position}`
+    const nullAwareFormatter = (cell) => {
+      const value = cell.getValue()
+      const el = cell.getElement()
+      if (value === null || value === undefined) {
+        el?.classList.add('cell-null')
+        return 'null'
+      }
+      el?.classList.remove('cell-null')
+      return value
+    }
     const sortedDatasetColumns = computed(() =>
       [...(project.value?.dataset?.columns || [])].sort((a, b) => Number(a.position) - Number(b.position))
     )
     const tableColumns = computed(() =>
-      sortedDatasetColumns.value.map((c) => ({ title: c.name, field: cellField(c.position), editor: 'input' }))
+      sortedDatasetColumns.value.map((c) => ({
+        title: c.name,
+        field: cellField(c.position),
+        metaType: c.type,
+        editor: 'input',
+        formatter: nullAwareFormatter,
+      }))
     )
+    const buildFocusLayouts = (mode) => {
+      void resizeTick.value
+      const w = canvasW()
+      const g = 16
+      if (mode === 'table') {
+        return {
+          table: { x: 0, y: 0, w, h: 720, z: 1 },
+        }
+      }
+      if (mode === 'visualization') {
+        return {
+          chart: { x: 0, y: 0, w, h: 470, z: 1 },
+          functions: { x: 0, y: 486, w, h: 360, z: 2 },
+        }
+      }
+      if (mode === 'statistics') {
+        return {
+          stats: { x: 0, y: 0, w, h: 720, z: 1 },
+        }
+      }
+      return {}
+    }
+
+    const focusLayouts = computed(() => buildFocusLayouts(viewMode.value))
+
     const workspaceHeight = computed(() => {
-      if (!panelIds.every((id) => panelLayouts.value[id])) return 760
-      return Math.max(760, Math.max(...panelIds.map((id) => panelLayouts.value[id].y + panelLayouts.value[id].h)) + 16)
+      const ids = visiblePanelIds.value
+      const layouts = viewMode.value === 'workspace' ? panelLayouts.value : focusLayouts.value
+      if (!ids.every((id) => layouts[id])) return 760
+      return Math.max(760, Math.max(...ids.map((id) => layouts[id].y + layouts[id].h)) + 16)
     })
 
     const panelStyle = (id) => {
-      const p = panelLayouts.value[id]
+      const layouts = viewMode.value === 'workspace' ? panelLayouts.value : focusLayouts.value
+      const p = layouts[id]
       return p ? { left: `${p.x}px`, top: `${p.y}px`, width: `${p.w}px`, height: `${p.h}px`, zIndex: p.z } : {}
     }
 
     const canvasW = () => Math.max(320, workspaceRef.value?.clientWidth || 1120)
     const key = () => `${STORAGE_PREFIX}${route.params.id}`
+    const validationKey = () => `${VALIDATION_STORAGE_PREFIX}${route.params.id}`
+    const chartColorsKey = () => `${CHART_COLORS_STORAGE_PREFIX}${route.params.id}`
+
+    const defaultSeriesColor = (index = 0) =>
+      DEFAULT_CHART_PALETTE[index % DEFAULT_CHART_PALETTE.length]
+
+    const visiblePanelIds = computed(() => {
+      if (viewMode.value === 'table') return ['table']
+      if (viewMode.value === 'visualization') return ['chart', 'functions']
+      if (viewMode.value === 'statistics') return ['stats']
+      return panelIds
+    })
 
     const escCsv = (v) => {
       const s = String(v ?? '')
@@ -220,6 +391,117 @@ export default {
         used.set(base, n + 1)
         return n === 0 ? base : `${base} (${n + 1})`
       })
+    }
+
+    const persistValidation = () => {
+      try {
+        if (!importValidation.value) {
+          localStorage.removeItem(validationKey())
+          return
+        }
+        localStorage.setItem(validationKey(), JSON.stringify(importValidation.value))
+      } catch (_) {}
+    }
+
+    const loadValidation = () => {
+      try {
+        const raw = localStorage.getItem(validationKey())
+        if (!raw) return null
+        const parsed = JSON.parse(raw)
+        return parsed && typeof parsed === 'object' ? parsed : null
+      } catch (_) {
+        return null
+      }
+    }
+
+    const setValidationReport = (report, open = false) => {
+      importValidation.value = report && typeof report === 'object' ? report : null
+      validationDrafts.value = {}
+      validationSaveState.value = ''
+      validationModalOpen.value = Boolean(open && importValidation.value)
+      persistValidation()
+    }
+
+    const loadSeriesColors = () => {
+      try {
+        const raw = localStorage.getItem(chartColorsKey())
+        if (!raw) return {}
+        const parsed = JSON.parse(raw)
+        return parsed && typeof parsed === 'object' ? parsed : {}
+      } catch (_) {
+        return {}
+      }
+    }
+
+    const persistSeriesColors = () => {
+      try {
+        localStorage.setItem(chartColorsKey(), JSON.stringify(seriesColors.value || {}))
+      } catch (_) {}
+    }
+
+    const getSeriesColor = (label, index = 0) => {
+      if (label && seriesColors.value[label]) return seriesColors.value[label]
+      const indexedKey = `series_${index}`
+      if (seriesColors.value[indexedKey]) return seriesColors.value[indexedKey]
+      return defaultSeriesColor(index)
+    }
+
+    const applyColorsToCurrentChart = () => {
+      if (!chartDatasets.value.length) return
+      chartDatasets.value = chartDatasets.value.map((ds, i) => ({
+        ...ds,
+        color: getSeriesColor(ds.label, i),
+      }))
+    }
+
+    const setSeriesColor = (label, index, color) => {
+      if (!color) return
+      const keyLabel = label || `series_${index}`
+      seriesColors.value = { ...seriesColors.value, [keyLabel]: color }
+      applyColorsToCurrentChart()
+      persistSeriesColors()
+    }
+
+    const resetSeriesColors = () => {
+      seriesColors.value = {}
+      applyColorsToCurrentChart()
+      persistSeriesColors()
+    }
+
+    const setViewMode = (mode) => {
+      viewMode.value = mode
+    }
+
+    const resolveIssueTarget = (issue) => {
+      const rowNumber = Number(issue?.row)
+      if (!Number.isInteger(rowNumber) || rowNumber < 1 || !issue?.column) return null
+      const column = sortedDatasetColumns.value.find((col) => col.name === issue.column)
+      if (!column) return null
+      const rowIndex = rowNumber - 1
+      const row = tableRows.value[rowIndex]
+      if (!row?.id) return null
+      return { rowNumber, rowIndex, row, field: cellField(column.position) }
+    }
+
+    const initValidationDrafts = () => {
+      if (!importValidation.value?.issues?.length) {
+        validationDrafts.value = {}
+        return
+      }
+      const drafts = {}
+      importValidation.value.issues.forEach((issue, idx) => {
+        const target = resolveIssueTarget(issue)
+        if (!target) return
+        const currentValue = tableRows.value[target.rowIndex]?.[target.field]
+        drafts[idx] = currentValue === null || currentValue === undefined ? '' : String(currentValue)
+      })
+      validationDrafts.value = drafts
+    }
+
+    const normalizeDraftValue = (value) => {
+      if (value === null || value === undefined) return null
+      const trimmed = String(value).trim()
+      return trimmed === '' ? null : trimmed
     }
 
     const buildPreset = (preset) => {
@@ -382,18 +664,68 @@ export default {
       return true
     }
 
+    const pointerToCanvas = (e) => {
+      if (!workspaceRef.value || !e) return null
+      const rect = workspaceRef.value.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return null
+      return { x, y }
+    }
+
+    const panelAtPoint = (x, y, excludeId = null) => {
+      let foundId = null
+      let foundZ = -Infinity
+      IDS.forEach((id) => {
+        if (id === excludeId) return
+        const p = panelLayouts.value[id]
+        if (!p) return
+        if (x >= p.x && x <= p.x + p.w && y >= p.y && y <= p.y + p.h && p.z >= foundZ) {
+          foundId = id
+          foundZ = p.z
+        }
+      })
+      return foundId
+    }
+
+    const updateDragSwapTarget = (it, e) => {
+      if (!it || it.type !== 'drag') {
+        dragSwapTarget.value = null
+        return
+      }
+      const point = pointerToCanvas(e)
+      if (!point) {
+        dragSwapTarget.value = null
+        return
+      }
+      dragSwapTarget.value = panelAtPoint(point.x, point.y, it.id)
+    }
+
+    const swapPanels = (firstId, secondId) => {
+      const first = panelLayouts.value[firstId]
+      const second = panelLayouts.value[secondId]
+      if (!first || !second) return
+      const firstRect = { x: first.x, y: first.y, w: first.w, h: first.h }
+      Object.assign(first, { x: second.x, y: second.y, w: second.w, h: second.h })
+      Object.assign(second, firstRect)
+    }
+
     const startDrag = (id, e) => {
+      if (viewMode.value !== 'workspace') return
       const p = panelLayouts.value[id]
       if (!p) return
       bringToFront(id)
+      dragSwapTarget.value = null
       interaction.value = { type: 'drag', id, sx: e.clientX, sy: e.clientY, base: { ...p } }
       document.body.style.userSelect = 'none'
     }
 
     const startResize = (id, dir, e) => {
+      if (viewMode.value !== 'workspace') return
       const p = panelLayouts.value[id]
       if (!p) return
       bringToFront(id)
+      dragSwapTarget.value = null
       interaction.value = { type: 'resize', id, dir, sx: e.clientX, sy: e.clientY, base: { ...p } }
       document.body.style.userSelect = 'none'
     }
@@ -414,8 +746,10 @@ export default {
           w: b.w,
           h: b.h,
         })
+        updateDragSwapTarget(it, e)
         return
       }
+      dragSwapTarget.value = null
       const d = it.dir
       const b = it.base
       const min = MIN[it.id]
@@ -429,16 +763,28 @@ export default {
       applyCandidate(it.id, { x, y, w, h })
     }
 
-    const onUp = () => {
+    const onUp = (e) => {
       if (interaction.value) {
+        if (viewMode.value === 'workspace' && interaction.value.type === 'drag') {
+          updateDragSwapTarget(interaction.value, e)
+          const targetId = dragSwapTarget.value
+          if (targetId && targetId !== interaction.value.id) {
+            swapPanels(interaction.value.id, targetId)
+          }
+        }
         interaction.value = null
-        activePreset.value = 'custom'
-        saveLayouts()
+        dragSwapTarget.value = null
+        if (viewMode.value === 'workspace') {
+          activePreset.value = 'custom'
+          saveLayouts()
+        }
       }
       document.body.style.userSelect = ''
     }
 
     const onResizeWindow = () => {
+      resizeTick.value += 1
+      if (viewMode.value !== 'workspace') return
       const next = {}
       IDS.forEach((id) => {
         if (!panelLayouts.value[id]) return
@@ -461,13 +807,19 @@ export default {
         const r = await projectsApi.get(route.params.id)
         project.value = r.project
         if (project.value?.dataset) {
+          seriesColors.value = loadSeriesColors()
           await Promise.all([loadRows(), loadStats(), loadSuggestions()])
+          if (!importValidation.value) {
+            importValidation.value = loadValidation()
+          }
           if (initializedForProjectId.value !== String(route.params.id)) {
             await nextTick()
             if (!loadLayouts()) applyPreset('default')
             initializedForProjectId.value = String(route.params.id)
           }
         } else {
+          setValidationReport(null)
+          seriesColors.value = {}
           tableRows.value = []; statistics.value = []; suggestions.value = []; chartLabels.value = []; chartDatasets.value = []
         }
       } catch (e) {
@@ -478,6 +830,19 @@ export default {
     }
 
     const loadRows = async () => {
+      const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
+      const readRowValue = (values, position, columnName) => {
+        if (Array.isArray(values)) {
+          return position < values.length ? values[position] : null
+        }
+        if (values && typeof values === 'object') {
+          if (hasOwn(values, position)) return values[position]
+          if (hasOwn(values, String(position))) return values[String(position)]
+          if (hasOwn(values, columnName)) return values[columnName]
+        }
+        return null
+      }
+
       try {
         const r = await projectsApi.getRows(route.params.id)
         const data = r.data ?? r
@@ -487,16 +852,14 @@ export default {
           const mapped = { id: row.id }
           sortedDatasetColumns.value.forEach((col) => {
             const position = Number(col.position)
-            let value = ''
-            if (Array.isArray(values)) {
-              value = values[position] ?? ''
-            } else if (values && typeof values === 'object') {
-              value = values[position] ?? values[String(position)] ?? values[col.name] ?? ''
-            }
-            mapped[cellField(position)] = value
+            const value = readRowValue(values, position, col.name)
+            mapped[cellField(position)] = value === undefined ? null : value
           })
           return mapped
         })
+        if (validationModalOpen.value && importValidation.value) {
+          initValidationDrafts()
+        }
       } catch (e) { console.error(e) }
     }
 
@@ -522,7 +885,12 @@ export default {
     const handleImport = async () => {
       if (!selectedFile.value) return
       importing.value = true; manualError.value = ''
-      try { await projectsApi.importDataset(route.params.id, selectedFile.value, importOptions.value); await loadProject() }
+      try {
+        const response = await projectsApi.importDataset(route.params.id, selectedFile.value, importOptions.value)
+        setValidationReport(response.validation || null, false)
+        await loadProject()
+        openValidationModal()
+      }
       catch (e) { window.alert('Import error: ' + (e.response?.data?.message || e.message)) }
       finally { importing.value = false }
     }
@@ -545,8 +913,10 @@ export default {
         const lines = [headers.map(escCsv).join(',')]
         manualRowsInput.value.forEach((row) => lines.push(headers.map((_, i) => row[i] ?? '').map(escCsv).join(',')))
         const file = new File([lines.join('\n')], 'manual_dataset.csv', { type: 'text/csv' })
-        await projectsApi.importDataset(route.params.id, file, { has_header: true, delimiter: ',' })
+        const response = await projectsApi.importDataset(route.params.id, file, { has_header: true, delimiter: ',' })
+        setValidationReport(response.validation || null, false)
         await loadProject()
+        openValidationModal()
       } catch (e) {
         manualError.value = e?.response?.data?.message || 'Failed to create table from manual data.'
       } finally {
@@ -556,12 +926,19 @@ export default {
 
     const handleCellEdit = async (data) => {
       try {
-        const values = sortedDatasetColumns.value.map((col) => data.row[cellField(col.position)] ?? '')
+        const values = sortedDatasetColumns.value.map((col) => data.row[cellField(col.position)] ?? null)
         await projectsApi.updateRow(route.params.id, data.row.id, values)
       } catch (e) { console.error(e) }
     }
 
-    const numeric = (v) => { const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) ? n : NaN }
+    const numeric = (v) => {
+      const cleaned = String(v ?? '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, '')
+        .replace(',', '.')
+      const n = parseFloat(cleaned)
+      return Number.isFinite(n) ? n : NaN
+    }
     const buildChart = () => {
       if (!tableRows.value.length || !tableColumns.value.length) return
       const cols = tableColumns.value
@@ -571,10 +948,22 @@ export default {
       const datasets = []
       cols.slice(1).forEach((c) => {
         const vals = rows.map((r) => numeric(r[c.field]))
-        if (vals.some((v) => !Number.isNaN(v))) datasets.push({ label: c.title, data: vals.map((v) => Number.isNaN(v) ? 0 : v) })
+        if (vals.some((v) => !Number.isNaN(v))) {
+          datasets.push({
+            label: c.title,
+            data: vals.map((v) => Number.isNaN(v) ? 0 : v),
+            color: getSeriesColor(c.title, datasets.length),
+          })
+        }
       })
       chartLabels.value = labels
-      chartDatasets.value = datasets.length ? datasets : [{ label: 'Values', data: rows.map((r) => numeric(r[li]) || 0) }]
+      chartDatasets.value = datasets.length
+        ? datasets
+        : [{
+            label: 'Values',
+            data: rows.map((r) => numeric(r[li]) || 0),
+            color: getSeriesColor('Values', 0),
+          }]
     }
 
     const clearChart = () => { chartLabels.value = []; chartDatasets.value = [] }
@@ -602,27 +991,128 @@ export default {
       return JSON.stringify(st).slice(0, 40)
     }
 
+    const formatIssueValue = (value) => {
+      if (value === null || value === undefined || value === '') return 'null'
+      return String(value)
+    }
+
+    const openValidationModal = () => {
+      if (!importValidation.value) return
+      initValidationDrafts()
+      validationSaveState.value = ''
+      validationModalOpen.value = true
+    }
+
+    const closeValidationModal = () => {
+      validationModalOpen.value = false
+    }
+
+    const clearValidationReport = () => {
+      setValidationReport(null, false)
+    }
+
+    const applyValidationEdits = async () => {
+      if (!importValidation.value?.issues?.length) {
+        validationSaveState.value = 'No validation issues to edit.'
+        return
+      }
+
+      savingValidation.value = true
+      validationSaveState.value = ''
+
+      try {
+        const rowsToUpdate = new Map()
+        let changedCells = 0
+
+        importValidation.value.issues.forEach((issue, idx) => {
+          const target = resolveIssueTarget(issue)
+          if (!target) return
+
+          const nextValue = normalizeDraftValue(validationDrafts.value[idx])
+          const currentValueRaw = tableRows.value[target.rowIndex]?.[target.field]
+          const currentValue = currentValueRaw === '' ? null : currentValueRaw
+          if (String(currentValue ?? '') === String(nextValue ?? '')) return
+
+          tableRows.value[target.rowIndex][target.field] = nextValue
+          rowsToUpdate.set(target.row.id, target.rowIndex)
+          changedCells += 1
+
+          if (importValidation.value?.issues?.[idx]) {
+            importValidation.value.issues[idx].fixed = nextValue
+          }
+        })
+
+        if (rowsToUpdate.size === 0) {
+          validationSaveState.value = 'No changes to save.'
+          return
+        }
+
+        for (const [rowId, rowIndex] of rowsToUpdate.entries()) {
+          const row = tableRows.value[rowIndex]
+          const values = sortedDatasetColumns.value.map((col) => {
+            const value = row[cellField(col.position)]
+            return value === '' ? null : (value ?? null)
+          })
+          await projectsApi.updateRow(route.params.id, rowId, values)
+        }
+
+        persistValidation()
+        await Promise.all([loadRows(), loadStats()])
+        initValidationDrafts()
+        validationSaveState.value = `Saved ${changedCells} cell change${changedCells === 1 ? '' : 's'}.`
+      } catch (e) {
+        console.error(e)
+        validationSaveState.value = 'Failed to save validation edits.'
+      } finally {
+        savingValidation.value = false
+      }
+    }
+
+    const onEsc = (e) => {
+      if (e.key === 'Escape' && validationModalOpen.value) {
+        closeValidationModal()
+      }
+    }
+
     onMounted(() => {
       loadProject()
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
       window.addEventListener('resize', onResizeWindow)
+      window.addEventListener('keydown', onEsc)
     })
 
     onBeforeUnmount(() => {
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
       window.removeEventListener('resize', onResizeWindow)
+      window.removeEventListener('keydown', onEsc)
       document.body.style.userSelect = ''
       saveLayouts()
     })
 
-    watch(() => route.params.id, () => { initializedForProjectId.value = null; loadProject() })
+    watch(() => route.params.id, () => {
+      initializedForProjectId.value = null
+      importValidation.value = null
+      validationModalOpen.value = false
+      validationDrafts.value = {}
+      validationSaveState.value = ''
+      viewMode.value = 'workspace'
+      seriesColors.value = {}
+      chartDatasets.value = []
+      dragSwapTarget.value = null
+      loadProject()
+    })
 
     return {
       project, loading, selectedFile, importing, importOptions, importMode, manualHeaders, manualRowsInput, manualError,
+      importValidation, validationModalOpen, validationDrafts, savingValidation, validationSaveState,
+      openValidationModal, closeValidationModal, clearValidationReport, applyValidationEdits,
+      resolveIssueTarget, formatIssueValue,
+      getSeriesColor, setSeriesColor, resetSeriesColors,
+      viewMode, setViewMode, visiblePanelIds,
       tableRows, tableColumns, statistics, statisticsLoading, suggestions, suggestionsLoading, chartType, chartTypes,
-      chartLabels, chartDatasets, workspaceRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle,
+      chartLabels, chartDatasets, workspaceRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle, dragSwapTarget,
       activePreset, presetOptions, applyPreset, bringToFront, startDrag, startResize, handleFileSelect, handleImport,
       addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
       buildChart, clearChart, refreshData, exportTableCsv, formatStat,
@@ -635,6 +1125,10 @@ export default {
 .project-page { display: flex; flex-direction: column; gap: 18px; }
 .app-content { flex: 1; }
 .top-row { margin-bottom: 12px; }
+.top-row-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.top-row-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.top-row-right { display: flex; align-items: center; gap: 8px; }
+.view-mode-switch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .loading { text-align: center; padding: 3rem; color: var(--muted); }
 .error { text-align: center; padding: 2rem; color: #fca5a5; }
 .section-title { font-weight: 700; margin-bottom: 12px; }
@@ -646,6 +1140,49 @@ export default {
 .manual-input:focus { outline: none; border-color: var(--accent); }
 .manual-input.header { font-weight: 600; }
 .manual-error { color: #ff9b9b; font-size: 13px; }
+.validation-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(29, 185, 84, 0.2);
+  color: #93f6b3;
+  font-size: 11px;
+  font-weight: 700;
+}
+.validation-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(0, 0, 0, 0.62);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+}
+.validation-modal {
+  width: min(860px, 94vw);
+  max-height: 84vh;
+  overflow: auto;
+}
+.validation-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.validation-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.validation-title { font-size: 15px; font-weight: 700; color: #93f6b3; }
+.validation-summary { color: var(--muted); font-size: 13px; line-height: 1.45; }
+.validation-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; max-height: 54vh; overflow: auto; padding-right: 4px; }
+.validation-item { font-size: 12px; color: var(--text); line-height: 1.45; border: 1px solid var(--border); border-radius: 10px; padding: 8px; background: #161616; }
+.validation-item-meta { margin-bottom: 4px; }
+.validation-diff { color: #93f6b3; }
+.validation-edit-row { margin-top: 8px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.validation-edit-label { color: var(--muted); min-width: 74px; }
+.validation-edit-input { flex: 1; min-width: 220px; background: var(--surface); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; font-size: 13px; }
+.validation-edit-input:focus { outline: none; border-color: var(--accent); }
+.validation-item-note { margin-top: 8px; color: var(--muted); font-size: 12px; }
+.validation-footer { margin-top: 10px; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.validation-save-state { color: var(--muted); font-size: 12px; }
 
 .layout-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
 .layout-controls { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -656,6 +1193,10 @@ export default {
 
 .workspace-canvas { position: relative; width: 100%; min-height: 760px; }
 .workspace-panel { position: absolute; overflow: hidden; box-sizing: border-box; padding: 12px; }
+.workspace-panel.swap-target {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(29, 185, 84, 0.5), 0 10px 24px rgba(0, 0, 0, 0.32);
+}
 .drag-handle { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border); cursor: move; user-select: none; }
 .drag-handle .title { font-weight: 700; }
 .drag-handle .sub { font-size: 12px; color: var(--muted); }
@@ -663,7 +1204,7 @@ export default {
 .panel-content { height: calc(100% - 44px); overflow: hidden; }
 .table-content, .stats-content, .functions-content { overflow: auto; }
 .chart-content { overflow: hidden; }
-.table-fill { height: 100%; }
+.table-fill { min-height: 240px; max-height: calc(100% - 42px); }
 
 .stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
 .stat-card { background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
@@ -672,6 +1213,15 @@ export default {
 .muted { color: var(--muted); font-size: 13px; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.series-colors { border: 1px solid var(--border); border-radius: 10px; background: #171717; padding: 10px; margin-bottom: 10px; }
+.series-colors-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.series-colors-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px; }
+.series-color-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 1px solid var(--border); border-radius: 8px; background: #1c1c1c; padding: 7px 10px; }
+.series-color-name { font-size: 12px; color: var(--muted); max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.series-color-input { width: 32px; height: 22px; border: none; border-radius: 6px; background: transparent; padding: 0; cursor: pointer; }
+.series-color-input::-webkit-color-swatch-wrapper { padding: 0; }
+.series-color-input::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 6px; }
+.table-bottom-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 .analysis-box { border: 1px solid var(--border); border-radius: 10px; background: #1a1a1a; padding: 10px; }
 .analysis-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .analysis-item { font-size: 12px; color: var(--muted); line-height: 1.5; margin-bottom: 6px; }

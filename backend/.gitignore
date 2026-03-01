@@ -1,3 +1,4 @@
+# Laravel runtime and build artifacts
 /node_modules
 /public/build
 /public/hot
@@ -8,11 +9,17 @@
 /storage/framework/sessions/*
 /storage/framework/views/*.php
 /storage/app/avatars/*
+/storage/app/datasets/*
 /bootstrap/cache/*.php
 /vendor
+
+# Environment files
 .env
 .env.backup
 .env.production
+!.env.example
+
+# Tooling and local configs
 .phpunit.result.cache
 Homestead.json
 Homestead.yaml
@@ -22,3 +29,4 @@ yarn-error.log
 /.fleet
 /.idea
 /.vscode
+PRIVATE_ROADMAP.md
