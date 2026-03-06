@@ -1,40 +1,69 @@
-# Инструкция по установке
+# Setup Guide
 
-## Быстрый старт
+This document provides a full local setup flow for the DataViz Studio project.
 
-### 1. Backend (Laravel)
+## Prerequisites
+
+- PHP 8.2+
+- Composer
+- Node.js 18+ and npm
+- MySQL 8+ (recommended)
+
+## 1. Backend Setup (Laravel)
 
 ```bash
 cd backend
 composer install
-# Windows PowerShell:
-Copy-Item env.example .env
-# Linux/Mac:
-# cp env.example .env
+```
+
+Create `.env` from the example:
+
+- PowerShell:
+```powershell
+Copy-Item .env.example .env
+```
+
+- Bash:
+```bash
+cp .env.example .env
+```
+
+Generate the app key:
+
+```bash
 php artisan key:generate
 ```
 
-Настройте `.env`:
+Create the database:
+
+```sql
+CREATE DATABASE dataviz CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Update `backend/.env`:
+
 ```env
+APP_URL=http://127.0.0.1:8000
+FRONTEND_URL=http://localhost:5173
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=dataviz
 DB_USERNAME=root
-DB_PASSWORD=your_password
+DB_PASSWORD=
 
-APP_URL=http://localhost:8000
-FRONTEND_URL=http://localhost:5173
-SANCTUM_STATEFUL_DOMAINS=localhost:5173
+SANCTUM_STATEFUL_DOMAINS=localhost:5173,127.0.0.1:5173,localhost:8000,127.0.0.1:8000
 ```
 
+Run migrations and start backend:
+
 ```bash
-php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
 php artisan migrate
 php artisan serve
 ```
 
-### 2. Frontend (Vue 3)
+## 2. Frontend Setup (Vue 3 + Vite)
 
 ```bash
 cd frontend
@@ -42,31 +71,61 @@ npm install
 npm run dev
 ```
 
-### 3. Создайте базу данных MySQL
+By default, Vite proxies API and Sanctum requests to `http://127.0.0.1:8000`.
 
-```sql
-CREATE DATABASE dataviz CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+If backend runs on another port (for example `8088`), set `VITE_BACKEND_URL` before starting frontend:
+
+- PowerShell:
+```powershell
+$env:VITE_BACKEND_URL='http://localhost:8088'
+npm run dev
 ```
 
-## Проверка работы
+- Bash:
+```bash
+VITE_BACKEND_URL=http://localhost:8088 npm run dev
+```
 
-1. Откройте `http://localhost:5173`
-2. Зарегистрируйтесь
-3. Создайте проект
-4. Импортируйте CSV файл
+## 3. Verify the Setup
 
-## Структура проекта
+1. Open `http://localhost:5173`.
+2. Register a user.
+3. Create a project.
+4. Import a CSV/TXT file or use manual input.
+
+## Project Structure
 
 - `backend/` - Laravel API
-- `frontend/` - Vue 3 приложение
+- `frontend/` - Vue 3 SPA
+- `test-data/` - sample CSV files for validation testing
 
-## Возможные проблемы
+## Common Issues
 
-### CORS ошибки
-Убедитесь, что в `backend/config/cors.php` правильно настроен `allowed_origins` и `supports_credentials = true`
+### Backend serve issues on Windows
 
-### Sanctum не работает
-Проверьте, что в `.env` указан `SANCTUM_STATEFUL_DOMAINS=localhost:5173`
+If `php artisan serve` fails in auto-reload mode, run:
 
-### База данных
-Убедитесь, что MySQL запущен и база данных создана
+```bash
+php artisan serve --host=localhost --port=8088 --no-reload
+```
+
+If you switch to port `8088`, remember to set `VITE_BACKEND_URL` for frontend.
+
+### CSRF/Sanctum authentication errors (419 or unauthorized)
+
+- Ensure frontend URL and backend URL are correct.
+- Verify `SANCTUM_STATEFUL_DOMAINS` in `backend/.env`.
+- Confirm backend is reachable at the URL used by Vite proxy.
+
+### CORS errors
+
+Check `backend/config/cors.php`:
+
+- `allowed_origins` should include your frontend origin.
+- `supports_credentials` must be `true`.
+
+### Database connection errors
+
+- Make sure MySQL is running.
+- Ensure the `dataviz` database exists.
+- Verify DB credentials in `backend/.env`.

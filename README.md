@@ -56,7 +56,7 @@ This repository contains:
   - row width normalization (pad/truncate row cells)
   - string trimming and empty marker normalization to `null`
   - numeric normalization (currency symbols, `%`, comma/decimal variants, `k/m/b` suffix)
-  - date normalization to `YYYY-MM-DD`
+  - date normalization to `DD.MM.YYYY`
   - invalid numeric/date values replaced with `null`
 - Validation report is persisted in `localStorage` per project.
 - Modal allows manual correction of validated cells and saving changes back to backend.

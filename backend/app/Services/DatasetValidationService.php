@@ -7,6 +7,7 @@ use Carbon\Carbon;
 class DatasetValidationService
 {
     private const MAX_ISSUES_IN_RESPONSE = 120;
+    private const DATE_OUTPUT_FORMAT = 'd.m.Y';
 
     public function sanitizeImportedRows(array $rows, array $columns): array
     {
@@ -133,16 +134,8 @@ class DatasetValidationService
         }
 
         if ($type === 'date') {
-            try {
-                $date = Carbon::parse($trimmed)->format('Y-m-d');
-                $changed = $date !== $trimmed;
-                return [
-                    'value' => $date,
-                    'changed' => $changed,
-                    'issue_type' => 'date_normalized',
-                    'message' => 'Normalized date format to YYYY-MM-DD.',
-                ];
-            } catch (\Throwable $e) {
+            $parsedDate = $this->parseDate($trimmed);
+            if ($parsedDate === null) {
                 return [
                     'value' => null,
                     'changed' => true,
@@ -150,6 +143,15 @@ class DatasetValidationService
                     'message' => 'Invalid date value replaced with null.',
                 ];
             }
+
+            $normalizedDate = $parsedDate->format(self::DATE_OUTPUT_FORMAT);
+            $changed = $normalizedDate !== $trimmed;
+            return [
+                'value' => $normalizedDate,
+                'changed' => $changed,
+                'issue_type' => 'date_normalized',
+                'message' => 'Normalized date format to DD.MM.YYYY.',
+            ];
         }
 
         // string
@@ -231,6 +233,44 @@ class DatasetValidationService
         }
 
         return (float) $normalized * $multiplier;
+    }
+
+    private function parseDate(string $value): ?Carbon
+    {
+        $trimmed = trim($value);
+
+        if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $trimmed, $matches) === 1) {
+            return $this->buildDate((int) $matches[3], (int) $matches[2], (int) $matches[1]);
+        }
+
+        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $trimmed, $matches) === 1) {
+            // Prefer day-first for slash format in this app context.
+            $dayFirst = $this->buildDate((int) $matches[3], (int) $matches[2], (int) $matches[1]);
+            if ($dayFirst !== null) {
+                return $dayFirst;
+            }
+
+            return $this->buildDate((int) $matches[3], (int) $matches[1], (int) $matches[2]);
+        }
+
+        if (preg_match('/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/', $trimmed, $matches) === 1) {
+            return $this->buildDate((int) $matches[1], (int) $matches[2], (int) $matches[3]);
+        }
+
+        try {
+            return Carbon::parse($trimmed);
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    private function buildDate(int $year, int $month, int $day): ?Carbon
+    {
+        if (!checkdate($month, $day, $year)) {
+            return null;
+        }
+
+        return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
     private function printable(mixed $value): mixed

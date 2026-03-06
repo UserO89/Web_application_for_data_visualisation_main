@@ -1,7 +1,7 @@
-# Repository hygiene
+# Repository-private docs
 PRIVATE_ROADMAP.md
 
-# Editor and OS files
+# Editor and OS artifacts
 .idea/
 .vscode/
 .fleet/
@@ -15,20 +15,24 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Root environment files
+# Environment files
 .env
 .env.*
 !.env.example
-
-# Monorepo safety nets
-backend/vendor/
-backend/node_modules/
-backend/storage/
-backend/public/build/
-backend/public/storage/
-frontend/node_modules/
-frontend/dist/
-frontend/dist-ssr/
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+
+# Dependencies
+backend/vendor/
+backend/node_modules/
+frontend/node_modules/
+
+# Build outputs
+backend/public/build/
+frontend/dist/
+frontend/dist-ssr/
+
+# Runtime artifacts
+backend/storage/
+backend/public/storage/

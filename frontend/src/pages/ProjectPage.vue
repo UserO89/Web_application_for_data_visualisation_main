@@ -68,22 +68,6 @@
         </div>
       </div>
 
-      <div v-if="viewMode === 'workspace'" class="panel layout-bar">
-        <div class="section-title">Workspace</div>
-        <div class="layout-controls">
-          <button type="button" class="btn" @click="applyPreset('default')">Default</button>
-          <button
-            v-for="p in presetOptions"
-            :key="p.key"
-            type="button"
-            :class="['btn', { primary: activePreset === p.key }]"
-            @click="applyPreset(p.key)"
-          >
-            {{ p.label }}
-          </button>
-        </div>
-      </div>
-
       <div ref="workspaceRef" class="workspace-canvas" :style="{ height: `${workspaceHeight}px` }">
         <section
           v-for="panelId in visiblePanelIds"
@@ -108,55 +92,132 @@
             </template>
 
             <template v-else-if="panelId === 'chart'">
-              <ChartPanel embedded :labels="chartLabels" :datasets="chartDatasets" :type="chartType" @clear="clearChart" />
-            </template>
-
-            <template v-else-if="panelId === 'stats'">
-              <div v-if="statisticsLoading" class="muted">Loading...</div>
-              <div v-else-if="statistics.length" class="stats-grid">
-                <div v-for="s in statistics.slice(0, 8)" :key="s.column" class="stat-card">
-                  <div class="stat-title">{{ s.column }} ({{ s.type }})</div>
-                  <div class="stat-value">{{ formatStat(s) }}</div>
+              <div class="chart-shell">
+                <div class="chart-main">
+                  <ChartPanel embedded :labels="chartLabels" :datasets="chartDatasets" :type="chartType" @clear="clearChart" />
                 </div>
-              </div>
-              <div v-else class="muted">No statistics available.</div>
-            </template>
-
-            <template v-else>
-              <div class="controls">
-                <button class="btn primary" type="button" @click="buildChart">Build Chart</button>
-                <button class="btn" type="button" @click="refreshData">Refresh Data</button>
-                <button class="btn" type="button" @click="exportTableCsv">Export CSV</button>
-              </div>
-              <div class="controls">
-                <button v-for="t in chartTypes" :key="t.key" :class="['btn', { primary: chartType === t.key }]" @click="chartType = t.key" type="button">{{ t.label }}</button>
-              </div>
-              <div v-if="chartDatasets.length" class="series-colors">
-                <div class="series-colors-head">
-                  <div class="analysis-title">Series Colors</div>
-                  <button type="button" class="btn" @click="resetSeriesColors">Reset Colors</button>
-                </div>
-                <div class="series-colors-grid">
-                  <div v-for="(ds, i) in chartDatasets" :key="`series-color-${ds.label}-${i}`" class="series-color-item">
-                    <span class="series-color-name">{{ ds.label || `Series ${i + 1}` }}</span>
-                    <input
-                      type="color"
-                      class="series-color-input"
-                      :value="getSeriesColor(ds.label, i)"
-                      @input="setSeriesColor(ds.label, i, $event.target.value)"
-                    />
+                <div class="chart-tools">
+                  <div class="controls">
+                    <button class="btn primary" type="button" @click="buildChart">Build Chart</button>
+                    <button class="btn" type="button" @click="refreshData">Refresh Data</button>
+                    <button class="btn" type="button" @click="exportTableCsv">Export CSV</button>
+                  </div>
+                  <div class="controls">
+                    <button
+                      v-for="t in chartTypes"
+                      :key="t.key"
+                      :class="['btn', { primary: chartType === t.key }]"
+                      @click="selectChartType(t.key)"
+                      type="button"
+                    >
+                      {{ t.label }}
+                    </button>
+                  </div>
+                  <div v-if="chartDatasets.length" class="series-colors">
+                    <div class="series-colors-head">
+                      <div class="analysis-title">Series Colors</div>
+                      <button type="button" class="btn" @click="resetSeriesColors">Reset Colors</button>
+                    </div>
+                    <div class="series-colors-grid">
+                      <div v-for="(ds, i) in chartDatasets" :key="`series-color-${ds.label}-${i}`" class="series-color-item">
+                        <span class="series-color-name">{{ ds.label || `Series ${i + 1}` }}</span>
+                        <input
+                          type="color"
+                          class="series-color-input"
+                          :value="getSeriesColor(ds.label, i)"
+                          @input="setSeriesColor(ds.label, i, $event.target.value)"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div class="analysis-box">
+                    <div class="analysis-title">Data Analysis</div>
+                    <div v-if="suggestionsLoading" class="analysis-item">Loading...</div>
+                    <template v-else-if="suggestions.length">
+                      <div v-for="(s, i) in suggestions.slice(0, 6)" :key="i" class="analysis-item"><strong>{{ s.title }}</strong> - {{ s.description }}</div>
+                    </template>
+                    <div v-else class="analysis-item">Recommendations will appear here.</div>
                   </div>
                 </div>
               </div>
-              <div class="analysis-box">
-                <div class="analysis-title">Data Analysis</div>
-                <div v-if="suggestionsLoading" class="analysis-item">Loading...</div>
-                <template v-else-if="suggestions.length">
-                  <div v-for="(s, i) in suggestions.slice(0, 6)" :key="i" class="analysis-item"><strong>{{ s.title }}</strong> - {{ s.description }}</div>
-                </template>
-                <div v-else class="analysis-item">Recommendations will appear here.</div>
+            </template>
+
+            <template v-else-if="panelId === 'stats'">
+              <div class="stats-shell">
+                <div class="stats-level">
+                  <div class="stats-level-title">Columns</div>
+                  <div class="stats-actions">
+                    <button
+                      type="button"
+                      :class="['btn', { primary: areAllStatsColumnsSelected }]"
+                      @click="toggleAllStatsColumns"
+                    >
+                      All Columns
+                    </button>
+                  </div>
+                  <div v-if="tableColumns.length" class="stats-button-grid">
+                    <button
+                      v-for="column in tableColumns"
+                      :key="`stats-col-${column.field}`"
+                      type="button"
+                      :class="['btn', { primary: selectedStatsColumns.includes(column.field) }]"
+                      @click="toggleStatsColumn(column.field)"
+                    >
+                      {{ column.title }}
+                    </button>
+                  </div>
+                  <div v-else class="muted">No columns available.</div>
+                </div>
+
+                <div class="stats-level">
+                  <div class="stats-level-title">Calculate</div>
+                  <div class="stats-metric-grid">
+                    <label
+                      v-for="metric in statsMetricOptions"
+                      :key="`stats-metric-${metric.key}`"
+                      class="stats-metric-item"
+                    >
+                      <input
+                        type="checkbox"
+                        :checked="isMetricSelected(metric.key)"
+                        @change="toggleStatsMetric(metric.key)"
+                      />
+                      <span>{{ metric.label }}</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div class="stats-level">
+                  <div class="stats-level-title">Visualization</div>
+                  <div v-if="!selectedStatsColumnsMeta.length" class="muted">Select at least one column.</div>
+                  <div v-else-if="!statsVisualizationRows.length" class="muted">Select at least one statistic.</div>
+                  <div v-else class="table-wrap stats-table-wrap">
+                    <table class="data-table stats-table">
+                      <thead>
+                        <tr>
+                          <th>Metric</th>
+                          <th v-for="column in selectedStatsColumnsMeta" :key="`stats-head-${column.field}`">
+                            {{ column.title }}
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="row in statsVisualizationRows" :key="`stats-row-${row.key}`">
+                          <td>{{ row.label }}</td>
+                          <td
+                            v-for="column in selectedStatsColumnsMeta"
+                            :key="`stats-cell-${row.key}-${column.field}`"
+                          >
+                            {{ formatStatsValue(getStatsValue(column.field, row.key)) }}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </template>
+
           </div>
 
           <div
@@ -233,8 +294,8 @@ import ChartPanel from '../components/ChartPanel.vue'
 import DataTable from '../components/DataTable.vue'
 import { projectsApi } from '../api/projects'
 
-const IDS = ['table', 'chart', 'stats', 'functions']
-const STORAGE_PREFIX = 'dataviz.workspace.layout.v1.'
+const IDS = ['table', 'chart', 'stats']
+const STORAGE_PREFIX = 'dataviz.workspace.layout.v2.'
 const VALIDATION_STORAGE_PREFIX = 'dataviz.validation.report.v1.'
 const CHART_COLORS_STORAGE_PREFIX = 'dataviz.chart.colors.v1.'
 const DEFAULT_CHART_PALETTE = [
@@ -245,9 +306,21 @@ const DEFAULT_CHART_PALETTE = [
 const PRESETS = [
   { key: 'wide-stack', label: 'Table+Chart Full Width' },
   { key: 'analysis-focus', label: 'Analysis Focus' },
-  { key: 'quad', label: '4-Grid' },
+  { key: 'quad', label: 'Top Split + Stats' },
 ]
-const MIN = { table: { w: 420, h: 280 }, chart: { w: 340, h: 280 }, stats: { w: 300, h: 220 }, functions: { w: 320, h: 240 } }
+const MIN = { table: { w: 420, h: 280 }, chart: { w: 360, h: 320 }, stats: { w: 300, h: 220 } }
+const STATS_METRIC_OPTIONS = [
+  { key: 'mean', label: 'Mean' },
+  { key: 'median', label: 'Median' },
+  { key: 'sum', label: 'Sum' },
+  { key: 'mode', label: 'Mode' },
+  { key: 'minimum', label: 'Minimum' },
+  { key: 'maximum', label: 'Maximum' },
+  { key: 'count', label: 'Number of values' },
+  { key: 'q1', label: 'Quartile 1' },
+  { key: 'q2', label: 'Quartile 2' },
+  { key: 'q3', label: 'Quartile 3' },
+]
 const createManualRow = (n) => Array.from({ length: n }, () => '')
 
 export default {
@@ -274,8 +347,8 @@ export default {
     const viewMode = ref('workspace')
 
     const tableRows = ref([])
-    const statistics = ref([])
-    const statisticsLoading = ref(false)
+    const selectedStatsColumns = ref([])
+    const selectedStatsMetricOrder = ref([])
     const suggestions = ref([])
     const suggestionsLoading = ref(false)
     const chartType = ref('line')
@@ -296,11 +369,17 @@ export default {
     const presetOptions = PRESETS
     const panelConfig = {
       table: { title: 'Data Table', subtitle: 'Editable' },
-      chart: { title: 'Visualization', subtitle: 'Interactive area' },
-      stats: { title: 'Statistics', subtitle: 'Auto-updated' },
-      functions: { title: 'Functions', subtitle: 'Controls and analysis' },
+      chart: { title: 'Visualization', subtitle: 'Chart + controls' },
+      stats: { title: 'Statistics', subtitle: 'Columns / Calculate / Visualization' },
     }
-    const chartTypes = [{ key: 'line', label: 'Line' }, { key: 'bar', label: 'Bar' }, { key: 'pie', label: 'Pie' }]
+    const chartTypes = [
+      { key: 'line', label: 'Line' },
+      { key: 'bar', label: 'Bar' },
+      { key: 'scatter', label: 'Scatter' },
+      { key: 'histogram', label: 'Histogram' },
+      { key: 'pie', label: 'Pie' },
+      { key: 'boxplot', label: 'Boxplot' },
+    ]
 
     const cellField = (position) => `col_${position}`
     const nullAwareFormatter = (cell) => {
@@ -325,10 +404,151 @@ export default {
         formatter: nullAwareFormatter,
       }))
     )
+    const statsMetricOptions = STATS_METRIC_OPTIONS
+    const statsMetricLabelByKey = Object.fromEntries(
+      statsMetricOptions.map((metric) => [metric.key, metric.label])
+    )
+    const parseNumericCell = (value) => {
+      const cleaned = String(value ?? '')
+        .replace(/<[^>]*>/g, '')
+        .replace(/\s+/g, '')
+        .replace(',', '.')
+      const parsed = Number.parseFloat(cleaned)
+      return Number.isFinite(parsed) ? parsed : NaN
+    }
+    watch(
+      tableColumns,
+      (columns) => {
+        const fields = columns.map((column) => column.field)
+        const allowed = new Set(fields)
+        selectedStatsColumns.value = selectedStatsColumns.value.filter((field) => allowed.has(field))
+        if (!selectedStatsColumns.value.length && fields.length) {
+          selectedStatsColumns.value = [...fields]
+        }
+      },
+      { immediate: true }
+    )
+    const areAllStatsColumnsSelected = computed(
+      () => tableColumns.value.length > 0 && selectedStatsColumns.value.length === tableColumns.value.length
+    )
+    const selectedStatsColumnsMeta = computed(() =>
+      selectedStatsColumns.value
+        .map((field) => tableColumns.value.find((column) => column.field === field))
+        .filter(Boolean)
+    )
+    const toggleAllStatsColumns = () => {
+      if (areAllStatsColumnsSelected.value) {
+        selectedStatsColumns.value = []
+      } else {
+        selectedStatsColumns.value = tableColumns.value.map((column) => column.field)
+      }
+    }
+    const toggleStatsColumn = (field) => {
+      if (selectedStatsColumns.value.includes(field)) {
+        selectedStatsColumns.value = selectedStatsColumns.value.filter((selectedField) => selectedField !== field)
+      } else {
+        selectedStatsColumns.value = [...selectedStatsColumns.value, field]
+      }
+    }
+    const isMetricSelected = (metricKey) => selectedStatsMetricOrder.value.includes(metricKey)
+    const toggleStatsMetric = (metricKey) => {
+      if (isMetricSelected(metricKey)) {
+        selectedStatsMetricOrder.value = selectedStatsMetricOrder.value.filter((key) => key !== metricKey)
+      } else {
+        selectedStatsMetricOrder.value = [...selectedStatsMetricOrder.value, metricKey]
+      }
+    }
+    const quantileFromSorted = (sortedValues, quantile) => {
+      if (!sortedValues.length) return null
+      const position = (sortedValues.length - 1) * quantile
+      const lower = Math.floor(position)
+      const upper = Math.ceil(position)
+      if (lower === upper) return sortedValues[lower]
+      const weight = position - lower
+      return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight
+    }
+    const modeFromValues = (values) => {
+      if (!values.length) return null
+      const frequencies = new Map()
+      values.forEach((value) => {
+        frequencies.set(value, (frequencies.get(value) || 0) + 1)
+      })
+      let topValue = null
+      let topFrequency = 0
+      frequencies.forEach((frequency, value) => {
+        const shouldReplace = frequency > topFrequency || (frequency === topFrequency && topValue !== null && value < topValue)
+        if (shouldReplace) {
+          topFrequency = frequency
+          topValue = value
+        }
+      })
+      return topFrequency > 1 ? topValue : null
+    }
+    const calculateMetricValue = (values, metricKey) => {
+      if (metricKey === 'count') return values.length
+      if (!values.length) return null
+      const sorted = [...values].sort((a, b) => a - b)
+      const sum = values.reduce((acc, current) => acc + current, 0)
+      switch (metricKey) {
+        case 'mean':
+          return sum / values.length
+        case 'median':
+          return quantileFromSorted(sorted, 0.5)
+        case 'sum':
+          return sum
+        case 'mode':
+          return modeFromValues(values)
+        case 'minimum':
+          return sorted[0]
+        case 'maximum':
+          return sorted[sorted.length - 1]
+        case 'q1':
+          return quantileFromSorted(sorted, 0.25)
+        case 'q2':
+          return quantileFromSorted(sorted, 0.5)
+        case 'q3':
+          return quantileFromSorted(sorted, 0.75)
+        default:
+          return null
+      }
+    }
+    const statsValuesByColumn = computed(() => {
+      const result = {}
+      selectedStatsColumnsMeta.value.forEach((column) => {
+        result[column.field] = tableRows.value
+          .map((row) => parseNumericCell(row[column.field]))
+          .filter((value) => Number.isFinite(value))
+      })
+      return result
+    })
+    const statsMatrix = computed(() => {
+      const matrix = {}
+      selectedStatsColumnsMeta.value.forEach((column) => {
+        const values = statsValuesByColumn.value[column.field] || []
+        matrix[column.field] = {}
+        selectedStatsMetricOrder.value.forEach((metricKey) => {
+          matrix[column.field][metricKey] = calculateMetricValue(values, metricKey)
+        })
+      })
+      return matrix
+    })
+    const statsVisualizationRows = computed(() =>
+      selectedStatsMetricOrder.value.map((metricKey) => ({
+        key: metricKey,
+        label: statsMetricLabelByKey[metricKey] || metricKey,
+      }))
+    )
+    const getStatsValue = (field, metricKey) => statsMatrix.value[field]?.[metricKey] ?? null
+    const formatStatsValue = (value) => {
+      if (value === null || value === undefined || Number.isNaN(value)) return '-'
+      if (typeof value !== 'number') return String(value)
+      const rounded = Math.round(value * 10000) / 10000
+      if (Number.isInteger(rounded)) return rounded.toLocaleString()
+      return rounded.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })
+    }
     const buildFocusLayouts = (mode) => {
       void resizeTick.value
       const w = canvasW()
-      const g = 16
       if (mode === 'table') {
         return {
           table: { x: 0, y: 0, w, h: 720, z: 1 },
@@ -336,8 +556,7 @@ export default {
       }
       if (mode === 'visualization') {
         return {
-          chart: { x: 0, y: 0, w, h: 470, z: 1 },
-          functions: { x: 0, y: 486, w, h: 360, z: 2 },
+          chart: { x: 0, y: 0, w, h: 720, z: 1 },
         }
       }
       if (mode === 'statistics') {
@@ -373,7 +592,7 @@ export default {
 
     const visiblePanelIds = computed(() => {
       if (viewMode.value === 'table') return ['table']
-      if (viewMode.value === 'visualization') return ['chart', 'functions']
+      if (viewMode.value === 'visualization') return ['chart']
       if (viewMode.value === 'statistics') return ['stats']
       return panelIds
     })
@@ -507,9 +726,14 @@ export default {
     const buildPreset = (preset) => {
       const w = canvasW()
       const g = 16
+      const preferredChartWidth = 580
+      const resolveChartWidth = () => {
+        const maxBySpace = Math.max(MIN.chart.w, w - g - MIN.table.w)
+        return Math.min(preferredChartWidth, maxBySpace)
+      }
       const single = () => {
         let y = 0
-        const h = { table: 420, chart: 360, stats: 260, functions: 300 }
+        const h = { table: 420, chart: 420, stats: 300 }
         const out = {}
         IDS.forEach((id, i) => { out[id] = { x: 0, y, w, h: h[id], z: i + 1 }; y += h[id] + g })
         return out
@@ -517,40 +741,40 @@ export default {
       if (w < 980) return single()
 
       if (preset === 'wide-stack') {
-        const half = Math.floor((w - g) / 2)
         return {
-          table: { x: 0, y: 0, w, h: 400, z: 1 },
-          chart: { x: 0, y: 416, w, h: 320, z: 2 },
-          stats: { x: 0, y: 752, w: half, h: 260, z: 3 },
-          functions: { x: half + g, y: 752, w: w - half - g, h: 260, z: 4 },
+          table: { x: 0, y: 0, w, h: 380, z: 1 },
+          chart: { x: 0, y: 396, w, h: 360, z: 2 },
+          stats: { x: 0, y: 772, w, h: 260, z: 3 },
         }
       }
       if (preset === 'analysis-focus') {
         const right = Math.floor(w * 0.36)
         const left = w - right - g
         return {
-          chart: { x: 0, y: 0, w: left, h: 420, z: 1 },
-          table: { x: 0, y: 436, w: left, h: 360, z: 2 },
-          stats: { x: left + g, y: 0, w: right, h: 280, z: 3 },
-          functions: { x: left + g, y: 296, w: right, h: 500, z: 4 },
+          chart: { x: 0, y: 0, w: left, h: 460, z: 1 },
+          table: { x: 0, y: 476, w: left, h: 360, z: 2 },
+          stats: { x: left + g, y: 0, w: right, h: 836, z: 3 },
         }
       }
       if (preset === 'quad') {
-        const half = Math.floor((w - g) / 2)
+        const chartWidth = resolveChartWidth()
+        const tableWidth = Math.max(MIN.table.w, w - g - chartWidth)
+        const topHeight = 360
+        const lowerY = topHeight + g
         return {
-          table: { x: 0, y: 0, w: half, h: 360, z: 1 },
-          chart: { x: half + g, y: 0, w: w - half - g, h: 360, z: 2 },
-          stats: { x: 0, y: 376, w: half, h: 300, z: 3 },
-          functions: { x: half + g, y: 376, w: w - half - g, h: 300, z: 4 },
+          table: { x: 0, y: 0, w: tableWidth, h: topHeight, z: 1 },
+          chart: { x: tableWidth + g, y: 0, w: chartWidth, h: topHeight, z: 2 },
+          stats: { x: 0, y: lowerY, w, h: 500, z: 3 },
         }
       }
-      const left = Math.floor(w * 0.64) - g
-      const right = w - left - g
+      const right = resolveChartWidth()
+      const left = Math.max(MIN.table.w, w - right - g)
+      const topHeight = 360
+      const statsY = topHeight + g
       return {
-        table: { x: 0, y: 0, w: left, h: 440, z: 1 },
-        chart: { x: left + g, y: 0, w: right, h: 360, z: 2 },
-        stats: { x: left + g, y: 376, w: right, h: 250, z: 3 },
-        functions: { x: 0, y: 456, w: left, h: 280, z: 4 },
+        table: { x: 0, y: 0, w: left, h: topHeight, z: 1 },
+        chart: { x: left + g, y: 0, w: right, h: topHeight, z: 2 },
+        stats: { x: 0, y: statsY, w, h: 500, z: 3 },
       }
     }
 
@@ -808,7 +1032,7 @@ export default {
         project.value = r.project
         if (project.value?.dataset) {
           seriesColors.value = loadSeriesColors()
-          await Promise.all([loadRows(), loadStats(), loadSuggestions()])
+          await Promise.all([loadRows(), loadSuggestions()])
           if (!importValidation.value) {
             importValidation.value = loadValidation()
           }
@@ -820,7 +1044,9 @@ export default {
         } else {
           setValidationReport(null)
           seriesColors.value = {}
-          tableRows.value = []; statistics.value = []; suggestions.value = []; chartLabels.value = []; chartDatasets.value = []
+          tableRows.value = []; suggestions.value = []; chartLabels.value = []; chartDatasets.value = []
+          selectedStatsColumns.value = []
+          selectedStatsMetricOrder.value = []
         }
       } catch (e) {
         console.error(e)
@@ -863,14 +1089,6 @@ export default {
       } catch (e) { console.error(e) }
     }
 
-    const loadStats = async () => {
-      statisticsLoading.value = true
-      try {
-        const r = await projectsApi.getStatistics(route.params.id)
-        statistics.value = r.statistics || []
-      } catch (e) { console.error(e) } finally { statisticsLoading.value = false }
-    }
-
     const loadSuggestions = async () => {
       suggestionsLoading.value = true
       try {
@@ -879,7 +1097,7 @@ export default {
       } catch (e) { console.error(e) } finally { suggestionsLoading.value = false }
     }
 
-    const refreshData = async () => Promise.all([loadRows(), loadStats(), loadSuggestions()])
+    const refreshData = async () => Promise.all([loadRows(), loadSuggestions()])
 
     const handleFileSelect = (e) => { selectedFile.value = e.target.files?.[0] || null }
     const handleImport = async () => {
@@ -931,23 +1149,135 @@ export default {
       } catch (e) { console.error(e) }
     }
 
-    const numeric = (v) => {
-      const cleaned = String(v ?? '')
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, '')
-        .replace(',', '.')
-      const n = parseFloat(cleaned)
-      return Number.isFinite(n) ? n : NaN
-    }
     const buildChart = () => {
       if (!tableRows.value.length || !tableColumns.value.length) return
       const cols = tableColumns.value
       const rows = tableRows.value
+      const numericColumns = cols
+        .map((column) => ({
+          field: column.field,
+          name: column.title,
+          values: rows
+            .map((row) => parseNumericCell(row[column.field]))
+            .filter((value) => Number.isFinite(value)),
+        }))
+        .filter((column) => column.values.length > 0)
+
+      if (chartType.value === 'boxplot') {
+        if (!numericColumns.length) {
+          chartLabels.value = []
+          chartDatasets.value = []
+          return
+        }
+
+        chartLabels.value = numericColumns.map((column) => column.name)
+        chartDatasets.value = [{
+          label: 'Distribution',
+          data: numericColumns.map((column) => column.values),
+          backgroundColor: numericColumns.map((_, idx) => {
+            const color = getSeriesColor(numericColumns[idx].name, idx)
+            return `${color}33`
+          }),
+          borderColor: numericColumns.map((column, idx) => getSeriesColor(column.name, idx)),
+        }]
+        return
+      }
+
+      if (chartType.value === 'scatter') {
+        if (numericColumns.length < 2) {
+          chartLabels.value = []
+          chartDatasets.value = []
+          return
+        }
+
+        const xColumn = numericColumns[0]
+        const yColumn = numericColumns[1]
+        const points = rows
+          .map((row) => ({
+            x: parseNumericCell(row[xColumn.field]),
+            y: parseNumericCell(row[yColumn.field]),
+          }))
+          .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
+
+        if (!points.length) {
+          chartLabels.value = []
+          chartDatasets.value = []
+          return
+        }
+
+        chartLabels.value = []
+        chartDatasets.value = [{
+          label: `${yColumn.name} vs ${xColumn.name}`,
+          data: points,
+          color: getSeriesColor(`${yColumn.name} vs ${xColumn.name}`, 0),
+        }]
+        return
+      }
+
+      if (chartType.value === 'histogram') {
+        if (!numericColumns.length) {
+          chartLabels.value = []
+          chartDatasets.value = []
+          return
+        }
+
+        const target = numericColumns[0]
+        const values = target.values
+        const min = Math.min(...values)
+        const max = Math.max(...values)
+
+        if (!Number.isFinite(min) || !Number.isFinite(max)) {
+          chartLabels.value = []
+          chartDatasets.value = []
+          return
+        }
+
+        const formatBinLabel = (value) => {
+          const rounded = Math.round(value * 100) / 100
+          return Number.isInteger(rounded)
+            ? rounded.toLocaleString()
+            : rounded.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
+        }
+
+        if (min === max) {
+          chartLabels.value = [formatBinLabel(min)]
+          chartDatasets.value = [{
+            label: `${target.name} frequency`,
+            data: [values.length],
+            color: getSeriesColor(target.name, 0),
+          }]
+          return
+        }
+
+        const binCount = Math.min(20, Math.max(5, Math.round(Math.sqrt(values.length))))
+        const width = (max - min) / binCount
+        const bins = Array(binCount).fill(0)
+
+        values.forEach((value) => {
+          const index = Math.min(binCount - 1, Math.floor((value - min) / width))
+          bins[index] += 1
+        })
+
+        const labels = bins.map((_, index) => {
+          const start = min + index * width
+          const end = index === binCount - 1 ? max : start + width
+          return `${formatBinLabel(start)}-${formatBinLabel(end)}`
+        })
+
+        chartLabels.value = labels
+        chartDatasets.value = [{
+          label: `${target.name} frequency`,
+          data: bins,
+          color: getSeriesColor(target.name, 0),
+        }]
+        return
+      }
+
       const li = cols[0]?.field ?? 0
       const labels = rows.map((r) => String(r[li] ?? ''))
       const datasets = []
       cols.slice(1).forEach((c) => {
-        const vals = rows.map((r) => numeric(r[c.field]))
+        const vals = rows.map((r) => parseNumericCell(r[c.field]))
         if (vals.some((v) => !Number.isNaN(v))) {
           datasets.push({
             label: c.title,
@@ -961,12 +1291,16 @@ export default {
         ? datasets
         : [{
             label: 'Values',
-            data: rows.map((r) => numeric(r[li]) || 0),
+            data: rows.map((r) => parseNumericCell(r[li]) || 0),
             color: getSeriesColor('Values', 0),
           }]
     }
 
     const clearChart = () => { chartLabels.value = []; chartDatasets.value = [] }
+    const selectChartType = (nextType) => {
+      chartType.value = nextType
+      if (tableRows.value.length) buildChart()
+    }
     const exportTableCsv = () => {
       if (!tableColumns.value.length || !tableRows.value.length) { window.alert('No table data to export.'); return }
       const headers = tableColumns.value.map((c) => c.title)
@@ -979,16 +1313,6 @@ export default {
       a.download = `${project.value?.title || 'project'}-table.csv`
       a.click()
       URL.revokeObjectURL(url)
-    }
-
-    const formatStat = (s) => {
-      const st = s.statistics
-      if (!st) return '-'
-      if (st.mean !== undefined) return `mean ${Number(st.mean).toFixed(2)}`
-      if (st.min !== undefined && st.max !== undefined) return `${st.min} .. ${st.max}`
-      if (st.count !== undefined) return `n = ${st.count}`
-      if (st.earliest && st.latest) return `${st.earliest} .. ${st.latest}`
-      return JSON.stringify(st).slice(0, 40)
     }
 
     const formatIssueValue = (value) => {
@@ -1057,7 +1381,7 @@ export default {
         }
 
         persistValidation()
-        await Promise.all([loadRows(), loadStats()])
+        await Promise.all([loadRows(), loadSuggestions()])
         initValidationDrafts()
         validationSaveState.value = `Saved ${changedCells} cell change${changedCells === 1 ? '' : 's'}.`
       } catch (e) {
@@ -1100,6 +1424,8 @@ export default {
       viewMode.value = 'workspace'
       seriesColors.value = {}
       chartDatasets.value = []
+      selectedStatsColumns.value = []
+      selectedStatsMetricOrder.value = []
       dragSwapTarget.value = null
       loadProject()
     })
@@ -1111,11 +1437,14 @@ export default {
       resolveIssueTarget, formatIssueValue,
       getSeriesColor, setSeriesColor, resetSeriesColors,
       viewMode, setViewMode, visiblePanelIds,
-      tableRows, tableColumns, statistics, statisticsLoading, suggestions, suggestionsLoading, chartType, chartTypes,
+      tableRows, tableColumns, suggestions, suggestionsLoading, chartType, chartTypes, selectChartType,
+      statsMetricOptions, selectedStatsColumns, selectedStatsColumnsMeta, selectedStatsMetricOrder,
+      areAllStatsColumnsSelected, toggleAllStatsColumns, toggleStatsColumn, isMetricSelected, toggleStatsMetric,
+      statsVisualizationRows, getStatsValue, formatStatsValue,
       chartLabels, chartDatasets, workspaceRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle, dragSwapTarget,
       activePreset, presetOptions, applyPreset, bringToFront, startDrag, startResize, handleFileSelect, handleImport,
       addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
-      buildChart, clearChart, refreshData, exportTableCsv, formatStat,
+      buildChart, clearChart, refreshData, exportTableCsv,
     }
   },
 }
@@ -1202,14 +1531,30 @@ export default {
 .drag-handle .sub { font-size: 12px; color: var(--muted); }
 
 .panel-content { height: calc(100% - 44px); overflow: hidden; }
-.table-content, .stats-content, .functions-content { overflow: auto; }
-.chart-content { overflow: hidden; }
+.table-content, .stats-content { overflow: auto; }
+.chart-content { overflow: auto; }
 .table-fill { min-height: 240px; max-height: calc(100% - 42px); }
 
-.stats-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-.stat-card { background: #1a1a1a; border: 1px solid var(--border); border-radius: 10px; padding: 10px; }
-.stat-title { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
-.stat-value { font-size: 16px; font-weight: 700; }
+.chart-shell { display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
+.chart-main { flex: 1 0 220px; min-height: 220px; max-height: 360px; }
+.chart-tools { display: flex; flex-direction: column; gap: 10px; }
+
+.stats-shell { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: auto; padding-right: 2px; }
+.stats-level { border: 1px solid var(--border); border-radius: 10px; background: #171717; padding: 10px; }
+.stats-level-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.stats-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.stats-button-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.stats-metric-grid { display: flex; flex-wrap: wrap; gap: 8px 14px; }
+.stats-metric-item { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--text); }
+.stats-table-wrap { max-height: 420px; overflow: auto; }
+.stats-table { min-width: 640px; }
+.stats-table th:first-child,
+.stats-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #141414;
+}
 .muted { color: var(--muted); font-size: 13px; }
 
 .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
@@ -1235,7 +1580,7 @@ export default {
 
 @media (max-width: 980px) {
   .workspace-canvas { min-height: 980px; }
-  .stats-grid { grid-template-columns: 1fr; }
+  .stats-metric-grid { flex-direction: column; gap: 6px; }
 }
 
 @media (max-width: 720px) {

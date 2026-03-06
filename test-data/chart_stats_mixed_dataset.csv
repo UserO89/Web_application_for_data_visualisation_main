@@ -1,0 +1,21 @@
+﻿Date,Product,Region,Channel,UnitsSold,UnitPriceUSD,RevenueUSD,CostUSD,ProfitUSD,ConversionRatePct,SatisfactionScore,Returns,HolidayPromo,Comment
+05.01.2025,Alpha,North,Online,120,49.99,5998.8,4100.5,1898.3,3.8,4.4,2,false,Start of year campaign
+02.02.2025,Beta,South,Retail,98,65.5,6419,4800.2,1618.8,4.1,4.1,3,false,Stable demand
+01.03.2025,Gamma,West,Partner,140,39.0,5460,3600.0,1860.0,3.5,4.0,2,true,Holiday boost
+06.04.2025,Alpha,East,Online,130,50.0,6500,4300,2200,3.9,4.3,2,false,Date with slash format
+04.05.2025,Beta,North,Retail,102,64.0,6528,4720,1808,4.0,4.1,3,false,Date text format
+08.06.2025,Gamma,South,Online,115,40.5,4657.5,3200,1457.5,3.7,3.9,4,false,Higher returns
+06.07.2025,Alpha,West,Partner,150,51.2,7680,4990,2690,4.4,4.6,1,true,Peak quarter
+03.08.2025,Beta,East,Online,88,66.1,5816.8,4300.5,1516.3,3.6,3.8,5,false,Summer slowdown
+07.09.2025,Gamma,North,Retail,124,41.0,5084,3500,1584,3.2,3.7,4,false,Back to school
+05.10.2025,Alpha,South,Online,160,52.0,8320,5400,2920,4.8,4.7,1,true,Major promo
+02.11.2025,Beta,West,Partner,110,67.2,7392,5120,2272,4.2,4.2,2,false,Strong partner sales
+07.12.2025,Gamma,East,Retail,142,42.3,6006.6,3900.6,2106,4.6,4.5,2,true,Year end uplift
+04.01.2026,Alpha,North,Online,118,53.0,6254,4200,2054,3.9,4.3,2,false,New year reset
+01.02.2026,Beta,South,Retail,95,68.0,6460,4700,1760,3.4,3.9,3,false,Post holiday dip
+01.03.2026,Gamma,West,Online,138,43.1,5947.8,3800,2147.8,4.1,4.4,2,false,Growth resumes
+05.04.2026,Alpha,East,Partner,170,54.5,9265,5900,3365,5.2,4.8,1,true,Record month
+03.05.2026,Beta,North,Online,104,69.4,7217.6,5000,2217.6,,4.2,3,false,Missing conversion value
+07.06.2026,Gamma,South,Retail,80,44.0,3520,2900,620,2.1,3.3,8,false,Low demand outlier
+05.07.2026,Alpha,West,Online,190,55.0,10450,6500,3950,5.8,4.9,1,true,High growth outlier
+02.08.2026,Beta,East,Retail,100,,0,4600,-4600,0.5,2.8,10,false,Missing price extreme case

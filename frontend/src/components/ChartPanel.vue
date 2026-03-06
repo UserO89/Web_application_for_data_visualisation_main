@@ -25,8 +25,9 @@
 <script>
 import { ref, onBeforeUnmount, onMounted, watch } from 'vue'
 import { Chart, registerables } from 'chart.js'
+import { BoxPlotController, BoxAndWiskers } from '@sgratzl/chartjs-chart-boxplot'
 
-Chart.register(...registerables)
+Chart.register(...registerables, BoxPlotController, BoxAndWiskers)
 
 const DEFAULT_PALETTE = [
   '#1db954', '#35c9a3', '#4cc9f0', '#4895ef', '#4361ee',
@@ -62,7 +63,11 @@ export default {
     let resizeObserver = null
 
     const createChart = () => {
-      if (!canvas.value || !props.labels?.length) {
+      const normalizedType = props.type === 'histogram' ? 'bar' : (props.type || 'line')
+      const hasDatasets = Array.isArray(props.datasets) && props.datasets.length > 0
+      const hasLabels = Array.isArray(props.labels) && props.labels.length > 0
+      const needsLabels = normalizedType !== 'scatter'
+      if (!canvas.value || !hasDatasets || (needsLabels && !hasLabels)) {
         if (chart) {
           chart.destroy()
           chart = null
@@ -74,12 +79,12 @@ export default {
 
       const ctx = canvas.value.getContext('2d')
       chart = new Chart(ctx, {
-        type: props.type || 'line',
+        type: normalizedType,
         data: {
           labels: props.labels,
           datasets: props.datasets.map((ds, i) => {
             const color = ds.color || fallbackColor(i)
-            if (props.type === 'pie') {
+            if (normalizedType === 'pie') {
               const size = Array.isArray(ds.data) ? ds.data.length : 1
               const pieColors = Array.from({ length: Math.max(1, size) }, (_, idx) => fallbackColor(i + idx))
               if (ds.color) pieColors[0] = ds.color
@@ -90,13 +95,32 @@ export default {
                 fill: false,
               }
             }
+            if (normalizedType === 'scatter') {
+              return {
+                ...ds,
+                borderColor: ds.borderColor ?? color,
+                backgroundColor: ds.backgroundColor ?? hexToRgba(color, 0.7),
+                pointBackgroundColor: ds.pointBackgroundColor ?? color,
+                pointBorderColor: ds.pointBorderColor ?? color,
+                showLine: false,
+                fill: false,
+              }
+            }
+            if (props.type === 'boxplot') {
+              return {
+                ...ds,
+                borderColor: ds.borderColor ?? color,
+                backgroundColor: ds.backgroundColor ?? hexToRgba(color, 0.25),
+                outlierColor: ds.outlierColor ?? color,
+              }
+            }
             return {
               ...ds,
               borderColor: color,
               pointBackgroundColor: color,
               pointBorderColor: color,
-              backgroundColor: hexToRgba(color, props.type === 'bar' ? 0.42 : 0.2),
-              fill: props.type === 'line',
+              backgroundColor: hexToRgba(color, normalizedType === 'bar' ? 0.42 : 0.2),
+              fill: normalizedType === 'line',
             }
           }),
         },
@@ -114,7 +138,7 @@ export default {
             },
           },
           scales:
-            props.type !== 'pie'
+            normalizedType !== 'pie'
               ? {
                   x: { ticks: { color: '#b3b3b3' }, grid: { color: 'rgba(255, 255, 255, 0.08)' } },
                   y: { ticks: { color: '#b3b3b3' }, grid: { color: 'rgba(255, 255, 255, 0.08)' } },
