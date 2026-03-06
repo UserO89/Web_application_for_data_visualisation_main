@@ -94,7 +94,14 @@
             <template v-else-if="panelId === 'chart'">
               <div class="chart-shell">
                 <div class="chart-main">
-                  <ChartPanel embedded :labels="chartLabels" :datasets="chartDatasets" :type="chartType" @clear="clearChart" />
+                  <ChartPanel
+                    embedded
+                    :labels="chartLabels"
+                    :datasets="chartDatasets"
+                    :meta="chartMeta"
+                    :type="chartType"
+                    @clear="clearChart"
+                  />
                 </div>
                 <div class="chart-tools">
                   <div class="controls">
@@ -293,6 +300,7 @@ import { useRoute } from 'vue-router'
 import ChartPanel from '../components/ChartPanel.vue'
 import DataTable from '../components/DataTable.vue'
 import { projectsApi } from '../api/projects'
+import { buildChartDefinition } from '../charts/chartDefinitions/buildChartDefinition'
 
 const IDS = ['table', 'chart', 'stats']
 const STORAGE_PREFIX = 'dataviz.workspace.layout.v2.'
@@ -354,6 +362,7 @@ export default {
     const chartType = ref('line')
     const chartLabels = ref([])
     const chartDatasets = ref([])
+    const chartMeta = ref({})
     const seriesColors = ref({})
 
     const panelLayouts = ref({})
@@ -1044,7 +1053,7 @@ export default {
         } else {
           setValidationReport(null)
           seriesColors.value = {}
-          tableRows.value = []; suggestions.value = []; chartLabels.value = []; chartDatasets.value = []
+          tableRows.value = []; suggestions.value = []; chartLabels.value = []; chartDatasets.value = []; chartMeta.value = {}
           selectedStatsColumns.value = []
           selectedStatsMetricOrder.value = []
         }
@@ -1150,153 +1159,19 @@ export default {
     }
 
     const buildChart = () => {
-      if (!tableRows.value.length || !tableColumns.value.length) return
-      const cols = tableColumns.value
-      const rows = tableRows.value
-      const numericColumns = cols
-        .map((column) => ({
-          field: column.field,
-          name: column.title,
-          values: rows
-            .map((row) => parseNumericCell(row[column.field]))
-            .filter((value) => Number.isFinite(value)),
-        }))
-        .filter((column) => column.values.length > 0)
-
-      if (chartType.value === 'boxplot') {
-        if (!numericColumns.length) {
-          chartLabels.value = []
-          chartDatasets.value = []
-          return
-        }
-
-        chartLabels.value = numericColumns.map((column) => column.name)
-        chartDatasets.value = [{
-          label: 'Distribution',
-          data: numericColumns.map((column) => column.values),
-          backgroundColor: numericColumns.map((_, idx) => {
-            const color = getSeriesColor(numericColumns[idx].name, idx)
-            return `${color}33`
-          }),
-          borderColor: numericColumns.map((column, idx) => getSeriesColor(column.name, idx)),
-        }]
-        return
-      }
-
-      if (chartType.value === 'scatter') {
-        if (numericColumns.length < 2) {
-          chartLabels.value = []
-          chartDatasets.value = []
-          return
-        }
-
-        const xColumn = numericColumns[0]
-        const yColumn = numericColumns[1]
-        const points = rows
-          .map((row) => ({
-            x: parseNumericCell(row[xColumn.field]),
-            y: parseNumericCell(row[yColumn.field]),
-          }))
-          .filter((point) => Number.isFinite(point.x) && Number.isFinite(point.y))
-
-        if (!points.length) {
-          chartLabels.value = []
-          chartDatasets.value = []
-          return
-        }
-
-        chartLabels.value = []
-        chartDatasets.value = [{
-          label: `${yColumn.name} vs ${xColumn.name}`,
-          data: points,
-          color: getSeriesColor(`${yColumn.name} vs ${xColumn.name}`, 0),
-        }]
-        return
-      }
-
-      if (chartType.value === 'histogram') {
-        if (!numericColumns.length) {
-          chartLabels.value = []
-          chartDatasets.value = []
-          return
-        }
-
-        const target = numericColumns[0]
-        const values = target.values
-        const min = Math.min(...values)
-        const max = Math.max(...values)
-
-        if (!Number.isFinite(min) || !Number.isFinite(max)) {
-          chartLabels.value = []
-          chartDatasets.value = []
-          return
-        }
-
-        const formatBinLabel = (value) => {
-          const rounded = Math.round(value * 100) / 100
-          return Number.isInteger(rounded)
-            ? rounded.toLocaleString()
-            : rounded.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })
-        }
-
-        if (min === max) {
-          chartLabels.value = [formatBinLabel(min)]
-          chartDatasets.value = [{
-            label: `${target.name} frequency`,
-            data: [values.length],
-            color: getSeriesColor(target.name, 0),
-          }]
-          return
-        }
-
-        const binCount = Math.min(20, Math.max(5, Math.round(Math.sqrt(values.length))))
-        const width = (max - min) / binCount
-        const bins = Array(binCount).fill(0)
-
-        values.forEach((value) => {
-          const index = Math.min(binCount - 1, Math.floor((value - min) / width))
-          bins[index] += 1
-        })
-
-        const labels = bins.map((_, index) => {
-          const start = min + index * width
-          const end = index === binCount - 1 ? max : start + width
-          return `${formatBinLabel(start)}-${formatBinLabel(end)}`
-        })
-
-        chartLabels.value = labels
-        chartDatasets.value = [{
-          label: `${target.name} frequency`,
-          data: bins,
-          color: getSeriesColor(target.name, 0),
-        }]
-        return
-      }
-
-      const li = cols[0]?.field ?? 0
-      const labels = rows.map((r) => String(r[li] ?? ''))
-      const datasets = []
-      cols.slice(1).forEach((c) => {
-        const vals = rows.map((r) => parseNumericCell(r[c.field]))
-        if (vals.some((v) => !Number.isNaN(v))) {
-          datasets.push({
-            label: c.title,
-            data: vals.map((v) => Number.isNaN(v) ? 0 : v),
-            color: getSeriesColor(c.title, datasets.length),
-          })
-        }
+      const definition = buildChartDefinition({
+        chartType: chartType.value,
+        tableRows: tableRows.value,
+        tableColumns: tableColumns.value,
+        parseNumericCell,
+        getSeriesColor,
       })
-      chartLabels.value = labels
-      chartDatasets.value = datasets.length
-        ? datasets
-        : [{
-            label: 'Values',
-            data: rows.map((r) => parseNumericCell(r[li]) || 0),
-            color: getSeriesColor('Values', 0),
-          }]
+      chartLabels.value = definition.labels || []
+      chartDatasets.value = definition.datasets || []
+      chartMeta.value = definition.meta || {}
     }
 
-    const clearChart = () => { chartLabels.value = []; chartDatasets.value = [] }
+    const clearChart = () => { chartLabels.value = []; chartDatasets.value = []; chartMeta.value = {} }
     const selectChartType = (nextType) => {
       chartType.value = nextType
       if (tableRows.value.length) buildChart()
@@ -1423,7 +1298,9 @@ export default {
       validationSaveState.value = ''
       viewMode.value = 'workspace'
       seriesColors.value = {}
+      chartLabels.value = []
       chartDatasets.value = []
+      chartMeta.value = {}
       selectedStatsColumns.value = []
       selectedStatsMetricOrder.value = []
       dragSwapTarget.value = null
@@ -1441,7 +1318,7 @@ export default {
       statsMetricOptions, selectedStatsColumns, selectedStatsColumnsMeta, selectedStatsMetricOrder,
       areAllStatsColumnsSelected, toggleAllStatsColumns, toggleStatsColumn, isMetricSelected, toggleStatsMetric,
       statsVisualizationRows, getStatsValue, formatStatsValue,
-      chartLabels, chartDatasets, workspaceRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle, dragSwapTarget,
+      chartLabels, chartDatasets, chartMeta, workspaceRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle, dragSwapTarget,
       activePreset, presetOptions, applyPreset, bringToFront, startDrag, startResize, handleFileSelect, handleImport,
       addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
       buildChart, clearChart, refreshData, exportTableCsv,

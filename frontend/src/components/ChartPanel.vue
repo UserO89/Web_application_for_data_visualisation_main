@@ -8,8 +8,8 @@
       <div style="color: var(--muted); font-size: 13px;">Interactive area</div>
     </div>
 
-    <div ref="canvasHost" class="chart-canvas">
-      <canvas ref="canvas"></canvas>
+    <div class="chart-canvas">
+      <BaseEChart ref="chartRef" :option="chartOption" />
     </div>
 
     <div class="chart-footer">
@@ -23,171 +23,64 @@
 </template>
 
 <script>
-import { ref, onBeforeUnmount, onMounted, watch } from 'vue'
-import { Chart, registerables } from 'chart.js'
-import { BoxPlotController, BoxAndWiskers } from '@sgratzl/chartjs-chart-boxplot'
-
-Chart.register(...registerables, BoxPlotController, BoxAndWiskers)
-
-const DEFAULT_PALETTE = [
-  '#1db954', '#35c9a3', '#4cc9f0', '#4895ef', '#4361ee',
-  '#3a0ca3', '#b5179e', '#f72585', '#f15bb5', '#ff8fab',
-  '#f8961e', '#f9c74f', '#90be6d', '#43aa8b', '#577590',
-]
-
-const fallbackColor = (index) => DEFAULT_PALETTE[index % DEFAULT_PALETTE.length]
-
-const hexToRgba = (hex, alpha) => {
-  const normalized = String(hex || '').replace('#', '')
-  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) return `rgba(29, 185, 84, ${alpha})`
-  const int = parseInt(normalized, 16)
-  const r = (int >> 16) & 255
-  const g = (int >> 8) & 255
-  const b = int & 255
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`
-}
+import { computed, ref } from 'vue'
+import BaseEChart from './charts/BaseEChart.vue'
+import { buildEChartOption } from '../charts/chartTransformers/chartDefinitionToEChartsOption'
 
 export default {
   name: 'ChartPanel',
+  components: { BaseEChart },
   props: {
     labels: { type: Array, default: () => [] },
     datasets: { type: Array, default: () => [] },
+    meta: { type: Object, default: () => ({}) },
     type: { type: String, default: 'line' },
     embedded: { type: Boolean, default: false },
   },
   emits: ['clear'],
   setup(props) {
-    const canvas = ref(null)
-    const canvasHost = ref(null)
-    let chart = null
-    let resizeObserver = null
+    const chartRef = ref(null)
 
-    const createChart = () => {
-      const normalizedType = props.type === 'histogram' ? 'bar' : (props.type || 'line')
-      const hasDatasets = Array.isArray(props.datasets) && props.datasets.length > 0
-      const hasLabels = Array.isArray(props.labels) && props.labels.length > 0
-      const needsLabels = normalizedType !== 'scatter'
-      if (!canvas.value || !hasDatasets || (needsLabels && !hasLabels)) {
-        if (chart) {
-          chart.destroy()
-          chart = null
-        }
-        return
+    const chartDefinition = computed(() => ({
+      type: props.type || 'line',
+      labels: Array.isArray(props.labels) ? props.labels : [],
+      datasets: Array.isArray(props.datasets) ? props.datasets : [],
+      meta: props.meta && typeof props.meta === 'object' ? props.meta : {},
+    }))
+
+    const hasRenderableData = computed(() => {
+      const definition = chartDefinition.value
+      const datasets = definition.datasets
+      if (!datasets.length) return false
+
+      if (definition.type === 'scatter') {
+        return datasets.some((dataset) => Array.isArray(dataset?.data) && dataset.data.length > 0)
       }
 
-      if (chart) chart.destroy()
-
-      const ctx = canvas.value.getContext('2d')
-      chart = new Chart(ctx, {
-        type: normalizedType,
-        data: {
-          labels: props.labels,
-          datasets: props.datasets.map((ds, i) => {
-            const color = ds.color || fallbackColor(i)
-            if (normalizedType === 'pie') {
-              const size = Array.isArray(ds.data) ? ds.data.length : 1
-              const pieColors = Array.from({ length: Math.max(1, size) }, (_, idx) => fallbackColor(i + idx))
-              if (ds.color) pieColors[0] = ds.color
-              return {
-                ...ds,
-                borderColor: pieColors,
-                backgroundColor: pieColors.map((c) => hexToRgba(c, 0.82)),
-                fill: false,
-              }
-            }
-            if (normalizedType === 'scatter') {
-              return {
-                ...ds,
-                borderColor: ds.borderColor ?? color,
-                backgroundColor: ds.backgroundColor ?? hexToRgba(color, 0.7),
-                pointBackgroundColor: ds.pointBackgroundColor ?? color,
-                pointBorderColor: ds.pointBorderColor ?? color,
-                showLine: false,
-                fill: false,
-              }
-            }
-            if (props.type === 'boxplot') {
-              return {
-                ...ds,
-                borderColor: ds.borderColor ?? color,
-                backgroundColor: ds.backgroundColor ?? hexToRgba(color, 0.25),
-                outlierColor: ds.outlierColor ?? color,
-              }
-            }
-            return {
-              ...ds,
-              borderColor: color,
-              pointBackgroundColor: color,
-              pointBorderColor: color,
-              backgroundColor: hexToRgba(color, normalizedType === 'bar' ? 0.42 : 0.2),
-              fill: normalizedType === 'line',
-            }
-          }),
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              labels: { color: '#b3b3b3' },
-            },
-            tooltip: {
-              backgroundColor: 'rgba(24, 24, 24, 0.95)',
-              titleColor: '#ffffff',
-              bodyColor: '#b3b3b3',
-            },
-          },
-          scales:
-            normalizedType !== 'pie'
-              ? {
-                  x: { ticks: { color: '#b3b3b3' }, grid: { color: 'rgba(255, 255, 255, 0.08)' } },
-                  y: { ticks: { color: '#b3b3b3' }, grid: { color: 'rgba(255, 255, 255, 0.08)' } },
-                }
-              : undefined,
-        },
-      })
-    }
-
-    const handleResize = () => {
-      if (!chart) return
-      chart.resize()
-    }
-
-    onMounted(() => {
-      createChart()
-
-      if (canvasHost.value && typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(() => {
-          handleResize()
+      if (definition.type === 'boxplot') {
+        return datasets.some((dataset) => {
+          if (Array.isArray(dataset?.values)) return dataset.values.length > 0
+          return Array.isArray(dataset?.data) && dataset.data.length > 0
         })
-        resizeObserver.observe(canvasHost.value)
       }
+
+      if (definition.type === 'pie') {
+        return definition.labels.length > 0 && datasets.some((dataset) => Array.isArray(dataset?.data) && dataset.data.length > 0)
+      }
+
+      return definition.labels.length > 0 && datasets.some((dataset) => Array.isArray(dataset?.data) && dataset.data.length > 0)
     })
 
-    watch([() => props.labels, () => props.datasets, () => props.type], createChart, { deep: true })
-
-    onBeforeUnmount(() => {
-      if (resizeObserver) {
-        resizeObserver.disconnect()
-        resizeObserver = null
-      }
-      if (chart) {
-        chart.destroy()
-        chart = null
-      }
+    const chartOption = computed(() => {
+      if (!hasRenderableData.value) return {}
+      return buildEChartOption(chartDefinition.value)
     })
 
     const exportPNG = () => {
-      if (chart) {
-        const url = chart.toBase64Image('image/png')
-        const a = document.createElement('a')
-        a.href = url
-        a.download = 'chart.png'
-        a.click()
-      }
+      chartRef.value?.exportPng?.('chart.png')
     }
 
-    return { canvas, canvasHost, exportPNG }
+    return { chartRef, chartOption, exportPNG }
   },
 }
 </script>
@@ -208,7 +101,6 @@ export default {
 .chart-canvas {
   flex: 1;
   min-height: 160px;
-  position: relative;
 }
 
 .chart-footer {
