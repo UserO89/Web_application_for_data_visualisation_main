@@ -3,6 +3,8 @@ import {
   asArray,
   createBaseCartesianOption,
   createCategoryXAxis,
+  createCategoryYAxis,
+  createValueXAxis,
   createValueYAxis,
   resolveSeriesColor,
 } from './common'
@@ -37,8 +39,9 @@ const buildStatsForSeries = (rawValues) => {
   const lowerFence = q1 - 1.5 * iqr
   const upperFence = q3 + 1.5 * iqr
   const outliers = values.filter((value) => value < lowerFence || value > upperFence)
+  const mean = values.reduce((acc, value) => acc + value, 0) / values.length
 
-  return { fiveNumber: [min, q1, median, q3, max], outliers }
+  return { fiveNumber: [min, q1, median, q3, max], outliers, mean }
 }
 
 const normalizeBoxplotDefinitions = (definition) => {
@@ -66,6 +69,10 @@ const normalizeBoxplotDefinitions = (definition) => {
 }
 
 export const buildBoxplotOption = (definition) => {
+  const orientation = definition?.meta?.orientation === 'horizontal' ? 'horizontal' : 'vertical'
+  const showOutliers = definition?.meta?.showOutliers !== false
+  const showMean = Boolean(definition?.meta?.showMean)
+
   const normalizedSeries = normalizeBoxplotDefinitions(definition)
   const categories = normalizedSeries.map((series) => series.name)
 
@@ -77,6 +84,7 @@ export const buildBoxplotOption = (definition) => {
         ...series,
         fiveNumber: stats.fiveNumber,
         outliers: stats.outliers,
+        mean: stats.mean,
       }
     })
     .filter(Boolean)
@@ -90,12 +98,18 @@ export const buildBoxplotOption = (definition) => {
     },
   }))
 
-  const outlierData = computedSeries.flatMap((series, index) =>
-    series.outliers.map((value) => ({
-      value: [index, value],
+  const outlierData = computedSeries.flatMap((series, index) => {
+    if (!showOutliers) return []
+    return series.outliers.map((value) => ({
+      value: orientation === 'horizontal' ? [value, index] : [index, value],
       itemStyle: { color: series.color },
     }))
-  )
+  })
+
+  const meanData = computedSeries.map((series, index) => ({
+    value: orientation === 'horizontal' ? [series.mean, index] : [index, series.mean],
+    itemStyle: { color: series.color },
+  }))
 
   const option = {
     ...createBaseCartesianOption(),
@@ -105,8 +119,12 @@ export const buildBoxplotOption = (definition) => {
       borderWidth: 0,
       textStyle: { color: CHART_THEME.textColor },
     },
-    xAxis: createCategoryXAxis(categories, definition?.meta?.xAxisLabel),
-    yAxis: createValueYAxis(definition?.meta?.yAxisLabel),
+    xAxis: orientation === 'horizontal'
+      ? createValueXAxis(definition?.meta?.yAxisLabel)
+      : createCategoryXAxis(categories, definition?.meta?.xAxisLabel),
+    yAxis: orientation === 'horizontal'
+      ? createCategoryYAxis(categories, definition?.meta?.xAxisLabel)
+      : createValueYAxis(definition?.meta?.yAxisLabel),
     series: [{
       name: 'Distribution',
       type: 'boxplot',
@@ -120,6 +138,15 @@ export const buildBoxplotOption = (definition) => {
       type: 'scatter',
       data: outlierData,
       symbolSize: 8,
+    })
+  }
+
+  if (showMean && meanData.length) {
+    option.series.push({
+      name: 'Mean',
+      type: 'scatter',
+      data: meanData,
+      symbolSize: 9,
     })
   }
 

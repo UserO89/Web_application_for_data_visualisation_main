@@ -7,6 +7,7 @@ use App\Http\Requests\ImportDatasetRequest;
 use App\Models\Project;
 use App\Services\CsvImportService;
 use App\Services\ColumnTypeInferenceService;
+use App\Services\DatasetSemanticSchemaService;
 use App\Services\DatasetValidationService;
 
 class DatasetImportController extends Controller
@@ -14,7 +15,8 @@ class DatasetImportController extends Controller
     public function __construct(
         private CsvImportService $csvImportService,
         private ColumnTypeInferenceService $typeInferenceService,
-        private DatasetValidationService $datasetValidationService
+        private DatasetValidationService $datasetValidationService,
+        private DatasetSemanticSchemaService $datasetSemanticSchemaService
     ) {}
 
     public function import(ImportDatasetRequest $request, Project $project)
@@ -54,6 +56,7 @@ class DatasetImportController extends Controller
             $dataset->columns()->create([
                 'name' => $column['name'],
                 'type' => $column['type'],
+                'physical_type' => $column['physical_type'] ?? null,
                 'position' => $index,
             ]);
         }
@@ -66,8 +69,11 @@ class DatasetImportController extends Controller
             ]);
         }
 
+        $schema = $this->datasetSemanticSchemaService->buildAndPersist($dataset);
+
         return response()->json([
             'dataset' => $dataset->load('columns'),
+            'schema' => $schema,
             'rows_count' => count($validated['rows']),
             'validation' => [
                 'summary' => $validated['summary'],

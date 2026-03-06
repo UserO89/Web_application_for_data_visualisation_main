@@ -93,7 +93,11 @@
 
             <template v-else-if="panelId === 'chart'">
               <div class="chart-shell">
-                <div class="chart-main">
+                <div
+                  ref="chartViewportRef"
+                  class="chart-main chart-main-resizable"
+                  :style="chartViewportStyle"
+                >
                   <ChartPanel
                     embedded
                     :labels="chartLabels"
@@ -105,21 +109,28 @@
                 </div>
                 <div class="chart-tools">
                   <div class="controls">
-                    <button class="btn primary" type="button" @click="buildChart">Build Chart</button>
                     <button class="btn" type="button" @click="refreshData">Refresh Data</button>
                     <button class="btn" type="button" @click="exportTableCsv">Export CSV</button>
-                  </div>
-                  <div class="controls">
-                    <button
-                      v-for="t in chartTypes"
-                      :key="t.key"
-                      :class="['btn', { primary: chartType === t.key }]"
-                      @click="selectChartType(t.key)"
-                      type="button"
+                    <label class="chart-size-control" for="chart-height-select">Chart height</label>
+                    <select
+                      id="chart-height-select"
+                      class="chart-size-select"
+                      :value="chartViewportPresetValue"
+                      @change="setChartViewportHeight($event.target.value)"
                     >
-                      {{ t.label }}
-                    </button>
+                      <option value="320">Compact</option>
+                      <option value="420">Medium</option>
+                      <option value="520">Tall</option>
+                      <option value="620">XL</option>
+                      <option v-if="chartViewportPresetValue === 'custom'" value="custom">Custom (drag)</option>
+                    </select>
                   </div>
+                  <ChartBuilder
+                    :schema-columns="schemaColumns"
+                    v-model="chartDefinition"
+                    :suggestions="suggestions"
+                    @build="buildChart"
+                  />
                   <div v-if="chartDatasets.length" class="series-colors">
                     <div class="series-colors-head">
                       <div class="analysis-title">Series Colors</div>
@@ -137,91 +148,22 @@
                       </div>
                     </div>
                   </div>
-                  <div class="analysis-box">
-                    <div class="analysis-title">Data Analysis</div>
-                    <div v-if="suggestionsLoading" class="analysis-item">Loading...</div>
-                    <template v-else-if="suggestions.length">
-                      <div v-for="(s, i) in suggestions.slice(0, 6)" :key="i" class="analysis-item"><strong>{{ s.title }}</strong> - {{ s.description }}</div>
-                    </template>
-                    <div v-else class="analysis-item">Recommendations will appear here.</div>
-                  </div>
                 </div>
               </div>
             </template>
 
             <template v-else-if="panelId === 'stats'">
               <div class="stats-shell">
-                <div class="stats-level">
-                  <div class="stats-level-title">Columns</div>
-                  <div class="stats-actions">
-                    <button
-                      type="button"
-                      :class="['btn', { primary: areAllStatsColumnsSelected }]"
-                      @click="toggleAllStatsColumns"
-                    >
-                      All Columns
-                    </button>
-                  </div>
-                  <div v-if="tableColumns.length" class="stats-button-grid">
-                    <button
-                      v-for="column in tableColumns"
-                      :key="`stats-col-${column.field}`"
-                      type="button"
-                      :class="['btn', { primary: selectedStatsColumns.includes(column.field) }]"
-                      @click="toggleStatsColumn(column.field)"
-                    >
-                      {{ column.title }}
-                    </button>
-                  </div>
-                  <div v-else class="muted">No columns available.</div>
-                </div>
-
-                <div class="stats-level">
-                  <div class="stats-level-title">Calculate</div>
-                  <div class="stats-metric-grid">
-                    <label
-                      v-for="metric in statsMetricOptions"
-                      :key="`stats-metric-${metric.key}`"
-                      class="stats-metric-item"
-                    >
-                      <input
-                        type="checkbox"
-                        :checked="isMetricSelected(metric.key)"
-                        @change="toggleStatsMetric(metric.key)"
-                      />
-                      <span>{{ metric.label }}</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div class="stats-level">
-                  <div class="stats-level-title">Visualization</div>
-                  <div v-if="!selectedStatsColumnsMeta.length" class="muted">Select at least one column.</div>
-                  <div v-else-if="!statsVisualizationRows.length" class="muted">Select at least one statistic.</div>
-                  <div v-else class="table-wrap stats-table-wrap">
-                    <table class="data-table stats-table">
-                      <thead>
-                        <tr>
-                          <th>Metric</th>
-                          <th v-for="column in selectedStatsColumnsMeta" :key="`stats-head-${column.field}`">
-                            {{ column.title }}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="row in statsVisualizationRows" :key="`stats-row-${row.key}`">
-                          <td>{{ row.label }}</td>
-                          <td
-                            v-for="column in selectedStatsColumnsMeta"
-                            :key="`stats-cell-${row.key}-${column.field}`"
-                          >
-                            {{ formatStatsValue(getStatsValue(column.field, row.key)) }}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+                <StatisticsWorkspace
+                  :schema-columns="schemaColumns"
+                  :statistics="statisticsSummary"
+                  :rows="analysisRows"
+                  :loading="statisticsLoading"
+                  :error="statisticsError"
+                  :updating-column-id="schemaUpdatingColumnId"
+                  @change-semantic="handleSemanticTypeChange"
+                  @change-ordinal-order="handleOrdinalOrderChange"
+                />
               </div>
             </template>
 
@@ -298,9 +240,14 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ChartPanel from '../components/ChartPanel.vue'
+import ChartBuilder from '../components/ChartBuilder.vue'
 import DataTable from '../components/DataTable.vue'
+import StatisticsWorkspace from '../components/StatisticsWorkspace.vue'
 import { projectsApi } from '../api/projects'
-import { buildChartDefinition } from '../charts/chartDefinitions/buildChartDefinition'
+import { useDatasetSchemaStore } from '../stores/datasetSchema'
+import { buildSemanticChartData } from '../charts/chartDataTransformers/buildSemanticChartData'
+import { normalizeChartDefinition, validateChartDefinition } from '../charts/rules/chartDefinitionValidator'
+import { createDefaultChartDefinition, mergeChartDefinition } from '../charts/chartDefinitions/createUniversalChartDefinition'
 
 const IDS = ['table', 'chart', 'stats']
 const STORAGE_PREFIX = 'dataviz.workspace.layout.v2.'
@@ -317,26 +264,18 @@ const PRESETS = [
   { key: 'quad', label: 'Top Split + Stats' },
 ]
 const MIN = { table: { w: 420, h: 280 }, chart: { w: 360, h: 320 }, stats: { w: 300, h: 220 } }
-const STATS_METRIC_OPTIONS = [
-  { key: 'mean', label: 'Mean' },
-  { key: 'median', label: 'Median' },
-  { key: 'sum', label: 'Sum' },
-  { key: 'mode', label: 'Mode' },
-  { key: 'minimum', label: 'Minimum' },
-  { key: 'maximum', label: 'Maximum' },
-  { key: 'count', label: 'Number of values' },
-  { key: 'q1', label: 'Quartile 1' },
-  { key: 'q2', label: 'Quartile 2' },
-  { key: 'q3', label: 'Quartile 3' },
-]
+const MIN_CHART_VIEWPORT_HEIGHT = 280
+const MAX_CHART_VIEWPORT_HEIGHT = 920
 const createManualRow = (n) => Array.from({ length: n }, () => '')
 
 export default {
   name: 'ProjectPage',
-  components: { DataTable, ChartPanel },
+  components: { DataTable, ChartPanel, ChartBuilder, StatisticsWorkspace },
   setup() {
     const route = useRoute()
     const workspaceRef = ref(null)
+    const chartViewportRef = ref(null)
+    const schemaStore = useDatasetSchemaStore()
 
     const project = ref(null)
     const loading = ref(true)
@@ -355,11 +294,17 @@ export default {
     const viewMode = ref('workspace')
 
     const tableRows = ref([])
-    const selectedStatsColumns = ref([])
-    const selectedStatsMetricOrder = ref([])
+    const analysisRows = ref([])
     const suggestions = ref([])
     const suggestionsLoading = ref(false)
+    const statisticsSummary = ref([])
+    const statisticsLoading = ref(false)
+    const statisticsError = ref('')
     const chartType = ref('line')
+    const chartDefinition = ref(createDefaultChartDefinition('line'))
+    const chartValidation = ref({ errors: [], warnings: [] })
+    const chartViewportHeight = ref(320)
+    const chartViewportCustom = ref(false)
     const chartLabels = ref([])
     const chartDatasets = ref([])
     const chartMeta = ref({})
@@ -381,15 +326,6 @@ export default {
       chart: { title: 'Visualization', subtitle: 'Chart + controls' },
       stats: { title: 'Statistics', subtitle: 'Columns / Calculate / Visualization' },
     }
-    const chartTypes = [
-      { key: 'line', label: 'Line' },
-      { key: 'bar', label: 'Bar' },
-      { key: 'scatter', label: 'Scatter' },
-      { key: 'histogram', label: 'Histogram' },
-      { key: 'pie', label: 'Pie' },
-      { key: 'boxplot', label: 'Boxplot' },
-    ]
-
     const cellField = (position) => `col_${position}`
     const nullAwareFormatter = (cell) => {
       const value = cell.getValue()
@@ -413,148 +349,15 @@ export default {
         formatter: nullAwareFormatter,
       }))
     )
-    const statsMetricOptions = STATS_METRIC_OPTIONS
-    const statsMetricLabelByKey = Object.fromEntries(
-      statsMetricOptions.map((metric) => [metric.key, metric.label])
+    const schemaColumns = computed(() =>
+      (schemaStore.columns || [])
+        .map((column) => ({
+          ...column,
+          fieldKey: cellField(column.position),
+        }))
+        .sort((a, b) => Number(a.position) - Number(b.position))
     )
-    const parseNumericCell = (value) => {
-      const cleaned = String(value ?? '')
-        .replace(/<[^>]*>/g, '')
-        .replace(/\s+/g, '')
-        .replace(',', '.')
-      const parsed = Number.parseFloat(cleaned)
-      return Number.isFinite(parsed) ? parsed : NaN
-    }
-    watch(
-      tableColumns,
-      (columns) => {
-        const fields = columns.map((column) => column.field)
-        const allowed = new Set(fields)
-        selectedStatsColumns.value = selectedStatsColumns.value.filter((field) => allowed.has(field))
-        if (!selectedStatsColumns.value.length && fields.length) {
-          selectedStatsColumns.value = [...fields]
-        }
-      },
-      { immediate: true }
-    )
-    const areAllStatsColumnsSelected = computed(
-      () => tableColumns.value.length > 0 && selectedStatsColumns.value.length === tableColumns.value.length
-    )
-    const selectedStatsColumnsMeta = computed(() =>
-      selectedStatsColumns.value
-        .map((field) => tableColumns.value.find((column) => column.field === field))
-        .filter(Boolean)
-    )
-    const toggleAllStatsColumns = () => {
-      if (areAllStatsColumnsSelected.value) {
-        selectedStatsColumns.value = []
-      } else {
-        selectedStatsColumns.value = tableColumns.value.map((column) => column.field)
-      }
-    }
-    const toggleStatsColumn = (field) => {
-      if (selectedStatsColumns.value.includes(field)) {
-        selectedStatsColumns.value = selectedStatsColumns.value.filter((selectedField) => selectedField !== field)
-      } else {
-        selectedStatsColumns.value = [...selectedStatsColumns.value, field]
-      }
-    }
-    const isMetricSelected = (metricKey) => selectedStatsMetricOrder.value.includes(metricKey)
-    const toggleStatsMetric = (metricKey) => {
-      if (isMetricSelected(metricKey)) {
-        selectedStatsMetricOrder.value = selectedStatsMetricOrder.value.filter((key) => key !== metricKey)
-      } else {
-        selectedStatsMetricOrder.value = [...selectedStatsMetricOrder.value, metricKey]
-      }
-    }
-    const quantileFromSorted = (sortedValues, quantile) => {
-      if (!sortedValues.length) return null
-      const position = (sortedValues.length - 1) * quantile
-      const lower = Math.floor(position)
-      const upper = Math.ceil(position)
-      if (lower === upper) return sortedValues[lower]
-      const weight = position - lower
-      return sortedValues[lower] * (1 - weight) + sortedValues[upper] * weight
-    }
-    const modeFromValues = (values) => {
-      if (!values.length) return null
-      const frequencies = new Map()
-      values.forEach((value) => {
-        frequencies.set(value, (frequencies.get(value) || 0) + 1)
-      })
-      let topValue = null
-      let topFrequency = 0
-      frequencies.forEach((frequency, value) => {
-        const shouldReplace = frequency > topFrequency || (frequency === topFrequency && topValue !== null && value < topValue)
-        if (shouldReplace) {
-          topFrequency = frequency
-          topValue = value
-        }
-      })
-      return topFrequency > 1 ? topValue : null
-    }
-    const calculateMetricValue = (values, metricKey) => {
-      if (metricKey === 'count') return values.length
-      if (!values.length) return null
-      const sorted = [...values].sort((a, b) => a - b)
-      const sum = values.reduce((acc, current) => acc + current, 0)
-      switch (metricKey) {
-        case 'mean':
-          return sum / values.length
-        case 'median':
-          return quantileFromSorted(sorted, 0.5)
-        case 'sum':
-          return sum
-        case 'mode':
-          return modeFromValues(values)
-        case 'minimum':
-          return sorted[0]
-        case 'maximum':
-          return sorted[sorted.length - 1]
-        case 'q1':
-          return quantileFromSorted(sorted, 0.25)
-        case 'q2':
-          return quantileFromSorted(sorted, 0.5)
-        case 'q3':
-          return quantileFromSorted(sorted, 0.75)
-        default:
-          return null
-      }
-    }
-    const statsValuesByColumn = computed(() => {
-      const result = {}
-      selectedStatsColumnsMeta.value.forEach((column) => {
-        result[column.field] = tableRows.value
-          .map((row) => parseNumericCell(row[column.field]))
-          .filter((value) => Number.isFinite(value))
-      })
-      return result
-    })
-    const statsMatrix = computed(() => {
-      const matrix = {}
-      selectedStatsColumnsMeta.value.forEach((column) => {
-        const values = statsValuesByColumn.value[column.field] || []
-        matrix[column.field] = {}
-        selectedStatsMetricOrder.value.forEach((metricKey) => {
-          matrix[column.field][metricKey] = calculateMetricValue(values, metricKey)
-        })
-      })
-      return matrix
-    })
-    const statsVisualizationRows = computed(() =>
-      selectedStatsMetricOrder.value.map((metricKey) => ({
-        key: metricKey,
-        label: statsMetricLabelByKey[metricKey] || metricKey,
-      }))
-    )
-    const getStatsValue = (field, metricKey) => statsMatrix.value[field]?.[metricKey] ?? null
-    const formatStatsValue = (value) => {
-      if (value === null || value === undefined || Number.isNaN(value)) return '-'
-      if (typeof value !== 'number') return String(value)
-      const rounded = Math.round(value * 10000) / 10000
-      if (Number.isInteger(rounded)) return rounded.toLocaleString()
-      return rounded.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })
-    }
+    const schemaUpdatingColumnId = computed(() => schemaStore.updatingColumnId)
     const buildFocusLayouts = (mode) => {
       void resizeTick.value
       const w = canvasW()
@@ -698,6 +501,38 @@ export default {
 
     const setViewMode = (mode) => {
       viewMode.value = mode
+    }
+
+    const clampChartViewportHeight = (value) =>
+      Math.min(MAX_CHART_VIEWPORT_HEIGHT, Math.max(MIN_CHART_VIEWPORT_HEIGHT, Math.round(value)))
+
+    const CHART_HEIGHT_PRESETS = [320, 420, 520, 620]
+    const chartViewportPresetValue = computed(() =>
+      !chartViewportCustom.value && CHART_HEIGHT_PRESETS.includes(chartViewportHeight.value)
+        ? String(chartViewportHeight.value)
+        : 'custom'
+    )
+
+    const chartViewportStyle = computed(() => {
+      if (chartViewportCustom.value) {
+        return { minHeight: `${MIN_CHART_VIEWPORT_HEIGHT}px` }
+      }
+      return {
+        height: `${chartViewportHeight.value}px`,
+        minHeight: `${MIN_CHART_VIEWPORT_HEIGHT}px`,
+      }
+    })
+
+    const setChartViewportHeight = (value) => {
+      if (value === 'custom') return
+      const parsed = Number(value)
+      if (!Number.isFinite(parsed)) return
+      chartViewportHeight.value = clampChartViewportHeight(parsed)
+      chartViewportCustom.value = false
+      applyingChartHeightPreset = true
+      requestAnimationFrame(() => {
+        applyingChartHeightPreset = false
+      })
     }
 
     const resolveIssueTarget = (issue) => {
@@ -1041,7 +876,26 @@ export default {
         project.value = r.project
         if (project.value?.dataset) {
           seriesColors.value = loadSeriesColors()
-          await Promise.all([loadRows(), loadSuggestions()])
+          await Promise.all([
+            loadRows(),
+            loadAnalysisRows(),
+            loadSemanticSchema(false),
+            loadSuggestions(),
+            loadStatisticsSummary(),
+          ])
+
+          if (suggestions.value.length && !chartDatasets.value.length) {
+            const suggested = suggestions.value[0]?.definition
+            if (suggested) {
+              chartDefinition.value = normalizeChartDefinition(
+                mergeChartDefinition(createDefaultChartDefinition(suggested.chartType || 'line'), suggested)
+              )
+              buildChart(chartDefinition.value)
+            }
+          } else if (!chartDatasets.value.length) {
+            clearChart()
+          }
+
           if (!importValidation.value) {
             importValidation.value = loadValidation()
           }
@@ -1053,9 +907,13 @@ export default {
         } else {
           setValidationReport(null)
           seriesColors.value = {}
-          tableRows.value = []; suggestions.value = []; chartLabels.value = []; chartDatasets.value = []; chartMeta.value = {}
-          selectedStatsColumns.value = []
-          selectedStatsMetricOrder.value = []
+          tableRows.value = []; analysisRows.value = []; suggestions.value = []; statisticsSummary.value = []
+          chartLabels.value = []; chartDatasets.value = []; chartMeta.value = {}
+          chartDefinition.value = createDefaultChartDefinition('line')
+          chartValidation.value = { errors: [], warnings: [] }
+          chartViewportHeight.value = 320
+          chartViewportCustom.value = false
+          schemaStore.applySchema(null)
         }
       } catch (e) {
         console.error(e)
@@ -1064,49 +922,114 @@ export default {
       }
     }
 
-    const loadRows = async () => {
-      const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
-      const readRowValue = (values, position, columnName) => {
-        if (Array.isArray(values)) {
-          return position < values.length ? values[position] : null
-        }
-        if (values && typeof values === 'object') {
-          if (hasOwn(values, position)) return values[position]
-          if (hasOwn(values, String(position))) return values[String(position)]
-          if (hasOwn(values, columnName)) return values[columnName]
-        }
-        return null
+    const hasOwn = (obj, key) => Object.prototype.hasOwnProperty.call(obj, key)
+    const readRowValue = (values, position, columnName) => {
+      if (Array.isArray(values)) {
+        return position < values.length ? values[position] : null
       }
+      if (values && typeof values === 'object') {
+        if (hasOwn(values, position)) return values[position]
+        if (hasOwn(values, String(position))) return values[String(position)]
+        if (hasOwn(values, columnName)) return values[columnName]
+      }
+      return null
+    }
 
-      try {
-        const r = await projectsApi.getRows(route.params.id)
-        const data = r.data ?? r
-        const rows = Array.isArray(data) ? data : (data.data || [])
-        tableRows.value = rows.map((row) => {
-          const values = typeof row.values === 'string' ? JSON.parse(row.values) : (row.values || {})
-          const mapped = { id: row.id }
-          sortedDatasetColumns.value.forEach((col) => {
-            const position = Number(col.position)
-            const value = readRowValue(values, position, col.name)
-            mapped[cellField(position)] = value === undefined ? null : value
-          })
-          return mapped
+    const mapApiRows = (rows) =>
+      rows.map((row) => {
+        const values = typeof row.values === 'string' ? JSON.parse(row.values) : (row.values || {})
+        const mapped = { id: row.id }
+        sortedDatasetColumns.value.forEach((col) => {
+          const position = Number(col.position)
+          const value = readRowValue(values, position, col.name)
+          mapped[cellField(position)] = value === undefined ? null : value
         })
+        return mapped
+      })
+
+    const loadRows = async () => {
+      try {
+        const response = await projectsApi.getRows(route.params.id)
+        const data = response.data ?? response
+        const rows = Array.isArray(data) ? data : (data.data || [])
+        tableRows.value = mapApiRows(rows)
         if (validationModalOpen.value && importValidation.value) {
           initValidationDrafts()
         }
-      } catch (e) { console.error(e) }
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const loadAnalysisRows = async () => {
+      try {
+        const perPage = 500
+        let page = 1
+        let collected = []
+
+        while (true) {
+          const response = await projectsApi.getRows(route.params.id, page, perPage)
+          const payload = response.data ?? response
+          const rows = Array.isArray(payload) ? payload : (payload.data || [])
+          collected = collected.concat(rows)
+
+          if (Array.isArray(payload) || !payload.last_page || page >= payload.last_page) {
+            break
+          }
+          page += 1
+        }
+
+        analysisRows.value = mapApiRows(collected)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const loadSemanticSchema = async (rebuild = false) => {
+      try {
+        await schemaStore.fetchSchema(route.params.id, { rebuild })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const loadStatisticsSummary = async () => {
+      statisticsLoading.value = true
+      statisticsError.value = ''
+      try {
+        const response = await projectsApi.getStatisticsSummary(route.params.id)
+        statisticsSummary.value = response.statistics || []
+      } catch (e) {
+        console.error(e)
+        statisticsError.value = e?.response?.data?.message || 'Failed to load statistics summary.'
+      } finally {
+        statisticsLoading.value = false
+      }
     }
 
     const loadSuggestions = async () => {
       suggestionsLoading.value = true
       try {
-        const r = await projectsApi.getSuggestions(route.params.id)
-        suggestions.value = r.suggestions || []
-      } catch (e) { console.error(e) } finally { suggestionsLoading.value = false }
+        const response = await projectsApi.getChartSuggestions(route.params.id)
+        suggestions.value = response.suggestions || []
+      } catch (e) {
+        console.error(e)
+        suggestions.value = []
+      } finally {
+        suggestionsLoading.value = false
+      }
     }
 
-    const refreshData = async () => Promise.all([loadRows(), loadSuggestions()])
+    const refreshData = async () => {
+      await Promise.all([
+        loadRows(),
+        loadAnalysisRows(),
+        loadSemanticSchema(true),
+        loadSuggestions(),
+        loadStatisticsSummary(),
+      ])
+      buildChart(chartDefinition.value)
+    }
 
     const handleFileSelect = (e) => { selectedFile.value = e.target.files?.[0] || null }
     const handleImport = async () => {
@@ -1158,23 +1081,66 @@ export default {
       } catch (e) { console.error(e) }
     }
 
-    const buildChart = () => {
-      const definition = buildChartDefinition({
-        chartType: chartType.value,
-        tableRows: tableRows.value,
-        tableColumns: tableColumns.value,
-        parseNumericCell,
+    const handleSemanticTypeChange = async ({ columnId, semanticType, analyticalRole, isExcludedFromAnalysis }) => {
+      try {
+        await schemaStore.setSemanticType(route.params.id, columnId, {
+          semantic_type: semanticType,
+          analytical_role: analyticalRole,
+          is_excluded_from_analysis: isExcludedFromAnalysis,
+        })
+        await Promise.all([loadSuggestions(), loadStatisticsSummary()])
+        buildChart(chartDefinition.value)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const handleOrdinalOrderChange = async ({ columnId, ordinalOrder }) => {
+      if (!Array.isArray(ordinalOrder) || ordinalOrder.length < 2) return
+      try {
+        await schemaStore.setOrdinalOrder(route.params.id, columnId, ordinalOrder)
+        await Promise.all([loadSuggestions(), loadStatisticsSummary()])
+        buildChart(chartDefinition.value)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+
+    const buildChart = (nextDefinition = chartDefinition.value) => {
+      const normalized = normalizeChartDefinition(nextDefinition)
+      const validation = validateChartDefinition(normalized, schemaColumns.value)
+      chartDefinition.value = validation.normalizedDefinition
+      chartValidation.value = {
+        errors: validation.errors || [],
+        warnings: validation.warnings || [],
+      }
+
+      if (!validation.valid) {
+        chartLabels.value = []
+        chartDatasets.value = []
+        chartMeta.value = {}
+        chartType.value = normalized.chartType
+        return
+      }
+
+      const definition = buildSemanticChartData({
+        definition: validation.normalizedDefinition,
+        schemaColumns: schemaColumns.value,
+        rows: analysisRows.value.length ? analysisRows.value : tableRows.value,
         getSeriesColor,
       })
+
+      chartType.value = definition.type || validation.normalizedDefinition.chartType
       chartLabels.value = definition.labels || []
       chartDatasets.value = definition.datasets || []
       chartMeta.value = definition.meta || {}
     }
 
-    const clearChart = () => { chartLabels.value = []; chartDatasets.value = []; chartMeta.value = {} }
-    const selectChartType = (nextType) => {
-      chartType.value = nextType
-      if (tableRows.value.length) buildChart()
+    const clearChart = () => {
+      chartLabels.value = []
+      chartDatasets.value = []
+      chartMeta.value = {}
+      chartValidation.value = { errors: [], warnings: [] }
     }
     const exportTableCsv = () => {
       if (!tableColumns.value.length || !tableRows.value.length) { window.alert('No table data to export.'); return }
@@ -1256,7 +1222,8 @@ export default {
         }
 
         persistValidation()
-        await Promise.all([loadRows(), loadSuggestions()])
+        await Promise.all([loadRows(), loadAnalysisRows(), loadSemanticSchema(true), loadSuggestions(), loadStatisticsSummary()])
+        buildChart(chartDefinition.value)
         initValidationDrafts()
         validationSaveState.value = `Saved ${changedCells} cell change${changedCells === 1 ? '' : 's'}.`
       } catch (e) {
@@ -1273,12 +1240,33 @@ export default {
       }
     }
 
+    let chartViewportResizeObserver = null
+    let applyingChartHeightPreset = false
+
     onMounted(() => {
       loadProject()
       window.addEventListener('mousemove', onMove)
       window.addEventListener('mouseup', onUp)
       window.addEventListener('resize', onResizeWindow)
       window.addEventListener('keydown', onEsc)
+
+      if (typeof ResizeObserver !== 'undefined' && chartViewportRef.value) {
+        chartViewportResizeObserver = new ResizeObserver((entries) => {
+          const height = entries?.[0]?.contentRect?.height
+          if (!Number.isFinite(height)) return
+          const next = clampChartViewportHeight(height)
+          if (applyingChartHeightPreset) {
+            chartViewportHeight.value = next
+            return
+          }
+          if (!chartViewportCustom.value && Math.abs(next - chartViewportHeight.value) < 2) return
+          if (!chartViewportCustom.value && Math.abs(next - chartViewportHeight.value) >= 2) {
+            chartViewportCustom.value = true
+          }
+          chartViewportHeight.value = next
+        })
+        chartViewportResizeObserver.observe(chartViewportRef.value)
+      }
     })
 
     onBeforeUnmount(() => {
@@ -1286,6 +1274,10 @@ export default {
       window.removeEventListener('mouseup', onUp)
       window.removeEventListener('resize', onResizeWindow)
       window.removeEventListener('keydown', onEsc)
+      if (chartViewportResizeObserver) {
+        chartViewportResizeObserver.disconnect()
+        chartViewportResizeObserver = null
+      }
       document.body.style.userSelect = ''
       saveLayouts()
     })
@@ -1301,9 +1293,15 @@ export default {
       chartLabels.value = []
       chartDatasets.value = []
       chartMeta.value = {}
-      selectedStatsColumns.value = []
-      selectedStatsMetricOrder.value = []
+      chartDefinition.value = createDefaultChartDefinition('line')
+      chartValidation.value = { errors: [], warnings: [] }
+      chartViewportHeight.value = 320
+      chartViewportCustom.value = false
+      analysisRows.value = []
+      statisticsSummary.value = []
+      statisticsError.value = ''
       dragSwapTarget.value = null
+      schemaStore.applySchema(null)
       loadProject()
     })
 
@@ -1314,13 +1312,14 @@ export default {
       resolveIssueTarget, formatIssueValue,
       getSeriesColor, setSeriesColor, resetSeriesColors,
       viewMode, setViewMode, visiblePanelIds,
-      tableRows, tableColumns, suggestions, suggestionsLoading, chartType, chartTypes, selectChartType,
-      statsMetricOptions, selectedStatsColumns, selectedStatsColumnsMeta, selectedStatsMetricOrder,
-      areAllStatsColumnsSelected, toggleAllStatsColumns, toggleStatsColumn, isMetricSelected, toggleStatsMetric,
-      statsVisualizationRows, getStatsValue, formatStatsValue,
-      chartLabels, chartDatasets, chartMeta, workspaceRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle, dragSwapTarget,
+      tableRows, tableColumns, analysisRows, schemaColumns, schemaUpdatingColumnId,
+      suggestions, suggestionsLoading, statisticsSummary, statisticsLoading, statisticsError,
+      chartType, chartDefinition, chartValidation,
+      chartViewportHeight, chartViewportPresetValue, chartViewportStyle, setChartViewportHeight,
+      chartLabels, chartDatasets, chartMeta, workspaceRef, chartViewportRef, workspaceHeight, panelIds, panelConfig, resizeDirs, panelStyle, dragSwapTarget,
       activePreset, presetOptions, applyPreset, bringToFront, startDrag, startResize, handleFileSelect, handleImport,
       addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
+      handleSemanticTypeChange, handleOrdinalOrderChange,
       buildChart, clearChart, refreshData, exportTableCsv,
     }
   },
@@ -1413,8 +1412,30 @@ export default {
 .table-fill { min-height: 240px; max-height: calc(100% - 42px); }
 
 .chart-shell { display: flex; flex-direction: column; gap: 10px; min-height: 100%; }
-.chart-main { flex: 1 0 220px; min-height: 220px; max-height: 360px; }
+.chart-main { flex: 0 0 auto; min-height: 320px; }
+.chart-main-resizable {
+  width: 100%;
+  min-width: 320px;
+  max-width: 100%;
+  align-self: flex-start;
+  resize: both;
+  overflow: auto;
+  max-height: 920px;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  padding: 6px;
+}
 .chart-tools { display: flex; flex-direction: column; gap: 10px; }
+.chart-size-control { color: var(--muted); font-size: 12px; align-self: center; }
+.chart-size-select {
+  min-width: 120px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  padding: 7px 9px;
+  font-size: 13px;
+}
 
 .stats-shell { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: auto; padding-right: 2px; }
 .stats-level { border: 1px solid var(--border); border-radius: 10px; background: #171717; padding: 10px; }

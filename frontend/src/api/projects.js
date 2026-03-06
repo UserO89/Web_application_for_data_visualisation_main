@@ -59,8 +59,39 @@ export const projectsApi = {
     return response.data
   },
 
+  async getStatisticsSummary(projectId) {
+    const response = await http.get(`/projects/${projectId}/statistics-summary`)
+    return response.data
+  },
+
   async getSuggestions(projectId) {
     const response = await http.get(`/projects/${projectId}/suggest-visualizations`)
+    return response.data
+  },
+
+  async getChartSuggestions(projectId) {
+    const response = await http.get(`/projects/${projectId}/chart-suggestions`)
+    return response.data
+  },
+
+  async getSchema(projectId, options = {}) {
+    const response = await http.get(`/projects/${projectId}/schema`, {
+      params: {
+        rebuild: options.rebuild ? 1 : 0,
+      },
+    })
+    return response.data
+  },
+
+  async updateColumnSemanticType(projectId, columnId, payload) {
+    const response = await http.patch(`/projects/${projectId}/columns/${columnId}/semantic-type`, payload)
+    return response.data
+  },
+
+  async updateColumnOrdinalOrder(projectId, columnId, ordinalOrder) {
+    const response = await http.patch(`/projects/${projectId}/columns/${columnId}/ordinal-order`, {
+      ordinal_order: ordinalOrder,
+    })
     return response.data
   },
 }

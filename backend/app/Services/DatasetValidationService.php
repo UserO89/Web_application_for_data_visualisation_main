@@ -2,12 +2,15 @@
 
 namespace App\Services;
 
-use Carbon\Carbon;
-
 class DatasetValidationService
 {
     private const MAX_ISSUES_IN_RESPONSE = 120;
     private const DATE_OUTPUT_FORMAT = 'd.m.Y';
+    private const DATETIME_OUTPUT_FORMAT = 'Y-m-d H:i:s';
+
+    public function __construct(
+        private ValueParsingService $valueParsingService
+    ) {}
 
     public function sanitizeImportedRows(array $rows, array $columns): array
     {
@@ -42,7 +45,7 @@ class DatasetValidationService
             $cleanRow = [];
             foreach ($columns as $position => $column) {
                 $original = $sourceRow[$position] ?? null;
-                $normalized = $this->normalizeByType($original, $column['type']);
+                $normalized = $this->normalizeByType($original, (string) ($column['type'] ?? 'string'));
 
                 if ($normalized['changed']) {
                     $fixedCells++;
@@ -81,8 +84,7 @@ class DatasetValidationService
 
     private function normalizeByType(mixed $value, string $type): array
     {
-        $trimmed = $this->trimValue($value);
-
+        $trimmed = $this->valueParsingService->normalizeNullableString($value);
         if ($trimmed === null) {
             if ($value === null || $value === '') {
                 return [
@@ -101,40 +103,59 @@ class DatasetValidationService
             ];
         }
 
-        if ($type === 'integer' || $type === 'float') {
-            $numeric = $this->toNumeric($trimmed);
+        $normalizedType = mb_strtolower($type);
+        if (in_array($normalizedType, ['integer', 'float', 'number'], true)) {
+            $numeric = $this->valueParsingService->toNumeric($trimmed);
             if ($numeric === null) {
                 return [
                     'value' => null,
                     'changed' => true,
                     'issue_type' => 'invalid_number',
-                    'message' => "Invalid {$type} value replaced with null.",
+                    'message' => "Invalid {$normalizedType} value replaced with null.",
                 ];
             }
 
-            if ($type === 'integer') {
+            if ($normalizedType === 'integer') {
                 $intValue = (int) round($numeric, 0);
-                $changed = (string) $intValue !== (string) $trimmed;
                 return [
                     'value' => $intValue,
-                    'changed' => $changed,
+                    'changed' => (string) $intValue !== (string) $trimmed,
                     'issue_type' => 'number_normalized',
                     'message' => 'Normalized numeric value.',
                 ];
             }
 
             $floatValue = (float) $numeric;
-            $changed = (string) $floatValue !== (string) $trimmed;
             return [
                 'value' => $floatValue,
-                'changed' => $changed,
+                'changed' => (string) $floatValue !== (string) $trimmed,
                 'issue_type' => 'number_normalized',
                 'message' => 'Normalized numeric value.',
             ];
         }
 
-        if ($type === 'date') {
-            $parsedDate = $this->parseDate($trimmed);
+        if ($normalizedType === 'boolean') {
+            $parsedBoolean = $this->valueParsingService->toBoolean($trimmed);
+            if ($parsedBoolean === null) {
+                return [
+                    'value' => null,
+                    'changed' => true,
+                    'issue_type' => 'invalid_boolean',
+                    'message' => 'Invalid boolean value replaced with null.',
+                ];
+            }
+
+            $normalizedBoolean = $parsedBoolean ? 'true' : 'false';
+            return [
+                'value' => $parsedBoolean,
+                'changed' => mb_strtolower($trimmed) !== $normalizedBoolean,
+                'issue_type' => 'boolean_normalized',
+                'message' => 'Normalized boolean value.',
+            ];
+        }
+
+        if (in_array($normalizedType, ['date', 'datetime'], true)) {
+            $parsedDate = $this->valueParsingService->parseTemporal($trimmed);
             if ($parsedDate === null) {
                 return [
                     'value' => null,
@@ -144,133 +165,27 @@ class DatasetValidationService
                 ];
             }
 
-            $normalizedDate = $parsedDate->format(self::DATE_OUTPUT_FORMAT);
-            $changed = $normalizedDate !== $trimmed;
+            $format = $normalizedType === 'datetime'
+                ? self::DATETIME_OUTPUT_FORMAT
+                : self::DATE_OUTPUT_FORMAT;
+            $normalizedDate = $parsedDate->format($format);
             return [
                 'value' => $normalizedDate,
-                'changed' => $changed,
+                'changed' => $normalizedDate !== $trimmed,
                 'issue_type' => 'date_normalized',
-                'message' => 'Normalized date format to DD.MM.YYYY.',
+                'message' => $normalizedType === 'datetime'
+                    ? 'Normalized datetime format to YYYY-MM-DD HH:mm:ss.'
+                    : 'Normalized date format to DD.MM.YYYY.',
             ];
         }
 
-        // string
-        $changed = $trimmed !== (string) ($value ?? '');
+        // string / mixed / unknown
         return [
             'value' => $trimmed,
-            'changed' => $changed,
+            'changed' => $trimmed !== (string) ($value ?? ''),
             'issue_type' => 'string_trimmed',
             'message' => 'Trimmed extra whitespace.',
         ];
-    }
-
-    private function trimValue(mixed $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-
-        $string = trim((string) $value);
-        $string = preg_replace('/\s+/u', ' ', $string);
-        if ($string === null) {
-            return null;
-        }
-
-        $emptyMarkers = ['n/a', 'na', 'null', 'none', '-', '—', ''];
-        if (in_array(mb_strtolower($string), $emptyMarkers, true)) {
-            return null;
-        }
-
-        return $string;
-    }
-
-    private function toNumeric(string $value): ?float
-    {
-        $normalized = trim($value);
-        $normalized = str_replace(["\u{00A0}", ' '], '', $normalized);
-        $normalized = preg_replace('/[$€£¥%]/u', '', $normalized);
-        $normalized = str_replace("'", '', $normalized);
-        if ($normalized === null || $normalized === '') {
-            return null;
-        }
-
-        $multiplier = 1.0;
-        if (preg_match('/([kmb])$/i', $normalized, $suffixMatch) === 1) {
-            $suffix = strtolower($suffixMatch[1]);
-            $multiplier = match ($suffix) {
-                'k' => 1_000.0,
-                'm' => 1_000_000.0,
-                'b' => 1_000_000_000.0,
-                default => 1.0,
-            };
-            $normalized = substr($normalized, 0, -1);
-            if ($normalized === '') {
-                return null;
-            }
-        }
-
-        $hasComma = str_contains($normalized, ',');
-        $hasDot = str_contains($normalized, '.');
-
-        if ($hasComma && $hasDot) {
-            // 1,234.56 or 1.234,56
-            if (strrpos($normalized, ',') > strrpos($normalized, '.')) {
-                $normalized = str_replace('.', '', $normalized);
-                $normalized = str_replace(',', '.', $normalized);
-            } else {
-                $normalized = str_replace(',', '', $normalized);
-            }
-        } elseif ($hasComma) {
-            if (preg_match('/,\d{1,2}$/', $normalized) === 1) {
-                $normalized = str_replace(',', '.', $normalized);
-            } else {
-                $normalized = str_replace(',', '', $normalized);
-            }
-        }
-
-        if (preg_match('/^-?\d+(\.\d+)?$/', $normalized) !== 1) {
-            return null;
-        }
-
-        return (float) $normalized * $multiplier;
-    }
-
-    private function parseDate(string $value): ?Carbon
-    {
-        $trimmed = trim($value);
-
-        if (preg_match('/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/', $trimmed, $matches) === 1) {
-            return $this->buildDate((int) $matches[3], (int) $matches[2], (int) $matches[1]);
-        }
-
-        if (preg_match('/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/', $trimmed, $matches) === 1) {
-            // Prefer day-first for slash format in this app context.
-            $dayFirst = $this->buildDate((int) $matches[3], (int) $matches[2], (int) $matches[1]);
-            if ($dayFirst !== null) {
-                return $dayFirst;
-            }
-
-            return $this->buildDate((int) $matches[3], (int) $matches[1], (int) $matches[2]);
-        }
-
-        if (preg_match('/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/', $trimmed, $matches) === 1) {
-            return $this->buildDate((int) $matches[1], (int) $matches[2], (int) $matches[3]);
-        }
-
-        try {
-            return Carbon::parse($trimmed);
-        } catch (\Throwable $e) {
-            return null;
-        }
-    }
-
-    private function buildDate(int $year, int $month, int $day): ?Carbon
-    {
-        if (!checkdate($month, $day, $year)) {
-            return null;
-        }
-
-        return Carbon::create($year, $month, $day, 0, 0, 0);
     }
 
     private function printable(mixed $value): mixed

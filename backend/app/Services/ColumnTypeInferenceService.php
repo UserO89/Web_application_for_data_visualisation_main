@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
-use Carbon\Carbon;
-
 class ColumnTypeInferenceService
 {
+    public function __construct(
+        private ValueParsingService $valueParsingService
+    ) {}
+
     public function infer(array $rows, bool $hasHeader = true): array
     {
         if (empty($rows)) {
@@ -16,7 +18,6 @@ class ColumnTypeInferenceService
         $columnCount = count($firstRow);
         $columns = [];
 
-        // Get header or generate column names
         if ($hasHeader) {
             $headers = $firstRow;
             $dataRows = array_slice($rows, 1);
@@ -25,24 +26,26 @@ class ColumnTypeInferenceService
             $dataRows = $rows;
         }
 
-        // Analyze each column
         for ($i = 0; $i < $columnCount; $i++) {
             $values = array_column($dataRows, $i);
-            $type = $this->detectType($values);
+            $legacyType = $this->detectLegacyType($values);
+            $physicalType = $this->inferPhysicalType($values, $legacyType);
 
             $columns[] = [
                 'name' => $headers[$i] ?? "Column " . ($i + 1),
-                'type' => $type,
+                // Keep legacy field for compatibility with existing import validation logic.
+                'type' => $legacyType,
+                'physical_type' => $physicalType,
             ];
         }
 
         return $columns;
     }
 
-    private function detectType(array $values): string
+    private function detectLegacyType(array $values): string
     {
         $nonEmpty = array_values(array_filter(
-            array_map(fn($v) => is_string($v) ? trim($v) : $v, $values),
+            array_map(fn($v) => $this->valueParsingService->normalizeNullableString($v), $values),
             fn($v) => $v !== null && $v !== ''
         ));
 
@@ -50,11 +53,10 @@ class ColumnTypeInferenceService
             return 'string';
         }
 
-        // Check for numbers first to avoid misclassifying numeric data as date.
         $numericCount = 0;
         $floatCount = 0;
         foreach ($nonEmpty as $value) {
-            $numeric = $this->toNumeric($value);
+            $numeric = $this->valueParsingService->toNumeric($value);
             if ($numeric !== null) {
                 $numericCount++;
                 if (floor($numeric) !== $numeric) {
@@ -62,21 +64,18 @@ class ColumnTypeInferenceService
                 }
             }
         }
+
         if ($numericCount / count($nonEmpty) >= 0.7) {
             return $floatCount > 0 ? 'float' : 'integer';
         }
 
-        // Check for dates only if value looks date-like.
         $dateCount = 0;
         foreach ($nonEmpty as $value) {
             if (!$this->looksDateLike((string) $value)) {
                 continue;
             }
-            try {
-                Carbon::parse((string) $value);
+            if ($this->valueParsingService->parseTemporal($value) !== null) {
                 $dateCount++;
-            } catch (\Throwable $e) {
-                // not parseable date
             }
         }
         if ($dateCount / count($nonEmpty) >= 0.7) {
@@ -86,65 +85,60 @@ class ColumnTypeInferenceService
         return 'string';
     }
 
+    private function inferPhysicalType(array $values, string $legacyType): string
+    {
+        if ($legacyType === 'integer' || $legacyType === 'float') {
+            return 'number';
+        }
+        if ($legacyType === 'date') {
+            $withTime = 0;
+            $dateLike = 0;
+            foreach ($values as $value) {
+                $normalized = $this->valueParsingService->normalizeNullableString($value);
+                if ($normalized === null) {
+                    continue;
+                }
+                if ($this->valueParsingService->parseTemporal($normalized) !== null) {
+                    $dateLike++;
+                    if ($this->valueParsingService->isDateTimeLikeString($normalized)) {
+                        $withTime++;
+                    }
+                }
+            }
+            if ($dateLike > 0 && ($withTime / $dateLike) >= 0.2) {
+                return 'datetime';
+            }
+            return 'date';
+        }
+
+        $nonNull = array_values(array_filter(
+            array_map(fn($value) => $this->valueParsingService->normalizeNullableString($value), $values),
+            fn($value) => $value !== null
+        ));
+        if (empty($nonNull)) {
+            return 'unknown';
+        }
+
+        $boolCount = 0;
+        foreach ($nonNull as $value) {
+            if ($this->valueParsingService->toBoolean($value) !== null) {
+                $boolCount++;
+            }
+        }
+        if (($boolCount / count($nonNull)) >= 0.95) {
+            return 'boolean';
+        }
+
+        return 'string';
+    }
+
     private function looksDateLike(string $value): bool
     {
         $trimmed = trim($value);
-
-        // 2025, 2026 etc. should not be treated as dates by default.
         if (preg_match('/^\d{4}$/', $trimmed) === 1) {
             return false;
         }
 
         return preg_match('/[-\/.:T]/', $trimmed) === 1 || preg_match('/[a-zA-Z]{3,}/', $trimmed) === 1;
-    }
-
-    private function toNumeric(mixed $value): ?float
-    {
-        $normalized = trim((string) $value);
-        $normalized = str_replace(["\u{00A0}", ' '], '', $normalized);
-        $normalized = preg_replace('/[$€£¥%]/u', '', $normalized);
-        $normalized = str_replace("'", '', $normalized);
-        if ($normalized === null || $normalized === '') {
-            return null;
-        }
-
-        $multiplier = 1.0;
-        if (preg_match('/([kmb])$/i', $normalized, $suffixMatch) === 1) {
-            $suffix = strtolower($suffixMatch[1]);
-            $multiplier = match ($suffix) {
-                'k' => 1_000.0,
-                'm' => 1_000_000.0,
-                'b' => 1_000_000_000.0,
-                default => 1.0,
-            };
-            $normalized = substr($normalized, 0, -1);
-            if ($normalized === '') {
-                return null;
-            }
-        }
-
-        $hasComma = str_contains($normalized, ',');
-        $hasDot = str_contains($normalized, '.');
-
-        if ($hasComma && $hasDot) {
-            if (strrpos($normalized, ',') > strrpos($normalized, '.')) {
-                $normalized = str_replace('.', '', $normalized);
-                $normalized = str_replace(',', '.', $normalized);
-            } else {
-                $normalized = str_replace(',', '', $normalized);
-            }
-        } elseif ($hasComma) {
-            if (preg_match('/,\d{1,2}$/', $normalized) === 1) {
-                $normalized = str_replace(',', '.', $normalized);
-            } else {
-                $normalized = str_replace(',', '', $normalized);
-            }
-        }
-
-        if (preg_match('/^-?\d+(\.\d+)?$/', $normalized) !== 1) {
-            return null;
-        }
-
-        return (float) $normalized * $multiplier;
     }
 }

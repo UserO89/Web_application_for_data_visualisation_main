@@ -3,13 +3,14 @@
 namespace Tests\Unit;
 
 use App\Services\DatasetValidationService;
+use App\Services\ValueParsingService;
 use PHPUnit\Framework\TestCase;
 
 class DatasetValidationServiceTest extends TestCase
 {
     public function test_date_values_are_normalized_to_day_month_year_format(): void
     {
-        $service = new DatasetValidationService();
+        $service = new DatasetValidationService(new ValueParsingService());
 
         $result = $service->sanitizeImportedRows(
             [
@@ -40,7 +41,7 @@ class DatasetValidationServiceTest extends TestCase
 
     public function test_invalid_date_is_replaced_with_null(): void
     {
-        $service = new DatasetValidationService();
+        $service = new DatasetValidationService(new ValueParsingService());
 
         $result = $service->sanitizeImportedRows(
             [

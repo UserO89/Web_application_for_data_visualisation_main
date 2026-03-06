@@ -52,3 +52,11 @@ export const createValueYAxis = (name = '') => ({
   nameTextStyle: { color: CHART_THEME.textColor },
   ...axisStyle,
 })
+
+export const createCategoryYAxis = (labels, name = '') => ({
+  type: 'category',
+  data: asArray(labels),
+  name,
+  nameTextStyle: { color: CHART_THEME.textColor },
+  ...axisStyle,
+})

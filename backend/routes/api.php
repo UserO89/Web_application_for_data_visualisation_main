@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\DatasetImportController;
 use App\Http\Controllers\Api\V1\DatasetRowController;
+use App\Http\Controllers\Api\V1\DatasetSchemaController;
 use App\Http\Controllers\Api\V1\DatasetStatisticsController;
 use App\Http\Controllers\Api\V1\DatasetSuggestionController;
 use App\Http\Controllers\Api\V1\UserAvatarController;
@@ -41,9 +42,16 @@ Route::prefix('v1')->group(function () {
         Route::get('/projects/{project}/rows', [DatasetRowController::class, 'index']);
         Route::patch('/projects/{project}/rows/{row}', [DatasetRowController::class, 'update']);
 
+        // Semantic schema + manual overrides
+        Route::get('/projects/{project}/schema', [DatasetSchemaController::class, 'show']);
+        Route::patch('/projects/{project}/columns/{column}/semantic-type', [DatasetSchemaController::class, 'updateSemanticType']);
+        Route::patch('/projects/{project}/columns/{column}/ordinal-order', [DatasetSchemaController::class, 'updateOrdinalOrder']);
+
         // Stats + Suggestions
         Route::get('/projects/{project}/statistics', [DatasetStatisticsController::class, 'show']);
+        Route::get('/projects/{project}/statistics-summary', [DatasetStatisticsController::class, 'show']);
         Route::get('/projects/{project}/suggest-visualizations', [DatasetSuggestionController::class, 'index']);
+        Route::get('/projects/{project}/chart-suggestions', [DatasetSuggestionController::class, 'index']);
 
         Route::prefix('admin')->middleware('admin')->group(function () {
             Route::get('/stats', [AdminController::class, 'stats']);
