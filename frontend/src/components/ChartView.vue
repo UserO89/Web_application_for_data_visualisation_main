@@ -2,7 +2,7 @@
   <div class="chart-view-placeholder panel">
     <div class="title">ChartView Placeholder</div>
     <div class="hint">
-      Reserved for advanced visualization engines (ECharts, etc.).
+      Reserved for visualization
     </div>
     <pre class="preview">{{ option }}</pre>
   </div>

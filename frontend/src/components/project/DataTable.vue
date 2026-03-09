@@ -24,12 +24,45 @@ export default {
     const el = ref(null)
     let table = null
     let resizeObserver = null
+    let tableReady = false
+    let pendingRows = null
+    let pendingColumns = null
 
     const mapColumns = (columns) =>
       columns.map((column) => {
         const { metaType, ...mapped } = column
         return mapped
       })
+
+    const canUseTable = () =>
+      Boolean(table && tableReady && el.value && el.value.isConnected)
+
+    const safeRedraw = () => {
+      if (!canUseTable()) return
+      try {
+        table.redraw(true)
+      } catch (_) {}
+    }
+
+    const flushPendingUpdates = () => {
+      if (!canUseTable()) return
+
+      if (pendingColumns !== null) {
+        try {
+          table.setColumns(mapColumns(pendingColumns))
+        } catch (_) {}
+        pendingColumns = null
+      }
+
+      if (pendingRows !== null) {
+        try {
+          table.replaceData(pendingRows)
+        } catch (_) {}
+        pendingRows = null
+      }
+
+      safeRedraw()
+    }
 
     onMounted(() => {
       if (!el.value) return
@@ -46,6 +79,10 @@ export default {
         paginationSizeSelector: [25, 50, 100, 200],
         movableColumns: true,
         resizableColumns: true,
+        tableBuilt: () => {
+          tableReady = true
+          flushPendingUpdates()
+        },
         cellClick: (_e, cell) => {
           if (cell) cell.edit(true)
         },
@@ -60,7 +97,7 @@ export default {
 
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
-          if (table) table.redraw(true)
+          safeRedraw()
         })
         resizeObserver.observe(el.value)
       }
@@ -69,10 +106,15 @@ export default {
     watch(
       () => props.rows,
       (newRows) => {
-        if (table) {
-          table.replaceData(newRows)
-          table.redraw(true)
+        if (!table) return
+        if (!tableReady) {
+          pendingRows = newRows
+          return
         }
+        try {
+          table.replaceData(newRows)
+        } catch (_) {}
+        safeRedraw()
       },
       { deep: true }
     )
@@ -80,21 +122,32 @@ export default {
     watch(
       () => props.columns,
       (newColumns) => {
-        if (table) {
-          table.setColumns(mapColumns(newColumns))
-          table.redraw(true)
+        if (!table) return
+        if (!tableReady) {
+          pendingColumns = newColumns
+          return
         }
+        try {
+          table.setColumns(mapColumns(newColumns))
+        } catch (_) {}
+        safeRedraw()
       },
       { deep: true }
     )
 
     onBeforeUnmount(() => {
+      tableReady = false
+      pendingRows = null
+      pendingColumns = null
       if (resizeObserver) {
         resizeObserver.disconnect()
         resizeObserver = null
       }
       if (table) {
-        table.destroy()
+        try {
+          table.destroy()
+        } catch (_) {}
+        table = null
       }
     })
 

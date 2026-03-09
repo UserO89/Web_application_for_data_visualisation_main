@@ -24,8 +24,8 @@
 
 <script>
 import { computed, ref } from 'vue'
-import BaseEChart from './charts/BaseEChart.vue'
-import { buildEChartOption } from '../charts/chartTransformers/chartDefinitionToEChartsOption'
+import BaseEChart from '../charts/BaseEChart.vue'
+import { buildEChartOption } from '../../charts/chartTransformers/chartDefinitionToEChartsOption'
 
 export default {
   name: 'ChartPanel',

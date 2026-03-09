@@ -374,13 +374,13 @@
 
 <script>
 import { computed, ref, watch } from 'vue'
-import { SEMANTIC_TYPE_LABELS, semanticTypeToGroup } from '../charts/ui/typeLabels'
+import { SEMANTIC_TYPE_LABELS, semanticTypeToGroup } from '../../charts/ui/typeLabels'
 import {
   buildCategorySummaries,
   buildDateSummaries,
   buildNumericMatrix,
   buildOrderedSummaries,
-} from '../statistics/presentation/buildStatisticsSections'
+} from '../../statistics/presentation/buildStatisticsSections'
 
 const METRIC_OPTIONS = {
   numeric: [

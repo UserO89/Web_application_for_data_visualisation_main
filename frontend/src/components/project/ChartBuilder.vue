@@ -227,11 +227,11 @@
 <script>
 import { computed, ref, watch } from 'vue'
 import ChartFieldSelector from './ChartFieldSelector.vue'
-import { CHART_TYPE_OPTIONS } from '../charts/rules/chartRules'
-import { getAllowedColumnsForBinding, normalizeChartDefinition } from '../charts/rules/chartDefinitionValidator'
-import { createDefaultChartDefinition, mergeChartDefinition } from '../charts/chartDefinitions/createUniversalChartDefinition'
-import { getFriendlyBuildHint } from '../charts/ui/friendlyChartHints'
-import { buildQuickChartActions } from '../charts/ui/quickChartActions'
+import { CHART_TYPE_OPTIONS } from '../../charts/rules/chartRules'
+import { getAllowedColumnsForBinding, normalizeChartDefinition } from '../../charts/rules/chartDefinitionValidator'
+import { createDefaultChartDefinition, mergeChartDefinition } from '../../charts/chartDefinitions/createUniversalChartDefinition'
+import { getFriendlyBuildHint } from '../../charts/ui/friendlyChartHints'
+import { buildQuickChartActions } from '../../charts/ui/quickChartActions'
 
 export default {
   name: 'ChartBuilder',

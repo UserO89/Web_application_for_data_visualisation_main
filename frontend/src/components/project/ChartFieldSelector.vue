@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import { SEMANTIC_TYPE_LABELS } from '../charts/ui/typeLabels'
+import { SEMANTIC_TYPE_LABELS } from '../../charts/ui/typeLabels'
 
 export default {
   name: 'ChartFieldSelector',
