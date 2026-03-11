@@ -154,7 +154,7 @@ CSV
             ->assertJsonPath('validation.summary.import_status', 'blocked')
             ->assertJsonPath('validation.summary.rows_imported', 0);
 
-        $issueCodes = collect($response->json('validation.issues', []))
+        $issueCodes = collect($response->json('validation.issues') ?? [])
             ->pluck('code')
             ->all();
 
@@ -203,6 +203,92 @@ CSV
         $this->assertSame(2, $categoryStats['statistics']['frequency'][0]['count']);
     }
 
+    public function test_statistics_endpoint_returns_ordinal_statistics_after_semantic_override(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->authenticateUser();
+        $project = $this->createProjectForUser($user, 'Ordinal statistics');
+
+        $this->importCsv($project, <<<'CSV'
+Priority,Revenue
+Low,10
+Medium,20
+High,30
+Medium,40
+CSV
+        )->assertCreated();
+
+        $schemaResponse = $this->getJson("/api/v1/projects/{$project->id}/schema?rebuild=0");
+        $schemaResponse->assertOk();
+        $priorityColumn = collect($schemaResponse->json('schema.columns') ?? [])
+            ->firstWhere('name', 'Priority');
+        $this->assertNotNull($priorityColumn);
+        $priorityColumnId = (int) ($priorityColumn['id'] ?? 0);
+        $this->assertGreaterThan(0, $priorityColumnId);
+
+        $this->patchJson("/api/v1/projects/{$project->id}/columns/{$priorityColumnId}/semantic-type", [
+            'semantic_type' => 'ordinal',
+            'analytical_role' => 'dimension',
+            'is_excluded_from_analysis' => false,
+        ])->assertOk();
+
+        $this->patchJson("/api/v1/projects/{$project->id}/columns/{$priorityColumnId}/ordinal-order", [
+            'ordinal_order' => ['Low', 'Medium', 'High'],
+        ])->assertOk();
+
+        $statisticsResponse = $this->getJson("/api/v1/projects/{$project->id}/statistics");
+        $statisticsResponse->assertOk();
+        $priorityStats = $this->findColumnStatistics($statisticsResponse->json('statistics') ?? [], 'Priority');
+
+        $this->assertNotNull($priorityStats);
+        $this->assertSame('ordinal', $priorityStats['semantic_type']);
+        $this->assertSame('Medium', $priorityStats['statistics']['mode']);
+        $this->assertEqualsWithDelta(2.0, $priorityStats['statistics']['median_rank'], 0.0001);
+        $this->assertSame('Medium', $priorityStats['statistics']['median_rank_label']);
+        $this->assertSame(['Low', 'Medium', 'High'], $priorityStats['statistics']['ordinal_order']);
+    }
+
+    public function test_statistics_endpoint_returns_temporal_statistics_after_semantic_override(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->authenticateUser();
+        $project = $this->createProjectForUser($user, 'Temporal statistics');
+
+        $this->importCsv($project, <<<'CSV'
+EventDate,Revenue
+2024-01-01,100
+2024-01-03,200
+2024-01-03,300
+CSV
+        )->assertCreated();
+
+        $schemaResponse = $this->getJson("/api/v1/projects/{$project->id}/schema?rebuild=0");
+        $schemaResponse->assertOk();
+        $dateColumn = collect($schemaResponse->json('schema.columns') ?? [])
+            ->firstWhere('name', 'EventDate');
+        $this->assertNotNull($dateColumn);
+        $dateColumnId = (int) ($dateColumn['id'] ?? 0);
+        $this->assertGreaterThan(0, $dateColumnId);
+
+        $this->patchJson("/api/v1/projects/{$project->id}/columns/{$dateColumnId}/semantic-type", [
+            'semantic_type' => 'temporal',
+            'analytical_role' => 'timeDimension',
+            'is_excluded_from_analysis' => false,
+        ])->assertOk();
+
+        $statisticsResponse = $this->getJson("/api/v1/projects/{$project->id}/statistics");
+        $statisticsResponse->assertOk();
+        $dateStats = $this->findColumnStatistics($statisticsResponse->json('statistics') ?? [], 'EventDate');
+
+        $this->assertNotNull($dateStats);
+        $this->assertSame('temporal', $dateStats['semantic_type']);
+        $this->assertStringStartsWith('2024-01-01T00:00:00', (string) ($dateStats['statistics']['earliest'] ?? ''));
+        $this->assertStringStartsWith('2024-01-03T00:00:00', (string) ($dateStats['statistics']['latest'] ?? ''));
+        $this->assertSame(172800, $dateStats['statistics']['range_seconds']);
+    }
+
     public function test_semantic_override_is_persisted_across_schema_reload(): void
     {
         Storage::fake('local');
@@ -219,7 +305,7 @@ CSV
 
         $schemaResponse = $this->getJson("/api/v1/projects/{$project->id}/schema?rebuild=0");
         $schemaResponse->assertOk();
-        $regionColumn = collect($schemaResponse->json('schema.columns', []))
+        $regionColumn = collect($schemaResponse->json('schema.columns') ?? [])
             ->firstWhere('name', 'Region');
         $this->assertNotNull($regionColumn);
 
@@ -238,7 +324,7 @@ CSV
 
         $reloadedSchemaResponse = $this->getJson("/api/v1/projects/{$project->id}/schema?rebuild=1");
         $reloadedSchemaResponse->assertOk();
-        $reloadedRegionColumn = collect($reloadedSchemaResponse->json('schema.columns', []))
+        $reloadedRegionColumn = collect($reloadedSchemaResponse->json('schema.columns') ?? [])
             ->firstWhere('id', $columnId);
 
         $this->assertNotNull($reloadedRegionColumn);
@@ -311,11 +397,11 @@ CSV
             ->assertCreated()
             ->assertJsonPath('validation.summary.import_status', 'imported_with_warnings');
 
-        $summary = $response->json('validation.summary', []);
+        $summary = $response->json('validation.summary') ?? [];
         $this->assertSame(0, (int) ($summary['error_count'] ?? -1));
         $this->assertGreaterThan(0, (int) ($summary['warning_count'] ?? 0));
 
-        $issueCodes = collect($response->json('validation.issues', []))
+        $issueCodes = collect($response->json('validation.issues') ?? [])
             ->pluck('code')
             ->all();
         $this->assertContains('column_invalid_numeric_values', $issueCodes);

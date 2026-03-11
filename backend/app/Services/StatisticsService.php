@@ -285,7 +285,7 @@ class StatisticsService
         return [
             'earliest' => $earliest->toAtomString(),
             'latest' => $latest->toAtomString(),
-            'range_seconds' => $latest->diffInSeconds($earliest),
+            'range_seconds' => abs($latest->diffInSeconds($earliest)),
             'granularity' => $granularity,
             'frequency_by_period' => array_slice($frequency, 0, 12),
         ];
