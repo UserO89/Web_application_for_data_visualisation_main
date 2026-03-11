@@ -24,6 +24,15 @@ class DatasetImportController extends Controller
         if ($project->user_id !== $request->user()->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
+        if ($project->dataset) {
+            return response()->json([
+                'message' => 'Import is not available for this project.',
+                'validation' => $this->datasetValidationService->buildFatalReport(
+                    'import_not_available',
+                    'Import is not available for this project.'
+                ),
+            ], 409);
+        }
 
         $file = $request->file('file');
         if (!$file) {
@@ -91,11 +100,6 @@ class DatasetImportController extends Controller
             &$schema,
             &$validationReport
         ) {
-            // Keep only one active dataset per project.
-            if ($project->dataset) {
-                $project->dataset->delete();
-            }
-
             $datasetPayload = [
                 'file_path' => $path,
                 'delimiter' => $delimiter,
