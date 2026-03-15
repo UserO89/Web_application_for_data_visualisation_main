@@ -30,7 +30,7 @@
       <ProjectPageToolbar
         :view-mode="viewMode"
         :import-validation="importValidation"
-        :validation-issue-count="validationIssueCount"
+        :validation-problem-column-count="validationProblemColumnCount"
         @back="$router.push({ name: 'projects' })"
         @change-view-mode="setViewMode"
         @open-validation="openValidationModal"
@@ -85,17 +85,10 @@
       :import-validation="importValidation"
       :validation-summary-line="validationSummaryLine"
       :validation-summary="validationSummary"
-      :severity-order="severityOrder"
-      :validation-issues-by-severity="validationIssuesBySeverity"
-      :validation-column-rows="validationColumnRows"
-      :editable-validation-issue-count="editableValidationIssueCount"
-      :validation-save-state="validationSaveState"
-      :saving-validation="savingValidation"
-      :format-issue-target-label="formatIssueTargetLabel"
+      :validation-problem-columns="validationProblemColumns"
       :format-issue-value="formatIssueValue"
       @close="closeValidationModal"
       @clear="clearValidationReport"
-      @save="applyValidationEdits"
     />
   </div>
 </template>
@@ -178,31 +171,19 @@ export default {
     const {
       importValidation,
       validationModalOpen,
-      validationDrafts,
-      savingValidation,
-      validationSaveState,
-      severityOrder,
       validationSummary,
-      validationIssueCount,
-      editableValidationIssueCount,
-      validationIssuesBySeverity,
-      validationColumnRows,
+      validationProblemColumnCount,
+      validationProblemColumns,
       validationSummaryLine,
       setValidationReport,
       clearValidationReport,
       openValidationModal,
       closeValidationModal,
-      initValidationDrafts,
-      resolveIssueTarget,
-      applyValidationEdits: applyValidationEditsCore,
       applyValidationReportFromProject,
       formatIssueValue,
-      formatIssueTargetLabel,
       resetValidationRouteState,
     } = useValidationReport({
       projectId,
-      sortedDatasetColumns,
-      tableRows,
     })
 
     const {
@@ -302,23 +283,16 @@ export default {
       setSeriesColor(label, index, color)
     }
 
-    const syncValidationDraftsIfModalOpen = () => {
-      if (validationModalOpen.value && importValidation.value) {
-        initValidationDrafts()
-      }
-    }
-
     const reloadAllProjectData = async ({ rebuildSchema = true } = {}) => {
       await reloadProjectData({
         rebuildSchema,
         columns: sortedDatasetColumns.value,
-        onRowsLoaded: syncValidationDraftsIfModalOpen,
       })
     }
 
     const resetDatasetState = ({ clearValidationReport = false } = {}) => {
       if (clearValidationReport) {
-        setValidationReport(null, false)
+        setValidationReport(null)
       }
       seriesColors.value = {}
       resetProjectDataState()
@@ -364,7 +338,6 @@ export default {
     const refreshData = async () => {
       await refreshProjectData({
         columns: sortedDatasetColumns.value,
-        onRowsLoaded: syncValidationDraftsIfModalOpen,
         onAfterRefresh: () => buildChart(chartDefinition.value),
       })
     }
@@ -374,7 +347,7 @@ export default {
     }
 
     const afterDatasetImport = async (response) => {
-      setValidationReport(response?.validation || null, false)
+      setValidationReport(response?.validation || null)
       await loadProjectPage()
       openValidationModal()
     }
@@ -466,13 +439,6 @@ export default {
       URL.revokeObjectURL(url)
     }
 
-    const applyValidationEdits = async () => {
-      await applyValidationEditsCore({
-        reloadProjectData: reloadAllProjectData,
-        rebuildChart: () => buildChart(chartDefinition.value),
-      })
-    }
-
     const resetRouteState = () => {
       resetWorkspaceRouteState()
       resetValidationRouteState()
@@ -518,11 +484,11 @@ export default {
 
     return {
       project, loading, selectedFile, importing, importOptions, importMode, manualHeaders, manualRowsInput, manualError,
-      importValidation, validationModalOpen, validationDrafts, savingValidation, validationSaveState,
-      openValidationModal, closeValidationModal, clearValidationReport, applyValidationEdits,
-      resolveIssueTarget, formatIssueValue, formatIssueTargetLabel,
-      severityOrder, validationSummary, validationSummaryLine, validationIssuesBySeverity,
-      validationIssueCount, validationColumnRows, editableValidationIssueCount,
+      importValidation, validationModalOpen,
+      openValidationModal, closeValidationModal, clearValidationReport,
+      formatIssueValue,
+      validationSummary, validationSummaryLine,
+      validationProblemColumnCount, validationProblemColumns,
       getSeriesColor, setSeriesColor, resetSeriesColors,
       viewMode, setViewMode, visiblePanelIds,
       tableRows, tableColumns, analysisRows, schemaColumns, schemaUpdatingColumnId,

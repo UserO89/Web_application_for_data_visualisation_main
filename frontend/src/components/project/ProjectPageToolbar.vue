@@ -24,8 +24,8 @@
         class="btn"
         @click="$emit('open-validation')"
       >
-        Validation Report
-        <span class="validation-pill">{{ validationIssueCount }}</span>
+        Import Review
+        <span class="validation-pill">{{ validationProblemColumnCount }}</span>
       </button>
     </div>
   </div>
@@ -37,7 +37,7 @@ export default {
   props: {
     viewMode: { type: String, default: 'workspace' },
     importValidation: { type: Object, default: null },
-    validationIssueCount: { type: Number, default: 0 },
+    validationProblemColumnCount: { type: Number, default: 0 },
   },
   emits: ['back', 'change-view-mode', 'open-validation'],
 }

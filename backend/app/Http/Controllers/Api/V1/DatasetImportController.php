@@ -76,9 +76,8 @@ class DatasetImportController extends Controller
 
         $importPlan = $this->datasetValidationService->buildImportPlan($parsed['rows'], $hasHeader);
         if (!$importPlan['canImport']) {
-            $errorIssue = collect($importPlan['report']['issues'] ?? [])
-                ->first(fn($issue) => ($issue['severity'] ?? '') === 'error');
-            $message = (string) ($errorIssue['message'] ?? 'Import blocked due to critical file/structure errors.');
+            $blockingError = (array) ($importPlan['report']['blocking_error'] ?? []);
+            $message = (string) ($blockingError['message'] ?? 'Import blocked due to critical file/structure errors.');
             return response()->json([
                 'message' => $message,
                 'validation' => $importPlan['report'],
@@ -132,7 +131,7 @@ class DatasetImportController extends Controller
             }
 
             $schema = $this->datasetSemanticSchemaService->buildAndPersist($dataset);
-            $validationReport = $this->attachSemanticTypesToValidationReport($importPlan['report'], $schema);
+            $validationReport = $importPlan['report'];
             if ($this->datasetsTableHasValidationColumns()) {
                 $dataset->update([
                     'import_summary_json' => $validationReport['summary'] ?? null,
@@ -147,30 +146,6 @@ class DatasetImportController extends Controller
             'rows_count' => count($importPlan['rows']),
             'validation' => $validationReport,
         ], 201);
-    }
-
-    private function attachSemanticTypesToValidationReport(array $report, array $schema): array
-    {
-        $schemaByName = [];
-        foreach (($schema['columns'] ?? []) as $column) {
-            $name = $column['name'] ?? null;
-            if (!$name) {
-                continue;
-            }
-            $schemaByName[$name] = $column;
-        }
-
-        $updatedColumns = [];
-        foreach (($report['columns'] ?? []) as $columnReport) {
-            $name = $columnReport['name'] ?? null;
-            $schemaColumn = $name ? ($schemaByName[$name] ?? null) : null;
-            $columnReport['detectedSemanticType'] = $schemaColumn['detectedSemanticType'] ?? null;
-            $columnReport['semanticType'] = $schemaColumn['semanticType'] ?? null;
-            $updatedColumns[] = $columnReport;
-        }
-        $report['columns'] = $updatedColumns;
-
-        return $report;
     }
 
     private function datasetsTableHasValidationColumns(): bool

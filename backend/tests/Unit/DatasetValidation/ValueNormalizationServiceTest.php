@@ -9,7 +9,7 @@ use PHPUnit\Framework\TestCase;
 
 class ValueNormalizationServiceTest extends TestCase
 {
-    public function test_sanitize_imported_rows_normalizes_values_and_tracks_counters(): void
+    public function test_sanitize_imported_rows_returns_review_ready_changes_and_counters(): void
     {
         $service = $this->makeService();
 
@@ -31,7 +31,7 @@ class ValueNormalizationServiceTest extends TestCase
         $this->assertSame(
             [
                 [null, null, null, null, null, '2026-03-01 14:05:00'],
-                ['ok', 42.5, true, '2026-02-01', 2, '2026-03-02 16:10:05'],
+                ['ok', 42.5, true, '01.02.2026', 2, '2026-03-02 16:10:05'],
             ],
             $result['rows']
         );
@@ -40,17 +40,38 @@ class ValueNormalizationServiceTest extends TestCase
         $this->assertSame(5, (int) $result['summary']['nullified_cells']);
         $this->assertSame(9, (int) $result['summary']['fixed_cells']);
 
-        $issueCodes = array_column($result['issues'], 'code');
-        $this->assertContains('value_empty_normalized', $issueCodes);
-        $this->assertContains('value_invalid_number', $issueCodes);
-        $this->assertContains('value_invalid_boolean', $issueCodes);
-        $this->assertContains('value_invalid_date', $issueCodes);
-        $this->assertContains('value_invalid_integer', $issueCodes);
-        $this->assertContains('value_date_normalized', $issueCodes);
-        $this->assertContains('value_boolean_normalized', $issueCodes);
+        $reviewColumns = $result['review']['problem_columns'] ?? [];
+        $this->assertCount(5, $reviewColumns);
+        $reviewColumnNames = array_column($reviewColumns, 'column_name');
+        $this->assertNotContains('raw_text', $reviewColumnNames);
+
+        $amountReview = $this->findReviewColumn($reviewColumns, 'amount');
+        $this->assertNotNull($amountReview);
+        $this->assertSame(1, (int) ($amountReview['issue_count'] ?? 0));
+        $this->assertSame(1, (int) ($amountReview['nullified_count'] ?? 0));
+        $this->assertSame('bad', $amountReview['review_samples'][0]['original_value'] ?? null);
+        $this->assertSame('nullified', $amountReview['review_samples'][0]['action'] ?? null);
+        $this->assertArrayHasKey('new_value', $amountReview['review_samples'][0]);
+        $this->assertNull($amountReview['review_samples'][0]['new_value']);
+
+        $eventDateReview = $this->findReviewColumn($reviewColumns, 'event_date');
+        $this->assertNotNull($eventDateReview);
+        $this->assertSame(2, (int) ($eventDateReview['issue_count'] ?? 0));
+        $dateNormalizedSample = $this->findReviewSampleByAction($eventDateReview['review_samples'] ?? [], 'normalized');
+        $this->assertNotNull($dateNormalizedSample);
+        $this->assertSame('1.2.2026', $dateNormalizedSample['original_value'] ?? null);
+        $this->assertSame('01.02.2026', $dateNormalizedSample['new_value'] ?? null);
+
+        $countReview = $this->findReviewColumn($reviewColumns, 'count');
+        $this->assertNotNull($countReview);
+        $this->assertSame(1, (int) ($countReview['nullified_count'] ?? 0));
+        $this->assertSame('1.7', $countReview['review_samples'][0]['original_value'] ?? null);
+        $this->assertSame('nullified', $countReview['review_samples'][0]['action'] ?? null);
+        $this->assertArrayHasKey('new_value', $countReview['review_samples'][0]);
+        $this->assertNull($countReview['review_samples'][0]['new_value']);
     }
 
-    public function test_normalize_limits_issue_samples_and_exposes_truncation_metadata(): void
+    public function test_normalize_limits_issue_samples_and_keeps_issue_metadata_compact(): void
     {
         $service = $this->makeService();
 
@@ -70,14 +91,24 @@ class ValueNormalizationServiceTest extends TestCase
         $this->assertSame(36, (int) $summary['sampled_issue_count']);
         $this->assertSame(1, (int) $summary['omitted_issue_count']);
 
-        $issueCodes = array_column($result['issues'], 'code');
-        $this->assertContains('cells_nullified', $issueCodes);
-        $this->assertContains('value_invalid_number', $issueCodes);
-        $this->assertContains('value_issue_samples_truncated', $issueCodes);
+        $this->assertLessThanOrEqual(40, count($result['issues']));
 
         $truncatedIssue = $this->findIssueByCode($result['issues'], 'value_issue_samples_truncated');
-        $this->assertIsArray($truncatedIssue);
+        $this->assertNotNull($truncatedIssue);
         $this->assertSame(1, (int) ($truncatedIssue['metadata']['omittedCount'] ?? 0));
+        $nullifiedIssue = $this->findIssueByCode($result['issues'], 'cells_nullified');
+        $this->assertNotNull($nullifiedIssue);
+        $this->assertSame(37, (int) ($nullifiedIssue['metadata']['count'] ?? 0));
+
+        $reviewColumns = $result['review']['problem_columns'] ?? [];
+        $this->assertCount(1, $reviewColumns);
+        $this->assertSame('Amount', $reviewColumns[0]['column_name'] ?? null);
+        $this->assertSame(37, (int) ($reviewColumns[0]['issue_count'] ?? 0));
+        $this->assertSame(37, (int) ($reviewColumns[0]['nullified_count'] ?? 0));
+        $this->assertLessThanOrEqual(8, count($reviewColumns[0]['review_samples'] ?? []));
+        foreach (($reviewColumns[0]['review_samples'] ?? []) as $sample) {
+            $this->assertIsArray($sample);
+        }
     }
 
     private function makeService(): ValueNormalizationService
@@ -95,6 +126,28 @@ class ValueNormalizationServiceTest extends TestCase
         foreach ($issues as $issue) {
             if (($issue['code'] ?? null) === $code) {
                 return $issue;
+            }
+        }
+
+        return null;
+    }
+
+    private function findReviewColumn(array $columns, string $name): ?array
+    {
+        foreach ($columns as $column) {
+            if (($column['column_name'] ?? null) === $name) {
+                return $column;
+            }
+        }
+
+        return null;
+    }
+
+    private function findReviewSampleByAction(array $samples, string $action): ?array
+    {
+        foreach ($samples as $sample) {
+            if (($sample['action'] ?? null) === $action) {
+                return $sample;
             }
         }
 

@@ -119,8 +119,9 @@ CSV
             ->assertJsonStructure([
                 'dataset' => ['id', 'project_id', 'file_path', 'delimiter', 'has_header', 'columns'],
                 'schema' => ['datasetId', 'generatedAt', 'columns'],
-                'validation' => ['summary', 'issues', 'columns'],
+                'validation' => ['summary', 'problem_columns', 'blocking_error'],
             ]);
+        $this->assertNull($response->json('validation.issues'));
 
         $dataset = $project->fresh()->dataset;
         $this->assertNotNull($dataset);
@@ -152,13 +153,10 @@ CSV
         $response
             ->assertStatus(422)
             ->assertJsonPath('validation.summary.import_status', 'blocked')
-            ->assertJsonPath('validation.summary.rows_imported', 0);
-
-        $issueCodes = collect($response->json('validation.issues') ?? [])
-            ->pluck('code')
-            ->all();
-
-        $this->assertContains('file_no_data_rows', $issueCodes);
+            ->assertJsonPath('validation.summary.rows_imported', 0)
+            ->assertJsonPath('validation.summary.problematic_columns', 0)
+            ->assertJsonPath('validation.blocking_error.code', 'file_no_data_rows');
+        $this->assertNull($response->json('validation.issues'));
         $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);
     }
 
@@ -390,6 +388,7 @@ Region,Revenue
 North,100
 South,bad
 West,300
+East,400
 CSV
         );
 
@@ -398,15 +397,16 @@ CSV
             ->assertJsonPath('validation.summary.import_status', 'imported_with_warnings');
 
         $summary = $response->json('validation.summary') ?? [];
-        $this->assertSame(0, (int) ($summary['error_count'] ?? -1));
-        $this->assertGreaterThan(0, (int) ($summary['warning_count'] ?? 0));
+        $this->assertGreaterThan(0, (int) ($summary['problematic_columns'] ?? 0));
+        $this->assertNull($response->json('validation.issues'));
 
-        $issues = $response->json('validation.issues') ?? [];
-        $warningIssues = array_filter(
-            $issues,
-            fn($issue) => ($issue['severity'] ?? null) === 'warning'
-        );
-        $this->assertNotEmpty($warningIssues);
+        $problemColumns = $response->json('validation.problem_columns') ?? [];
+        $this->assertNotEmpty($problemColumns);
+        $revenue = collect($problemColumns)->firstWhere('column_name', 'Revenue');
+        $this->assertIsArray($revenue);
+        $this->assertGreaterThan(0, (int) ($revenue['issue_count'] ?? 0));
+        $this->assertGreaterThan(0, (int) ($revenue['nullified_count'] ?? 0));
+        $this->assertNotEmpty($revenue['review_samples'] ?? []);
     }
 
     public function test_project_page_critical_api_flow_does_not_break(): void

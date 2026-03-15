@@ -10,7 +10,8 @@ class ValueNormalizationService
     use BuildsValidationIssue;
 
     private const MAX_VALUE_ISSUE_SAMPLES = 36;
-    private const DATE_OUTPUT_FORMAT = 'Y-m-d';
+    private const MAX_REVIEW_SAMPLES_PER_COLUMN = 8;
+    private const DATE_OUTPUT_FORMAT = 'd.m.Y';
     private const DATETIME_OUTPUT_FORMAT = 'Y-m-d H:i:s';
 
     public function __construct(
@@ -28,6 +29,7 @@ class ValueNormalizationService
             'rows' => $sanitized['rows'],
             'summary' => $sanitized['summary'],
             'issues' => $this->buildNormalizationIssues($sanitized),
+            'review' => (array) ($sanitized['review'] ?? ['problem_columns' => []]),
         ];
     }
 
@@ -42,6 +44,7 @@ class ValueNormalizationService
         $issueTypeCounts = [];
         $parseIssueCount = 0;
         $issueCount = 0;
+        $reviewColumns = [];
 
         foreach ($rows as $rowIndex => $row) {
             $sourceRow = is_array($row) ? array_values($row) : [];
@@ -85,18 +88,30 @@ class ValueNormalizationService
                     }
 
                     $issueType = (string) ($normalized['issue_type'] ?? 'value_changed');
+                    $columnName = $column['name'] ?? ('Column_' . ($position + 1));
                     $issueCount++;
                     $issueTypeCounts[$issueType] = ($issueTypeCounts[$issueType] ?? 0) + 1;
                     if (str_starts_with($issueType, 'invalid_')) {
                         $parseIssueCount++;
                     }
 
+                    $this->accumulateReviewColumn(
+                        $reviewColumns,
+                        $columnName,
+                        $position,
+                        $rowIndex,
+                        $issueType,
+                        $original,
+                        $normalized['value'],
+                        (string) $normalized['message']
+                    );
+
                     if (count($issues) < self::MAX_VALUE_ISSUE_SAMPLES) {
                         $issues[] = [
                             'severity' => $this->resolveValueIssueSeverity($issueType),
                             'code' => "value_{$issueType}",
                             'row' => $rowIndex + 1,
-                            'column' => $column['name'] ?? ('Column_' . ($position + 1)),
+                            'column' => $columnName,
                             'message' => $normalized['message'],
                             'metadata' => [
                                 'type' => $issueType,
@@ -127,6 +142,9 @@ class ValueNormalizationService
                 'parse_issue_count' => $parseIssueCount,
                 'sampled_issue_count' => count($issues),
                 'omitted_issue_count' => max(0, $issueCount - count($issues)),
+            ],
+            'review' => [
+                'problem_columns' => $this->finalizeReviewColumns($reviewColumns),
             ],
         ];
     }
@@ -354,7 +372,7 @@ class ValueNormalizationService
             'issue_type' => 'date_normalized',
             'message' => $type === 'datetime'
                 ? 'Normalized datetime format to YYYY-MM-DD HH:mm:ss.'
-                : 'Normalized date format to YYYY-MM-DD.',
+                : 'Normalized date format to DD.MM.YYYY.',
         ];
     }
 
@@ -410,6 +428,104 @@ class ValueNormalizationService
             'boolean' => 'boolean',
             default => 'string',
         };
+    }
+
+    private function accumulateReviewColumn(
+        array &$reviewColumns,
+        string $columnName,
+        int $position,
+        int $rowIndex,
+        string $issueType,
+        mixed $original,
+        mixed $newValue,
+        string $message
+    ): void {
+        if (!$this->isReviewRelevantIssueType($issueType)) {
+            return;
+        }
+
+        if (!isset($reviewColumns[$columnName])) {
+            $reviewColumns[$columnName] = [
+                'column_index' => $position + 1,
+                'column_name' => $columnName,
+                'issue_count' => 0,
+                'normalized_count' => 0,
+                'nullified_count' => 0,
+                'review_samples' => [],
+            ];
+        }
+
+        $reviewColumns[$columnName]['issue_count']++;
+        if ($newValue === null) {
+            $reviewColumns[$columnName]['nullified_count']++;
+        } else {
+            $reviewColumns[$columnName]['normalized_count']++;
+        }
+
+        if (count($reviewColumns[$columnName]['review_samples']) >= self::MAX_REVIEW_SAMPLES_PER_COLUMN) {
+            return;
+        }
+
+        $reviewColumns[$columnName]['review_samples'][] = [
+            'row' => $rowIndex + 1,
+            'original_value' => $this->printable($original),
+            'action' => $newValue === null ? 'nullified' : 'normalized',
+            'new_value' => $this->printable($newValue),
+            'reason' => $this->resolveReviewReason($issueType, $message),
+        ];
+    }
+
+    private function isReviewRelevantIssueType(string $issueType): bool
+    {
+        if (str_starts_with($issueType, 'invalid_')) {
+            return true;
+        }
+
+        return in_array($issueType, [
+            'number_normalized',
+            'date_normalized',
+            'boolean_normalized',
+        ], true);
+    }
+
+    private function resolveReviewReason(string $issueType, string $fallback): string
+    {
+        return match ($issueType) {
+            'invalid_number' => 'Invalid numeric value',
+            'invalid_integer' => 'Invalid integer value',
+            'invalid_boolean' => 'Invalid boolean value',
+            'invalid_date' => 'Invalid date or datetime value',
+            'number_normalized' => 'Numeric format normalized',
+            'date_normalized' => 'Date/datetime format normalized',
+            'boolean_normalized' => 'Boolean value normalized',
+            default => $fallback,
+        };
+    }
+
+    private function finalizeReviewColumns(array $reviewColumns): array
+    {
+        if (empty($reviewColumns)) {
+            return [];
+        }
+
+        $columns = array_values($reviewColumns);
+        usort($columns, function (array $a, array $b) {
+            $leftIssues = (int) ($a['issue_count'] ?? 0);
+            $rightIssues = (int) ($b['issue_count'] ?? 0);
+            if ($leftIssues !== $rightIssues) {
+                return $rightIssues <=> $leftIssues;
+            }
+
+            $leftNullified = (int) ($a['nullified_count'] ?? 0);
+            $rightNullified = (int) ($b['nullified_count'] ?? 0);
+            if ($leftNullified !== $rightNullified) {
+                return $rightNullified <=> $leftNullified;
+            }
+
+            return strcmp((string) ($a['column_name'] ?? ''), (string) ($b['column_name'] ?? ''));
+        });
+
+        return $columns;
     }
 
     private function printable(mixed $value): mixed
