@@ -15,6 +15,9 @@
         <button type="button" :class="['btn', { primary: viewMode === 'workspace' }]" @click="$emit('change-view-mode', 'workspace')">
           Workspace
         </button>
+        <button type="button" :class="['btn', { primary: viewMode === 'library' }]" @click="$emit('change-view-mode', 'library')">
+          Saved Charts
+        </button>
       </div>
     </div>
     <div class="top-row-right">

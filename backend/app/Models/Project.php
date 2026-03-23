@@ -24,4 +24,9 @@ class Project extends Model
     {
         return $this->hasOne(Dataset::class);
     }
+
+    public function charts()
+    {
+        return $this->hasMany(Chart::class);
+    }
 }

@@ -15,8 +15,9 @@
     <div class="chart-footer">
       <div style="color: var(--muted); font-size: 13px;">Hover over the chart for details.</div>
       <div style="display: flex; gap: 8px;">
-        <button class="btn" type="button" @click="exportPNG">Export PNG</button>
-        <button class="btn" @click="$emit('clear')">Clear</button>
+        <button v-if="allowSave" class="btn" type="button" :disabled="!hasRenderableData" @click="$emit('save')">Save Chart</button>
+        <button v-if="allowExport" class="btn" type="button" @click="exportPNG">Export PNG</button>
+        <button v-if="allowClear" class="btn" @click="$emit('clear')">Clear</button>
       </div>
     </div>
   </div>
@@ -36,8 +37,11 @@ export default {
     meta: { type: Object, default: () => ({}) },
     type: { type: String, default: 'line' },
     embedded: { type: Boolean, default: false },
+    allowSave: { type: Boolean, default: false },
+    allowExport: { type: Boolean, default: true },
+    allowClear: { type: Boolean, default: true },
   },
-  emits: ['clear'],
+  emits: ['clear', 'save'],
   setup(props) {
     const chartRef = ref(null)
 
@@ -80,7 +84,7 @@ export default {
       chartRef.value?.exportPng?.('chart.png')
     }
 
-    return { chartRef, chartOption, exportPNG }
+    return { chartRef, chartOption, hasRenderableData, exportPNG }
   },
 }
 </script>

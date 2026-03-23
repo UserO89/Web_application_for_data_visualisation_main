@@ -10,7 +10,7 @@ import {
   writeJsonStorage,
 } from '../../utils/project'
 
-const IDS = ['table', 'chart', 'stats']
+const WORKSPACE_IDS = ['table', 'chart', 'stats']
 const STORAGE_PREFIX = 'dataviz.workspace.layout.v5.'
 const TABLE_TO_CHART_WIDTH_RATIO = 1.18
 const PANEL_GAP = 16
@@ -38,6 +38,7 @@ export const useProjectWorkspace = ({
     table: { title: 'Data Table', subtitle: 'Editable' },
     chart: { title: 'Visualization', subtitle: 'Chart + controls' },
     stats: { title: 'Statistics', subtitle: 'Columns / Calculate / Visualization' },
+    library: { title: 'Saved Charts', subtitle: 'Project chart library' },
   }
 
   const canvasW = () => Math.max(320, workspaceRef.value?.clientWidth || 1120)
@@ -47,7 +48,8 @@ export const useProjectWorkspace = ({
     if (viewMode.value === 'table') return ['table']
     if (viewMode.value === 'visualization') return ['chart']
     if (viewMode.value === 'statistics') return ['stats']
-    return IDS
+    if (viewMode.value === 'library') return ['library']
+    return WORKSPACE_IDS
   })
 
   const buildFocusLayouts = (mode) => {
@@ -61,6 +63,9 @@ export const useProjectWorkspace = ({
     }
     if (mode === 'statistics') {
       return { stats: { x: 0, y: 0, w: width, h: 720, z: 1 } }
+    }
+    if (mode === 'library') {
+      return { library: { x: 0, y: 0, w: width, h: 720, z: 1 } }
     }
     return {}
   }
@@ -92,7 +97,7 @@ export const useProjectWorkspace = ({
       preset,
       canvasWidth: canvasW(),
       min: MIN,
-      ids: IDS,
+      ids: WORKSPACE_IDS,
     })
 
   const sanitize = (layouts, savedWidth) =>
@@ -101,7 +106,7 @@ export const useProjectWorkspace = ({
       savedWidth,
       canvasWidth: canvasW(),
       min: MIN,
-      ids: IDS,
+      ids: WORKSPACE_IDS,
     })
 
   const alignPanelsToRightEdge = (layouts) =>
@@ -109,13 +114,13 @@ export const useProjectWorkspace = ({
       layouts,
       canvasWidth: canvasW(),
       min: MIN,
-      ids: IDS,
+      ids: WORKSPACE_IDS,
     })
 
   const centerLayoutsHorizontally = (layouts) => {
     if (!layouts || typeof layouts !== 'object') return layouts
 
-    const panels = IDS.map((id) => layouts[id]).filter(Boolean)
+    const panels = WORKSPACE_IDS.map((id) => layouts[id]).filter(Boolean)
     if (!panels.length) return layouts
 
     const minX = Math.min(...panels.map((panel) => panel.x))
@@ -132,7 +137,7 @@ export const useProjectWorkspace = ({
     if (Math.abs(offset) < 1) return layouts
 
     const centered = {}
-    IDS.forEach((id) => {
+    WORKSPACE_IDS.forEach((id) => {
       const panel = layouts[id]
       centered[id] = panel ? { ...panel, x: Math.round(panel.x + offset) } : panel
     })
@@ -179,12 +184,12 @@ export const useProjectWorkspace = ({
 
   const setLayouts = (layouts, persist = true) => {
     panelLayouts.value = normalizeWorkspaceLayouts(layouts)
-    zCounter.value = Math.max(...IDS.map((id) => panelLayouts.value[id]?.z || 0)) + 1
+    zCounter.value = Math.max(...WORKSPACE_IDS.map((id) => panelLayouts.value[id]?.z || 0)) + 1
     if (persist) saveLayouts()
   }
 
   const saveLayouts = () => {
-    if (!project.value?.dataset || !IDS.every((id) => panelLayouts.value[id])) return
+    if (!project.value?.dataset || !WORKSPACE_IDS.every((id) => panelLayouts.value[id])) return
     writeJsonStorage(key(), {
       width: canvasW(),
       preset: activePreset.value,
@@ -247,7 +252,7 @@ export const useProjectWorkspace = ({
   }
 
   const collides = (id, rect) =>
-    IDS.some((otherId) => {
+      WORKSPACE_IDS.some((otherId) => {
       if (otherId === id) return false
       const other = panelLayouts.value[otherId]
       return other ? rectsOverlap(rect, other) : false
@@ -339,21 +344,21 @@ export const useProjectWorkspace = ({
     if (viewMode.value !== 'workspace') return
 
     const next = {}
-    IDS.forEach((id) => {
+    WORKSPACE_IDS.forEach((id) => {
       if (!panelLayouts.value[id]) return
       next[id] = { ...panelLayouts.value[id], ...clampRect(id, panelLayouts.value[id]) }
     })
-    if (!IDS.every((id) => next[id])) return
+    if (!WORKSPACE_IDS.every((id) => next[id])) return
 
     const centered = normalizeWorkspaceLayouts(next)
-    if (hasAnyOverlap(centered, IDS)) {
+    if (hasAnyOverlap(centered, WORKSPACE_IDS)) {
       const fallbackPreset = activePreset.value === 'custom' ? 'default' : activePreset.value
       activePreset.value = fallbackPreset
       setLayouts(buildPreset(fallbackPreset), true)
       return
     }
 
-    IDS.forEach((id) => Object.assign(panelLayouts.value[id], centered[id]))
+    WORKSPACE_IDS.forEach((id) => Object.assign(panelLayouts.value[id], centered[id]))
     saveLayouts()
   }
 

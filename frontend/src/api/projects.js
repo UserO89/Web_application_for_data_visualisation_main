@@ -74,6 +74,26 @@ export const projectsApi = {
     return response.data
   },
 
+  async listSavedCharts(projectId) {
+    const response = await http.get(`/projects/${projectId}/charts`)
+    return response.data
+  },
+
+  async saveChart(projectId, payload) {
+    const response = await http.post(`/projects/${projectId}/charts`, payload)
+    return response.data
+  },
+
+  async updateSavedChart(projectId, chartId, payload) {
+    const response = await http.patch(`/projects/${projectId}/charts/${chartId}`, payload)
+    return response.data
+  },
+
+  async deleteSavedChart(projectId, chartId) {
+    const response = await http.delete(`/projects/${projectId}/charts/${chartId}`)
+    return response.data
+  },
+
   async getSchema(projectId, options = {}) {
     const response = await http.get(`/projects/${projectId}/schema`, {
       params: {

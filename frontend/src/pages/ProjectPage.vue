@@ -59,6 +59,9 @@
         :statistics-summary="statisticsSummary"
         :statistics-loading="statisticsLoading"
         :statistics-error="statisticsError"
+        :saved-charts="savedCharts"
+        :saved-charts-loading="savedChartsLoading"
+        :saved-charts-error="savedChartsError"
         :analysis-rows="analysisRows"
         :schema-updating-column-id="schemaUpdatingColumnId"
         :get-series-color="getSeriesColor"
@@ -71,11 +74,16 @@
         @set-chart-height="setChartViewportHeight"
         @update-chart-definition="handleChartDefinitionUpdate"
         @build-chart="buildChart"
+        @save-chart="saveCurrentChart"
         @clear-chart="clearChart"
         @set-series-color="handleSetSeriesColor"
         @reset-series-colors="resetSeriesColors"
         @change-semantic="handleSemanticTypeChange"
         @change-ordinal-order="handleOrdinalOrderChange"
+        @refresh-saved-charts="loadSavedCharts"
+        @rename-saved-chart="renameSavedChart"
+        @download-saved-chart="downloadSavedChart"
+        @delete-saved-chart="deleteSavedChart"
       />
 
     </div>
@@ -100,7 +108,7 @@ import { projectsApi } from '../api/projects'
 import { useDatasetSchemaStore } from '../stores/datasetSchema'
 import { createDefaultChartDefinition, mergeChartDefinition } from '../charts/chartDefinitions/createUniversalChartDefinition'
 import { normalizeChartDefinition } from '../charts/rules/chartDefinitionValidator'
-import { cellField, buildCsvLines, buildRowUpdateValues } from '../utils/project'
+import { cellField, buildCsvLines, buildRowUpdateValues, downloadSavedChartPng } from '../utils/project'
 import { useManualDatasetBuilder, useValidationReport, useProjectDataLoader, useProjectWorkspace, useProjectChartState, } from '../composables/project'
 
 export default {
@@ -122,6 +130,9 @@ export default {
     const importing = ref(false)
     const importOptions = ref({ has_header: true, delimiter: ',' })
     const importMode = ref('file')
+    const savedCharts = ref([])
+    const savedChartsLoading = ref(false)
+    const savedChartsError = ref('')
 
     const {
       manualHeaders,
@@ -254,6 +265,35 @@ export default {
       }))
     )
 
+    const formatSavedChartCreatedAt = (value) => {
+      if (!value) return '-'
+      const parsed = new Date(value)
+      if (Number.isNaN(parsed.getTime())) return '-'
+      return parsed.toLocaleString()
+    }
+
+    const normalizeSavedChart = (savedChart) => {
+      const config = savedChart?.config && typeof savedChart.config === 'object' ? savedChart.config : {}
+      const rendered = config?.rendered && typeof config.rendered === 'object' ? config.rendered : {}
+      const chartDefinition = config?.chartDefinition && typeof config.chartDefinition === 'object'
+        ? config.chartDefinition
+        : createDefaultChartDefinition(savedChart?.type || rendered?.type || 'line')
+
+      return {
+        id: Number(savedChart?.id || 0),
+        title: String(savedChart?.title || '').trim(),
+        type: String(savedChart?.type || rendered?.type || chartDefinition?.chartType || 'line'),
+        created_at: formatSavedChartCreatedAt(savedChart?.created_at),
+        chartDefinition,
+        labels: Array.isArray(rendered?.labels) ? rendered.labels : [],
+        datasets: Array.isArray(rendered?.datasets) ? rendered.datasets : [],
+        meta: rendered?.meta && typeof rendered.meta === 'object' ? rendered.meta : {},
+      }
+    }
+
+    const buildSavedChartTitle = (type) =>
+      `${String(type || 'chart').toUpperCase()} ${new Date().toLocaleString()}`
+
     const setWorkspaceCanvasRef = (element) => {
       workspaceRef.value = element
     }
@@ -287,6 +327,109 @@ export default {
       setSeriesColor(label, index, color)
     }
 
+    const loadSavedCharts = async () => {
+      if (savedChartsLoading.value) return
+
+      if (!project.value?.dataset) {
+        savedCharts.value = []
+        return
+      }
+
+      savedChartsLoading.value = true
+      savedChartsError.value = ''
+      try {
+        const response = await projectsApi.listSavedCharts(projectId.value)
+        const nextCharts = Array.isArray(response?.charts) ? response.charts.map(normalizeSavedChart) : []
+        savedCharts.value = nextCharts
+      } catch (e) {
+        console.error(e)
+        savedChartsError.value = e?.response?.data?.message || 'Failed to load saved charts.'
+      } finally {
+        savedChartsLoading.value = false
+      }
+    }
+
+    const saveCurrentChart = async () => {
+      if (!chartDatasets.value.length) {
+        window.alert('Build a chart before saving it to the project library.')
+        return
+      }
+
+      try {
+        await projectsApi.saveChart(projectId.value, {
+          type: chartType.value || 'line',
+          title: buildSavedChartTitle(chartType.value),
+          config: {
+            chartDefinition: chartDefinition.value,
+            rendered: {
+              type: chartType.value || 'line',
+              labels: chartLabels.value || [],
+              datasets: chartDatasets.value || [],
+              meta: chartMeta.value || {},
+            },
+          },
+        })
+        await loadSavedCharts()
+        setViewMode('library')
+      } catch (e) {
+        console.error(e)
+        window.alert('Failed to save chart: ' + (e?.response?.data?.message || e.message))
+      }
+    }
+
+    const downloadSavedChart = async (savedChart) => {
+      if (!savedChart) return
+      try {
+        await downloadSavedChartPng(savedChart, savedChart.title || `chart-${savedChart.id}`)
+      } catch (e) {
+        console.error(e)
+        window.alert('Failed to download chart PNG.')
+      }
+    }
+
+    const renameSavedChart = async ({ chartId, title }) => {
+      if (!chartId) return
+      const nextTitle = String(title || '').trim()
+      if (!nextTitle) {
+        window.alert('Chart name cannot be empty.')
+        return
+      }
+
+      try {
+        const response = await projectsApi.updateSavedChart(projectId.value, chartId, {
+          title: nextTitle,
+        })
+
+        const updated = normalizeSavedChart(response?.chart || {})
+        savedCharts.value = savedCharts.value.map((chart) =>
+          Number(chart.id) === Number(chartId)
+            ? {
+                ...chart,
+                ...updated,
+                title: updated.title || nextTitle,
+              }
+            : chart
+        )
+      } catch (e) {
+        console.error(e)
+        window.alert('Failed to rename chart: ' + (e?.response?.data?.message || e.message))
+      }
+    }
+
+    const deleteSavedChart = async (savedChartId) => {
+      if (!savedChartId) return
+      const confirmed = window.confirm('Delete this saved chart from the project library?')
+      if (!confirmed) return
+
+      try {
+        await projectsApi.deleteSavedChart(projectId.value, savedChartId)
+        await loadSavedCharts()
+      } catch (e) {
+        console.error(e)
+        window.alert('Failed to delete chart: ' + (e?.response?.data?.message || e.message))
+      }
+    }
+
     const reloadAllProjectData = async ({ rebuildSchema = true } = {}) => {
       await reloadProjectData({
         rebuildSchema,
@@ -306,6 +449,9 @@ export default {
       chartDefinition.value = createDefaultChartDefinition('line')
       chartViewportHeight.value = 320
       chartViewportCustom.value = false
+      savedCharts.value = []
+      savedChartsLoading.value = false
+      savedChartsError.value = ''
       schemaStore.applySchema(null)
     }
 
@@ -325,6 +471,7 @@ export default {
     const handleProjectWithDataset = async (loadedProject) => {
       seriesColors.value = loadSeriesColors()
       await reloadAllProjectData({ rebuildSchema: false })
+      await loadSavedCharts()
       applySuggestedChartDefinition()
       applyValidationReportFromProject(loadedProject?.dataset?.validation_report_json)
       await ensureWorkspaceInitializedForProject()
@@ -502,6 +649,12 @@ export default {
       loadProjectPage()
     })
 
+    watch(() => viewMode.value, (mode) => {
+      if (mode !== 'library') return
+      if (!project.value?.dataset) return
+      loadSavedCharts()
+    })
+
     return {
       project, loading, selectedFile, importing, importOptions, importMode, manualHeaders, manualRowsInput, manualError,
       importValidation, validationModalOpen,
@@ -513,6 +666,7 @@ export default {
       viewMode, setViewMode, visiblePanelIds,
       tableRows, tableColumns, analysisRows, schemaColumns, schemaUpdatingColumnId,
       suggestions, statisticsSummary, statisticsLoading, statisticsError,
+      savedCharts, savedChartsLoading, savedChartsError,
       chartType, chartDefinition,
       chartViewportPresetValue, chartViewportStyle, setChartViewportHeight,
       chartLabels, chartDatasets, chartMeta, workspaceHeight, panelConfig, resizeDirs, panelStyle,
@@ -521,6 +675,7 @@ export default {
       handleFileSelect, handleImport,
       addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
       handleSemanticTypeChange, handleOrdinalOrderChange,
+      loadSavedCharts, saveCurrentChart, renameSavedChart, downloadSavedChart, deleteSavedChart,
       buildChart, clearChart, refreshData, exportTableCsv,
     }
   },

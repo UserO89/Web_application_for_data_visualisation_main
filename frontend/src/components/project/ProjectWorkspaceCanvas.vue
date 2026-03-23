@@ -41,7 +41,9 @@
                 :datasets="chartDatasets"
                 :meta="chartMeta"
                 :type="chartType"
+                allow-save
                 @clear="$emit('clear-chart')"
+                @save="$emit('save-chart')"
               />
             </div>
             <div class="chart-tools">
@@ -103,6 +105,73 @@
             />
           </div>
         </template>
+
+        <template v-else-if="panelId === 'library'">
+          <div class="library-shell">
+            <div class="library-head">
+              <div class="analysis-title">Saved Charts</div>
+              <button class="btn" type="button" @click="$emit('refresh-saved-charts')">Refresh</button>
+            </div>
+
+            <div v-if="savedChartsLoading" class="library-empty">Loading saved charts...</div>
+            <div v-else-if="savedChartsError" class="library-empty">{{ savedChartsError }}</div>
+            <div v-else-if="!savedCharts.length" class="library-empty">
+              No saved charts yet. Build a chart in Visualization and click Save Chart.
+            </div>
+
+            <div v-else class="saved-charts-grid">
+              <article
+                v-for="savedChart in savedCharts"
+                :key="`saved-chart-${savedChart.id}`"
+                class="saved-chart-card"
+              >
+                <div class="saved-chart-head">
+                  <div class="saved-chart-name">
+                    <div class="saved-chart-title-row">
+                      <input
+                        class="saved-chart-title-input-inline"
+                        type="text"
+                        maxlength="255"
+                        :value="getSavedChartTitleDraft(savedChart)"
+                        @input="setSavedChartTitleDraft(savedChart.id, $event.target.value)"
+                        @focus="selectAllInputText($event)"
+                        @click="selectAllInputText($event)"
+                        @keydown.enter.prevent="saveSavedChartTitle(savedChart)"
+                      />
+                      <button
+                        v-if="hasSavedChartTitleChanges(savedChart)"
+                        class="btn"
+                        type="button"
+                        @click="saveSavedChartTitle(savedChart)"
+                      >
+                        Save
+                      </button>
+                    </div>
+                    <div class="saved-chart-meta">
+                      {{ savedChart.type || 'chart' }} - {{ savedChart.created_at || '-' }}
+                    </div>
+                  </div>
+                </div>
+                <div class="saved-chart-canvas">
+                  <ChartPanel
+                    embedded
+                    :labels="savedChart.labels"
+                    :datasets="savedChart.datasets"
+                    :meta="savedChart.meta"
+                    :type="savedChart.type"
+                    :allow-export="false"
+                    :allow-clear="false"
+                  />
+                </div>
+                <div class="saved-chart-actions">
+                  <button class="btn" type="button" @click="$emit('download-saved-chart', savedChart)">Download PNG</button>
+                  <button class="btn" type="button" @click="$emit('delete-saved-chart', savedChart.id)">Delete</button>
+                </div>
+              </article>
+            </div>
+
+          </div>
+        </template>
       </div>
 
       <div
@@ -117,7 +186,7 @@
 </template>
 
 <script>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import ChartPanel from './ChartPanel.vue'
 import ChartBuilder from './ChartBuilder.vue'
 import DataTable from './DataTable.vue'
@@ -156,6 +225,9 @@ export default {
     statisticsSummary: { type: Array, default: () => [] },
     statisticsLoading: { type: Boolean, default: false },
     statisticsError: { type: String, default: '' },
+    savedCharts: { type: Array, default: () => [] },
+    savedChartsLoading: { type: Boolean, default: false },
+    savedChartsError: { type: String, default: '' },
     analysisRows: { type: Array, default: () => [] },
     schemaUpdatingColumnId: { type: [String, Number], default: null },
     getSeriesColor: { type: Function, default: () => '#1db954' },
@@ -169,16 +241,85 @@ export default {
     'export-csv',
     'set-chart-height',
     'build-chart',
+    'save-chart',
     'clear-chart',
     'set-series-color',
     'reset-series-colors',
     'change-semantic',
     'change-ordinal-order',
+    'refresh-saved-charts',
+    'rename-saved-chart',
+    'download-saved-chart',
+    'delete-saved-chart',
     'update-chart-definition',
   ],
   setup(props, { emit }) {
     const panelIds = computed(() => Object.keys(props.panelConfig || {}))
     const isPanelVisible = (panelId) => props.visiblePanelIds.includes(panelId)
+    const titleDrafts = ref({})
+
+    const normalizedSavedChartTitle = (savedChart) => {
+      const value = String(savedChart?.title || '').trim()
+      return value || 'Untitled chart'
+    }
+
+    watch(
+      () => props.savedCharts,
+      (nextCharts) => {
+        const nextDrafts = {}
+        ;(nextCharts || []).forEach((savedChart) => {
+          const id = Number(savedChart?.id || 0)
+          if (!id) return
+          const persistedTitle = normalizedSavedChartTitle(savedChart)
+          const existingDraft = titleDrafts.value[id]
+          nextDrafts[id] = typeof existingDraft === 'string' ? existingDraft : persistedTitle
+        })
+        titleDrafts.value = nextDrafts
+      },
+      { immediate: true }
+    )
+
+    const getSavedChartTitleDraft = (savedChart) => {
+      const id = Number(savedChart?.id || 0)
+      if (!id) return normalizedSavedChartTitle(savedChart)
+      return titleDrafts.value[id] ?? normalizedSavedChartTitle(savedChart)
+    }
+
+    const setSavedChartTitleDraft = (savedChartId, value) => {
+      const id = Number(savedChartId || 0)
+      if (!id) return
+      titleDrafts.value = {
+        ...titleDrafts.value,
+        [id]: String(value ?? ''),
+      }
+    }
+
+    const selectAllInputText = (event) => {
+      const input = event?.target
+      if (!input || typeof input.select !== 'function') return
+      requestAnimationFrame(() => input.select())
+    }
+
+    const hasSavedChartTitleChanges = (savedChart) => {
+      const draft = String(getSavedChartTitleDraft(savedChart) || '').trim()
+      const persisted = normalizedSavedChartTitle(savedChart)
+      return Boolean(draft) && draft !== persisted
+    }
+
+    const saveSavedChartTitle = (savedChart) => {
+      if (!savedChart?.id) return
+      const draft = String(getSavedChartTitleDraft(savedChart) || '').trim()
+      const persisted = normalizedSavedChartTitle(savedChart)
+      if (!draft) {
+        setSavedChartTitleDraft(savedChart.id, persisted)
+        return
+      }
+      if (draft === persisted) return
+      emit('rename-saved-chart', {
+        chartId: Number(savedChart.id),
+        title: draft,
+      })
+    }
 
     const chartDefinitionModel = computed({
       get: () => props.chartDefinition,
@@ -188,6 +329,11 @@ export default {
     return {
       panelIds,
       isPanelVisible,
+      getSavedChartTitleDraft,
+      setSavedChartTitleDraft,
+      selectAllInputText,
+      hasSavedChartTitleChanges,
+      saveSavedChartTitle,
       chartDefinitionModel,
     }
   },
@@ -233,6 +379,32 @@ export default {
 }
 
 .stats-shell { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: auto; padding-right: 2px; }
+.library-shell { display: flex; flex-direction: column; gap: 10px; height: 100%; overflow: auto; padding-right: 2px; }
+.library-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.library-empty { color: var(--muted); font-size: 13px; border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+.saved-charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; }
+.saved-chart-card { border: 1px solid var(--border); border-radius: 12px; background: #161616; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+.saved-chart-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.saved-chart-name { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.saved-chart-title-row { display: flex; align-items: center; gap: 8px; }
+.saved-chart-title-input-inline {
+  width: 100%;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0;
+  cursor: text;
+  outline: none;
+}
+.saved-chart-title-input-inline:focus {
+  color: var(--text);
+  text-decoration: none;
+}
+.saved-chart-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.saved-chart-canvas { height: 320px; border: 1px solid var(--border); border-radius: 10px; padding: 6px; }
+.saved-chart-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .series-colors { border: 1px solid var(--border); border-radius: 10px; background: #171717; padding: 10px; margin-bottom: 10px; }
 .series-colors-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }

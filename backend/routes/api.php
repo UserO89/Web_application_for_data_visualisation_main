@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\V1\DatasetRowController;
 use App\Http\Controllers\Api\V1\DatasetSchemaController;
 use App\Http\Controllers\Api\V1\DatasetStatisticsController;
 use App\Http\Controllers\Api\V1\DatasetSuggestionController;
+use App\Http\Controllers\Api\V1\ProjectChartController;
 use App\Http\Controllers\Api\V1\UserAvatarController;
 
 Route::prefix('v1')->group(function () {
@@ -52,6 +53,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/projects/{project}/statistics-summary', [DatasetStatisticsController::class, 'show']);
         Route::get('/projects/{project}/suggest-visualizations', [DatasetSuggestionController::class, 'index']);
         Route::get('/projects/{project}/chart-suggestions', [DatasetSuggestionController::class, 'index']);
+
+        // Saved chart library
+        Route::get('/projects/{project}/charts', [ProjectChartController::class, 'index']);
+        Route::post('/projects/{project}/charts', [ProjectChartController::class, 'store']);
+        Route::patch('/projects/{project}/charts/{chart}', [ProjectChartController::class, 'update']);
+        Route::delete('/projects/{project}/charts/{chart}', [ProjectChartController::class, 'destroy']);
 
         Route::prefix('admin')->middleware('admin')->group(function () {
             Route::get('/stats', [AdminController::class, 'stats']);

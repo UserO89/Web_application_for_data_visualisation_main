@@ -25,12 +25,27 @@ class ProjectPageApiFlowTest extends TestCase
         $projectId = $fixture['project']->id;
         $rowId = $fixture['row']->id;
         $columnId = $fixture['column']->id;
+        $savedChartId = (int) $fixture['project']->charts()->create([
+            'type' => 'line',
+            'title' => 'Saved chart',
+            'config' => ['rendered' => ['type' => 'line', 'labels' => [], 'datasets' => [], 'meta' => []]],
+        ])->id;
 
         $this->getJson("/api/v1/projects/{$projectId}")->assertUnauthorized();
         $this->getJson("/api/v1/projects/{$projectId}/rows?page=1&per_page=100")->assertUnauthorized();
         $this->getJson("/api/v1/projects/{$projectId}/schema?rebuild=0")->assertUnauthorized();
         $this->getJson("/api/v1/projects/{$projectId}/chart-suggestions")->assertUnauthorized();
         $this->getJson("/api/v1/projects/{$projectId}/statistics-summary")->assertUnauthorized();
+        $this->getJson("/api/v1/projects/{$projectId}/charts")->assertUnauthorized();
+        $this->postJson("/api/v1/projects/{$projectId}/charts", [
+            'type' => 'line',
+            'title' => 'Chart from unauthenticated request',
+            'config' => ['rendered' => ['type' => 'line', 'labels' => [], 'datasets' => [], 'meta' => []]],
+        ])->assertUnauthorized();
+        $this->patchJson("/api/v1/projects/{$projectId}/charts/{$savedChartId}", [
+            'title' => 'Updated by unauthenticated request',
+        ])->assertUnauthorized();
+        $this->deleteJson("/api/v1/projects/{$projectId}/charts/{$savedChartId}")->assertUnauthorized();
 
         $this->withHeader('Accept', 'application/json')
             ->post("/api/v1/projects/{$projectId}/import", [
@@ -64,6 +79,11 @@ class ProjectPageApiFlowTest extends TestCase
         $projectId = $fixture['project']->id;
         $rowId = $fixture['row']->id;
         $columnId = $fixture['column']->id;
+        $savedChartId = (int) $fixture['project']->charts()->create([
+            'type' => 'line',
+            'title' => 'Saved chart',
+            'config' => ['rendered' => ['type' => 'line', 'labels' => [], 'datasets' => [], 'meta' => []]],
+        ])->id;
 
         Sanctum::actingAs($this->createUser());
 
@@ -72,6 +92,16 @@ class ProjectPageApiFlowTest extends TestCase
         $this->getJson("/api/v1/projects/{$projectId}/schema?rebuild=0")->assertForbidden();
         $this->getJson("/api/v1/projects/{$projectId}/chart-suggestions")->assertForbidden();
         $this->getJson("/api/v1/projects/{$projectId}/statistics-summary")->assertForbidden();
+        $this->getJson("/api/v1/projects/{$projectId}/charts")->assertForbidden();
+        $this->postJson("/api/v1/projects/{$projectId}/charts", [
+            'type' => 'line',
+            'title' => 'Chart from foreign user',
+            'config' => ['rendered' => ['type' => 'line', 'labels' => [], 'datasets' => [], 'meta' => []]],
+        ])->assertForbidden();
+        $this->patchJson("/api/v1/projects/{$projectId}/charts/{$savedChartId}", [
+            'title' => 'Updated by foreign user',
+        ])->assertForbidden();
+        $this->deleteJson("/api/v1/projects/{$projectId}/charts/{$savedChartId}")->assertForbidden();
 
         $this->withHeader('Accept', 'application/json')
             ->post("/api/v1/projects/{$projectId}/import", [
@@ -409,6 +439,81 @@ CSV
         $this->assertNotEmpty($revenue['review_samples'] ?? []);
     }
 
+    public function test_saved_charts_library_crud_flow_works(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->authenticateUser();
+        $project = $this->createProjectForUser($user, 'Saved charts');
+
+        $createResponse = $this->postJson("/api/v1/projects/{$project->id}/charts", [
+            'type' => 'line',
+            'title' => 'Revenue trend',
+            'config' => [
+                'chartDefinition' => [
+                    'chartType' => 'line',
+                    'bindings' => [
+                        'x' => 1,
+                        'y' => ['field' => 2, 'aggregation' => 'sum'],
+                        'group' => null,
+                        'value' => ['field' => null, 'aggregation' => 'none'],
+                        'category' => null,
+                    ],
+                    'settings' => [],
+                    'filters' => [],
+                    'sort' => null,
+                ],
+                'rendered' => [
+                    'type' => 'line',
+                    'labels' => ['Jan', 'Feb'],
+                    'datasets' => [['label' => 'Revenue', 'data' => [100, 120]]],
+                    'meta' => [],
+                ],
+            ],
+        ]);
+
+        $createResponse
+            ->assertCreated()
+            ->assertJsonPath('chart.project_id', $project->id)
+            ->assertJsonPath('chart.type', 'line')
+            ->assertJsonPath('chart.title', 'Revenue trend')
+            ->assertJsonPath('chart.config.rendered.type', 'line');
+
+        $chartId = (int) $createResponse->json('chart.id');
+        $this->assertGreaterThan(0, $chartId);
+
+        $this->assertDatabaseHas('charts', [
+            'id' => $chartId,
+            'project_id' => $project->id,
+            'type' => 'line',
+            'title' => 'Revenue trend',
+        ]);
+
+        $this->getJson("/api/v1/projects/{$project->id}/charts")
+            ->assertOk()
+            ->assertJsonCount(1, 'charts')
+            ->assertJsonPath('charts.0.id', $chartId)
+            ->assertJsonPath('charts.0.config.rendered.labels.0', 'Jan');
+
+        $this->patchJson("/api/v1/projects/{$project->id}/charts/{$chartId}", [
+            'title' => 'Revenue trend updated',
+        ])
+            ->assertOk()
+            ->assertJsonPath('chart.id', $chartId)
+            ->assertJsonPath('chart.title', 'Revenue trend updated');
+
+        $this->assertDatabaseHas('charts', [
+            'id' => $chartId,
+            'title' => 'Revenue trend updated',
+        ]);
+
+        $this->deleteJson("/api/v1/projects/{$project->id}/charts/{$chartId}")
+            ->assertOk()
+            ->assertJsonPath('ok', true);
+
+        $this->assertDatabaseMissing('charts', ['id' => $chartId]);
+    }
+
     public function test_project_page_critical_api_flow_does_not_break(): void
     {
         Storage::fake('local');
@@ -465,6 +570,47 @@ CSV
             ->assertOk()
             ->assertJsonStructure(['statistics']);
 
+        $savedChartResponse = $this->postJson("/api/v1/projects/{$projectId}/charts", [
+            'type' => 'line',
+            'title' => 'Flow chart snapshot',
+            'config' => [
+                'chartDefinition' => [
+                    'chartType' => 'line',
+                    'bindings' => [
+                        'x' => 1,
+                        'y' => ['field' => 2, 'aggregation' => 'sum'],
+                        'group' => null,
+                        'value' => ['field' => null, 'aggregation' => 'none'],
+                        'category' => null,
+                    ],
+                    'settings' => [],
+                    'filters' => [],
+                    'sort' => null,
+                ],
+                'rendered' => [
+                    'type' => 'line',
+                    'labels' => ['North', 'South', 'West'],
+                    'datasets' => [['label' => 'Revenue', 'data' => [100, 200, 300]]],
+                    'meta' => [],
+                ],
+            ],
+        ]);
+        $savedChartResponse
+            ->assertCreated()
+            ->assertJsonPath('chart.project_id', $projectId);
+        $savedChartId = (int) $savedChartResponse->json('chart.id');
+        $this->assertGreaterThan(0, $savedChartId);
+
+        $this->getJson("/api/v1/projects/{$projectId}/charts")
+            ->assertOk()
+            ->assertJsonStructure(['charts']);
+
+        $this->patchJson("/api/v1/projects/{$projectId}/charts/{$savedChartId}", [
+            'title' => 'Flow chart renamed',
+        ])
+            ->assertOk()
+            ->assertJsonPath('chart.title', 'Flow chart renamed');
+
         $this->patchJson("/api/v1/projects/{$projectId}/rows/{$firstRowId}", [
             'values' => ['North', '150', '2024-01-01'],
         ])->assertOk();
@@ -490,6 +636,10 @@ CSV
         $this->getJson("/api/v1/projects/{$projectId}/statistics-summary")
             ->assertOk()
             ->assertJsonStructure(['statistics']);
+
+        $this->deleteJson("/api/v1/projects/{$projectId}/charts/{$savedChartId}")
+            ->assertOk()
+            ->assertJsonPath('ok', true);
     }
 
     private function authenticateUser(): User
