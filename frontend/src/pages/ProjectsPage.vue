@@ -7,7 +7,7 @@
 
     <div v-if="projectsStore.loading" class="loading">Loading...</div>
     <div v-else-if="projectsStore.projects.length === 0" class="empty-state panel">
-      <p>No projects yet. Create your first one!</p>
+      <p>No projects yet. Create your first project.</p>
     </div>
     <div v-else class="projects-grid">
       <div

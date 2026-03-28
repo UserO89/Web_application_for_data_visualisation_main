@@ -1,12 +1,6 @@
-export const getAdminInitials = (name) => {
-  const value = String(name || 'User').trim()
-  if (!value) return 'U'
+import { getInitials } from '../display'
 
-  const parts = value.split(/\s+/).filter(Boolean)
-  const first = parts[0]?.[0] || ''
-  const second = parts[1]?.[0] || ''
-  return (first + second).toUpperCase()
-}
+export const getAdminInitials = (name) => getInitials(name, 'U')
 
 export const formatAdminDate = (value) => {
   if (!value) return '-'

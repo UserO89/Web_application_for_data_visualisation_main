@@ -197,6 +197,24 @@ DB_PASSWORD=
 SANCTUM_STATEFUL_DOMAINS=localhost:5173,127.0.0.1:5173,localhost:8000,127.0.0.1:8000
 ```
 
+Production example (replace domains):
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://api.your-domain.com
+FRONTEND_URL=https://app.your-domain.com
+CORS_ALLOWED_ORIGINS=https://app.your-domain.com
+SANCTUM_STATEFUL_DOMAINS=app.your-domain.com,api.your-domain.com
+SESSION_DOMAIN=.your-domain.com
+SESSION_SECURE_COOKIE=true
+SESSION_SAME_SITE=lax
+```
+
+Notes:
+- Frontend API base URL is env-driven (`VITE_API_BASE_URL`) and has no localhost runtime fallback.
+- Backend CORS and Sanctum are env-driven; production should always provide explicit real domains.
+
 ## Testing
 
 Backend:

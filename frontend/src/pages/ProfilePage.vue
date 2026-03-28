@@ -112,7 +112,7 @@
         <div v-if="projectsStore.loading" class="loading">Loading...</div>
         <div v-else-if="projectsStore.projects.length === 0" class="empty-state">
           No projects yet.
-          <router-link :to="{ name: 'projects' }" style="color: var(--accent);">Create your first</router-link>.
+          <router-link :to="{ name: 'projects' }" style="color: var(--accent);">Create your first project</router-link>.
         </div>
         <div v-else class="projects-preview">
           <div
@@ -139,6 +139,7 @@ import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
 import { useNotifications } from '../composables/useNotifications'
 import { extractApiErrorMessage } from '../utils/api/errors'
+import { getInitials } from '../utils/display'
 
 export default {
   name: 'ProfilePage',
@@ -185,13 +186,7 @@ export default {
     )
 
     const initials = computed(() => {
-      const value = (authStore.user?.name || 'User').trim()
-      if (!value) return 'U'
-
-      const parts = value.split(/\s+/).filter(Boolean)
-      const first = parts[0]?.[0] || ''
-      const second = parts[1]?.[0] || ''
-      return (first + second).toUpperCase()
+      return getInitials(authStore.user?.name || 'User', 'U')
     })
 
     const pickAvatar = () => {
@@ -420,12 +415,6 @@ export default {
 
 .form-error {
   color: #ff9b9b;
-  font-size: 13px;
-  margin-bottom: 8px;
-}
-
-.form-success {
-  color: #99d89f;
   font-size: 13px;
   margin-bottom: 8px;
 }

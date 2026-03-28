@@ -23,6 +23,28 @@ export const useProjectDataLoader = ({
   const statisticsError = ref('')
 
   const resolvedProjectId = () => resolveProjectId(projectId)
+  const yieldToMainThread = () =>
+    new Promise((resolve) => {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => resolve())
+        return
+      }
+      setTimeout(resolve, 0)
+    })
+
+  const mapRowsInBatches = async (rows, columns, batchSize = 400) => {
+    if (!Array.isArray(rows) || rows.length <= batchSize) {
+      return mapApiRows(Array.isArray(rows) ? rows : [], columns)
+    }
+
+    const mappedRows = []
+    for (let index = 0; index < rows.length; index += batchSize) {
+      const chunk = rows.slice(index, index + batchSize)
+      mappedRows.push(...mapApiRows(chunk, columns))
+      await yieldToMainThread()
+    }
+    return mappedRows
+  }
 
   const fetchProjectRows = async ({ allPages = false, perPage = 500 } = {}) => {
     const id = resolvedProjectId()
@@ -65,7 +87,7 @@ export const useProjectDataLoader = ({
     analysisRowsError.value = ''
     try {
       const rows = await fetchProjectRows({ allPages: true, perPage })
-      analysisRows.value = mapApiRows(rows, columns)
+      analysisRows.value = await mapRowsInBatches(rows, columns)
     } catch (e) {
       analysisRows.value = []
       analysisRowsError.value = extractApiErrorMessage(e, 'Failed to load analysis rows.')

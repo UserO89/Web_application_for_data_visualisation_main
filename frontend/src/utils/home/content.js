@@ -1,4 +1,4 @@
-﻿export const HOME_HERO_STAGES = ['Import', 'Validate', 'Edit', 'Analyze', 'Chart']
+export const HOME_HERO_STAGES = ['Import', 'Validate', 'Edit', 'Analyze', 'Chart']
 
 export const HOME_HERO_HIGHLIGHTS = [
   { value: 'One', label: 'Integrated workspace' },

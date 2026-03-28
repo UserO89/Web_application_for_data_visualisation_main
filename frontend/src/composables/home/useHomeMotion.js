@@ -1,4 +1,4 @@
-﻿import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 
 const EASE_OUT_CUBIC = (t) => 1 - Math.pow(1 - t, 3)
 const EASE_IN_OUT_CUBIC = (t) => (t < 0.5

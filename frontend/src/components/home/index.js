@@ -1,4 +1,4 @@
-﻿export { default as HomeChartDemoSection } from './HomeChartDemoSection.vue'
+export { default as HomeChartDemoSection } from './HomeChartDemoSection.vue'
 export { default as HomeHeroSection } from './HomeHeroSection.vue'
 export { default as HomeCapabilitiesSection } from './HomeCapabilitiesSection.vue'
 export { default as HomeAdvantagesSection } from './HomeAdvantagesSection.vue'

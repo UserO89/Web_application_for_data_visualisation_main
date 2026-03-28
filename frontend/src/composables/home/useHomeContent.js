@@ -1,4 +1,4 @@
-﻿import { computed, reactive, ref } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import {
   HOME_HERO_STAGES,
   HOME_HERO_HIGHLIGHTS,

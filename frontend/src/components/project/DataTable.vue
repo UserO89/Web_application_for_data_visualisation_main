@@ -28,6 +28,7 @@ export default {
     const el = ref(null)
     let table = null
     let resizeObserver = null
+    let redrawFrameId = null
     let tableReady = false
     let pendingRows = null
     let pendingColumns = null
@@ -48,6 +49,14 @@ export default {
       } catch (_) {}
     }
 
+    const scheduleRedraw = () => {
+      if (redrawFrameId !== null) return
+      redrawFrameId = requestAnimationFrame(() => {
+        redrawFrameId = null
+        safeRedraw()
+      })
+    }
+
     const flushPendingUpdates = () => {
       if (!canUseTable()) return
 
@@ -65,7 +74,7 @@ export default {
         pendingRows = null
       }
 
-      safeRedraw()
+      scheduleRedraw()
     }
 
     onMounted(() => {
@@ -101,7 +110,7 @@ export default {
 
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
-          safeRedraw()
+          scheduleRedraw()
         })
         resizeObserver.observe(el.value)
       }
@@ -118,7 +127,7 @@ export default {
         try {
           table.replaceData(newRows)
         } catch (_) {}
-        safeRedraw()
+        scheduleRedraw()
       },
       { deep: false }
     )
@@ -134,7 +143,7 @@ export default {
         try {
           table.setColumns(mapColumns(newColumns))
         } catch (_) {}
-        safeRedraw()
+        scheduleRedraw()
       },
       { deep: false }
     )
@@ -143,7 +152,7 @@ export default {
       () => props.active,
       (active) => {
         if (!active) return
-        requestAnimationFrame(() => safeRedraw())
+        scheduleRedraw()
       }
     )
 
@@ -154,6 +163,10 @@ export default {
       if (resizeObserver) {
         resizeObserver.disconnect()
         resizeObserver = null
+      }
+      if (redrawFrameId !== null) {
+        cancelAnimationFrame(redrawFrameId)
+        redrawFrameId = null
       }
       if (table) {
         try {

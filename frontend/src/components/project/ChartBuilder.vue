@@ -256,7 +256,7 @@ export default {
       normalizeChartDefinition(definition || createDefaultChartDefinition('line'))
 
     const areDefinitionsEqual = (left, right) =>
-      JSON.stringify(normalizeDefinition(left)) === JSON.stringify(normalizeDefinition(right))
+      left === right || JSON.stringify(normalizeDefinition(left)) === JSON.stringify(normalizeDefinition(right))
 
     const localDefinition = ref(normalizeDefinition(props.modelValue))
     const chartTypeOptions = CHART_TYPE_OPTIONS
@@ -361,7 +361,7 @@ export default {
         if (areDefinitionsEqual(localDefinition.value, normalizedIncoming)) return
         localDefinition.value = normalizedIncoming
       },
-      { deep: true }
+      { deep: false }
     )
 
     watch(

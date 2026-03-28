@@ -2,6 +2,33 @@
 
 use Laravel\Sanctum\Sanctum;
 
+$toCsvArray = static function (string $value): array {
+    return array_values(array_filter(array_map('trim', explode(',', $value))));
+};
+
+$hostWithPortFromUrl = static function (?string $url): ?string {
+    $value = trim((string) $url);
+    if ($value === '') return null;
+
+    $parsedHost = parse_url($value, PHP_URL_HOST);
+    if (!is_string($parsedHost) || trim($parsedHost) === '') return null;
+
+    $parsedPort = parse_url($value, PHP_URL_PORT);
+    $host = trim($parsedHost);
+
+    return is_int($parsedPort) ? "{$host}:{$parsedPort}" : $host;
+};
+
+$statefulFromEnv = $toCsvArray((string) env('SANCTUM_STATEFUL_DOMAINS', ''));
+
+if (empty($statefulFromEnv)) {
+    $derived = array_values(array_filter([
+        $hostWithPortFromUrl((string) env('FRONTEND_URL', '')),
+        $hostWithPortFromUrl((string) env('APP_URL', '')),
+    ]));
+    $statefulFromEnv = array_values(array_unique($derived));
+}
+
 return [
 
     /*
@@ -15,9 +42,7 @@ return [
     |
     */
 
-    'stateful' => array_map('trim', explode(',', env('SANCTUM_STATEFUL_DOMAINS', 
-        'localhost,localhost:3000,localhost:5173,localhost:5174,localhost:5175,127.0.0.1,127.0.0.1:5173,127.0.0.1:5174,127.0.0.1:5175,127.0.0.1:8000,127.0.0.1:8088,localhost:8088'
-    ))),
+    'stateful' => $statefulFromEnv,
 
     /*
     |--------------------------------------------------------------------------

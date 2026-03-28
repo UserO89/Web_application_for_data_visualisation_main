@@ -6,6 +6,11 @@ $toCsvArray = static function (string $value): array {
 
 $allowedOrigins = $toCsvArray((string) env('CORS_ALLOWED_ORIGINS', ''));
 $allowedOriginsPatterns = $toCsvArray((string) env('CORS_ALLOWED_ORIGIN_PATTERNS', ''));
+$frontendUrl = trim((string) env('FRONTEND_URL', ''));
+
+if (empty($allowedOrigins) && $frontendUrl !== '') {
+    $allowedOrigins = [rtrim($frontendUrl, '/')];
+}
 
 return [
 

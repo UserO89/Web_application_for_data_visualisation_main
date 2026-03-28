@@ -1,4 +1,4 @@
-﻿export {
+export {
   HOME_HERO_STAGES,
   HOME_HERO_HIGHLIGHTS,
   HOME_CAPABILITIES,

@@ -27,11 +27,6 @@
     />
 
     <div v-else>
-      <div class="dataset-binding-note panel" role="status" aria-live="polite">
-        <div class="dataset-binding-title">This project already contains a dataset.</div>
-        <div class="dataset-binding-text">To work with another dataset, create a new project.</div>
-      </div>
-
       <ProjectPageToolbar
         :view-mode="viewMode"
         :import-validation="importValidation"
@@ -325,7 +320,7 @@ export default {
     }
 
     const areChartDefinitionsEqual = (left, right) =>
-      JSON.stringify(normalizeChartDefinition(left)) === JSON.stringify(normalizeChartDefinition(right))
+      left === right || JSON.stringify(normalizeChartDefinition(left)) === JSON.stringify(normalizeChartDefinition(right))
 
     const handleChartDefinitionUpdate = (nextDefinition) => {
       const normalized = normalizeChartDefinition(nextDefinition)
@@ -438,6 +433,21 @@ export default {
       }
     }
 
+    let chartBuildFrameId = null
+    let pendingChartDefinition = null
+
+    const scheduleBuildChart = (definition = chartDefinition.value) => {
+      pendingChartDefinition = definition
+      if (chartBuildFrameId !== null) return
+
+      chartBuildFrameId = requestAnimationFrame(() => {
+        chartBuildFrameId = null
+        const nextDefinition = pendingChartDefinition || chartDefinition.value
+        pendingChartDefinition = null
+        buildChart(nextDefinition)
+      })
+    }
+
     const reloadAllProjectData = async ({ rebuildSchema = true } = {}) => {
       await reloadProjectData({
         rebuildSchema,
@@ -473,7 +483,7 @@ export default {
       chartDefinition.value = normalizeChartDefinition(
         mergeChartDefinition(createDefaultChartDefinition(suggested.chartType || 'line'), suggested)
       )
-      buildChart(chartDefinition.value)
+      scheduleBuildChart(chartDefinition.value)
     }
 
     const handleProjectWithDataset = async (loadedProject) => {
@@ -497,7 +507,7 @@ export default {
     const refreshData = async () => {
       await refreshProjectData({
         columns: sortedDatasetColumns.value,
-        onAfterRefresh: () => buildChart(chartDefinition.value),
+        onAfterRefresh: () => scheduleBuildChart(chartDefinition.value),
       })
     }
 
@@ -572,7 +582,7 @@ export default {
 
     const refreshDerivedData = async () => {
       await Promise.all([loadSuggestions(), loadStatisticsSummary()])
-      buildChart(chartDefinition.value)
+      scheduleBuildChart(chartDefinition.value)
     }
 
     const handleSemanticTypeChange = async ({ columnId, semanticType, analyticalRole, isExcludedFromAnalysis }) => {
@@ -633,10 +643,20 @@ export default {
 
     let chartViewportResizeObserver = null
     let observedChartViewportElement = null
+    let chartViewportSyncFrameId = null
+    let pendingChartViewportHeight = null
 
     const syncChartViewportHeight = (height) => {
-      if (!Number.isFinite(height) || height <= 0) return
-      syncViewportHeightFromResize(height)
+      pendingChartViewportHeight = height
+      if (chartViewportSyncFrameId !== null) return
+
+      chartViewportSyncFrameId = requestAnimationFrame(() => {
+        chartViewportSyncFrameId = null
+        const nextHeight = pendingChartViewportHeight
+        pendingChartViewportHeight = null
+        if (!Number.isFinite(nextHeight) || nextHeight <= 0) return
+        syncViewportHeightFromResize(nextHeight)
+      })
     }
 
     const disconnectChartViewportObserver = () => {
@@ -645,6 +665,11 @@ export default {
       }
       chartViewportResizeObserver = null
       observedChartViewportElement = null
+      if (chartViewportSyncFrameId !== null) {
+        cancelAnimationFrame(chartViewportSyncFrameId)
+        chartViewportSyncFrameId = null
+      }
+      pendingChartViewportHeight = null
     }
 
     const observeChartViewport = (element) => {
@@ -681,6 +706,11 @@ export default {
       detachWorkspaceListeners()
       window.removeEventListener('keydown', onEsc)
       disconnectChartViewportObserver()
+      if (chartBuildFrameId !== null) {
+        cancelAnimationFrame(chartBuildFrameId)
+        chartBuildFrameId = null
+      }
+      pendingChartDefinition = null
       saveLayouts()
     })
 
@@ -745,14 +775,4 @@ export default {
 .app-content { flex: 1; }
 .loading { text-align: center; padding: 3rem; color: var(--muted); }
 .error { text-align: center; padding: 2rem; color: #fca5a5; }
-.dataset-binding-note {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: min(1200px, 100%);
-  margin-left: auto;
-  margin-right: auto;
-}
-.dataset-binding-title { font-weight: 700; }
-.dataset-binding-text { color: var(--muted); font-size: 13px; }
 </style>

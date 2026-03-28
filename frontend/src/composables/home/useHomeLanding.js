@@ -1,4 +1,4 @@
-﻿import { ref } from 'vue'
+import { ref } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 import { useHomeContent } from './useHomeContent'
 import { useHomeMotion } from './useHomeMotion'

@@ -1,4 +1,4 @@
-﻿const BOXPLOT_COLOR = '#4fd788'
+const BOXPLOT_COLOR = '#4fd788'
 const COMMON_TOOLTIP_STYLE = {
   backgroundColor: '#141414',
   borderColor: '#2b2b2b',

@@ -110,6 +110,7 @@ import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
 import { useNotifications } from '../composables/useNotifications'
 import { extractApiErrorMessage } from '../utils/api/errors'
+import { getInitials } from '../utils/display'
 
 export default {
   name: 'AppHeader',
@@ -144,13 +145,7 @@ export default {
     const avatarUrl = computed(() => authStore.user?.avatar_url || null)
 
     const initials = computed(() => {
-      const value = (authStore.user?.name || 'User').trim()
-      if (!value) return 'U'
-
-      const parts = value.split(/\s+/).filter(Boolean)
-      const first = parts[0]?.[0] || ''
-      const second = parts[1]?.[0] || ''
-      return (first + second).toUpperCase()
+      return getInitials(authStore.user?.name || 'User', 'U')
     })
 
     const closeMenu = () => {

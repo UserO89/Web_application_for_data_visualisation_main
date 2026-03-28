@@ -1,4 +1,4 @@
-﻿<template>
+<template>
   <div ref="pageRef" class="home-page">
     <AppHeader />
 

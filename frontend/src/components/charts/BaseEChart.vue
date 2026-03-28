@@ -43,6 +43,7 @@ export default {
     const rootEl = ref(null)
     let chart = null
     let resizeObserver = null
+    let resizeFrameId = null
 
     const applyOption = () => {
       if (!chart) return
@@ -55,6 +56,14 @@ export default {
 
     const resize = () => {
       if (chart) chart.resize()
+    }
+
+    const scheduleResize = () => {
+      if (resizeFrameId !== null) return
+      resizeFrameId = requestAnimationFrame(() => {
+        resizeFrameId = null
+        resize()
+      })
     }
 
     const exportPng = (filename = 'chart.png') => {
@@ -77,7 +86,7 @@ export default {
       applyOption()
 
       if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(() => resize())
+        resizeObserver = new ResizeObserver(() => scheduleResize())
         resizeObserver.observe(rootEl.value)
       }
     })
@@ -88,6 +97,10 @@ export default {
       if (resizeObserver) {
         resizeObserver.disconnect()
         resizeObserver = null
+      }
+      if (resizeFrameId !== null) {
+        cancelAnimationFrame(resizeFrameId)
+        resizeFrameId = null
       }
       if (chart) {
         chart.dispose()
