@@ -19,20 +19,33 @@ pnpm-debug.log*
 .env
 .env.*
 !.env.example
+
+# Laravel backend
+backend/.env
+backend/.env.*
+!backend/.env.example
+backend/vendor/
+backend/node_modules/
+backend/public/build/
+backend/public/hot
+backend/public/storage/
+backend/storage/*.key
+backend/storage/logs/
+backend/storage/framework/cache/data/
+backend/storage/framework/sessions/
+backend/storage/framework/testing/
+backend/storage/framework/views/
+backend/storage/app/avatars/
+backend/storage/app/datasets/
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitkeep
+backend/database/*.sqlite
+backend/.phpunit.result.cache
+
+# Vue/Vite frontend
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
-
-# Dependencies
-backend/vendor/
-backend/node_modules/
 frontend/node_modules/
-
-# Build outputs
-backend/public/build/
 frontend/dist/
 frontend/dist-ssr/
-
-# Runtime artifacts
-backend/storage/
-backend/public/storage/
