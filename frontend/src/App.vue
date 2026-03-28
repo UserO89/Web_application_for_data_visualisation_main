@@ -4,6 +4,7 @@
       <router-view />
     </AppLayout>
     <router-view v-else />
+    <NotificationToasts />
   </div>
 </template>
 
@@ -12,10 +13,11 @@ import { computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAuthStore } from './stores/auth'
 import AppLayout from './components/AppLayout.vue'
+import NotificationToasts from './components/NotificationToasts.vue'
 
 export default {
   name: 'App',
-  components: { AppLayout },
+  components: { AppLayout, NotificationToasts },
   setup() {
     const route = useRoute()
     const authStore = useAuthStore()

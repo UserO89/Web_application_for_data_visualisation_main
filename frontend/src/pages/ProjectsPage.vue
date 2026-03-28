@@ -71,12 +71,15 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useProjectsStore } from '../stores/projects'
+import { useNotifications } from '../composables/useNotifications'
+import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'ProjectsPage',
   setup() {
     const router = useRouter()
     const projectsStore = useProjectsStore()
+    const notify = useNotifications()
     const showProjectModal = ref(false)
     const editingProjectId = ref(null)
     const deleteBusyId = ref(null)
@@ -136,21 +139,16 @@ export default {
         if (isEditing.value) {
           await projectsStore.updateProject(editingProjectId.value, payload)
           closeProjectModal()
+          notify.success('Project updated successfully.')
           return
         }
 
         const project = await projectsStore.createProject(payload)
         closeProjectModal()
+        notify.success('Project created successfully.')
         goToProject(project.id)
       } catch (error) {
-        const apiData = error?.response?.data
-        if (apiData?.message) {
-          formError.value = apiData.message
-        } else if (apiData?.errors) {
-          formError.value = Object.values(apiData.errors).flat().join(' ')
-        } else {
-          formError.value = 'Failed to save project.'
-        }
+        formError.value = extractApiErrorMessage(error, 'Failed to save project.')
       }
     }
 
@@ -162,9 +160,9 @@ export default {
 
       try {
         await projectsStore.deleteProject(project.id)
+        notify.success('Project deleted successfully.')
       } catch (error) {
-        const message = error?.response?.data?.message || 'Failed to delete project.'
-        window.alert(message)
+        notify.error(extractApiErrorMessage(error, 'Failed to delete project.'))
       } finally {
         deleteBusyId.value = null
       }

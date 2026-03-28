@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { projectsApi } from '../../api/projects'
 import { mapApiRows, resolveProjectId, unpackRowsPayload } from '../../utils/project'
+import { extractApiErrorMessage } from '../../utils/api/errors'
 
 export const useProjectDataLoader = ({
   projectId,
@@ -8,10 +9,15 @@ export const useProjectDataLoader = ({
 } = {}) => {
   const project = ref(null)
   const loading = ref(true)
+  const projectError = ref('')
 
   const tableRows = ref([])
+  const tableRowsError = ref('')
   const analysisRows = ref([])
+  const analysisRowsError = ref('')
   const suggestions = ref([])
+  const suggestionsError = ref('')
+  const schemaError = ref('')
   const statisticsSummary = ref([])
   const statisticsLoading = ref(false)
   const statisticsError = ref('')
@@ -42,6 +48,7 @@ export const useProjectDataLoader = ({
   }
 
   const loadRows = async ({ columns = [], onRowsLoaded } = {}) => {
+    tableRowsError.value = ''
     try {
       const rows = await fetchProjectRows()
       tableRows.value = mapApiRows(rows, columns)
@@ -49,16 +56,19 @@ export const useProjectDataLoader = ({
         onRowsLoaded()
       }
     } catch (e) {
-      console.error(e)
+      tableRows.value = []
+      tableRowsError.value = extractApiErrorMessage(e, 'Failed to load table rows.')
     }
   }
 
   const loadAnalysisRows = async ({ columns = [], perPage = 500 } = {}) => {
+    analysisRowsError.value = ''
     try {
       const rows = await fetchProjectRows({ allPages: true, perPage })
       analysisRows.value = mapApiRows(rows, columns)
     } catch (e) {
-      console.error(e)
+      analysisRows.value = []
+      analysisRowsError.value = extractApiErrorMessage(e, 'Failed to load analysis rows.')
     }
   }
 
@@ -66,10 +76,11 @@ export const useProjectDataLoader = ({
     const id = resolvedProjectId()
     if (!id) return
 
+    schemaError.value = ''
     try {
       await schemaStore.fetchSchema(id, { rebuild })
     } catch (e) {
-      console.error(e)
+      schemaError.value = extractApiErrorMessage(e, 'Failed to load semantic schema.')
     }
   }
 
@@ -87,8 +98,7 @@ export const useProjectDataLoader = ({
       const response = await projectsApi.getStatistics(id)
       statisticsSummary.value = response.statistics || []
     } catch (e) {
-      console.error(e)
-      statisticsError.value = e?.response?.data?.message || 'Failed to load statistics summary.'
+      statisticsError.value = extractApiErrorMessage(e, 'Failed to load statistics summary.')
     } finally {
       statisticsLoading.value = false
     }
@@ -101,12 +111,13 @@ export const useProjectDataLoader = ({
       return
     }
 
+    suggestionsError.value = ''
     try {
       const response = await projectsApi.getChartSuggestions(id)
       suggestions.value = response.suggestions || []
     } catch (e) {
-      console.error(e)
       suggestions.value = []
+      suggestionsError.value = extractApiErrorMessage(e, 'Failed to load chart suggestions.')
     }
   }
 
@@ -136,6 +147,7 @@ export const useProjectDataLoader = ({
       return
     }
 
+    projectError.value = ''
     try {
       const response = await projectsApi.get(id)
       project.value = response.project
@@ -151,7 +163,8 @@ export const useProjectDataLoader = ({
         await onDatasetLoaded(project.value)
       }
     } catch (e) {
-      console.error(e)
+      project.value = null
+      projectError.value = extractApiErrorMessage(e, 'Failed to load project.')
     } finally {
       loading.value = false
     }
@@ -165,15 +178,25 @@ export const useProjectDataLoader = ({
     analysisRows.value = []
     suggestions.value = []
     statisticsSummary.value = []
+    projectError.value = ''
+    tableRowsError.value = ''
+    analysisRowsError.value = ''
+    suggestionsError.value = ''
+    schemaError.value = ''
     statisticsError.value = ''
   }
 
   return {
     project,
     loading,
+    projectError,
     tableRows,
+    tableRowsError,
     analysisRows,
+    analysisRowsError,
     suggestions,
+    suggestionsError,
+    schemaError,
     statisticsSummary,
     statisticsLoading,
     statisticsError,

@@ -55,12 +55,15 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import { useNotifications } from '../composables/useNotifications'
+import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'LoginPage',
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
+    const notify = useNotifications()
     const isRegister = ref(false)
     const error = ref(null)
 
@@ -75,25 +78,18 @@ export default {
       try {
         if (isRegister.value) {
           await authStore.register(form.value)
+          notify.success('Registration successful. Welcome!')
         } else {
           await authStore.login({
             email: form.value.email,
             password: form.value.password,
           })
+          notify.success('Logged in successfully.')
         }
         router.push({ name: 'projects' })
       } catch (err) {
-        const apiData = err?.response?.data
-
-        if (apiData?.message) {
-          error.value = apiData.message
-        } else if (apiData?.errors) {
-          error.value = Object.values(apiData.errors).flat().join(' ')
-        } else if (err?.code === 'ERR_NETWORK') {
-          error.value = 'Cannot connect to API. Start backend with `php artisan serve`.'
-        } else {
-          error.value = 'Request failed. Check backend logs and browser Network tab.'
-        }
+        error.value = extractApiErrorMessage(err, 'Authentication failed. Please try again.')
+        notify.error(error.value)
       }
     }
 

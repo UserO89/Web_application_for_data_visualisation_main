@@ -1,7 +1,7 @@
 <template>
   <div class="project-page app-content">
     <div v-if="loading" class="loading panel">Loading...</div>
-    <div v-else-if="!project" class="error panel">Project not found</div>
+    <div v-else-if="!project" class="error panel">{{ projectError || 'Project not found' }}</div>
 
     <ProjectDatasetImportSection
       v-else-if="!project.dataset"
@@ -116,6 +116,8 @@ import { createDefaultChartDefinition, mergeChartDefinition } from '../charts/ch
 import { normalizeChartDefinition } from '../charts/rules/chartDefinitionValidator'
 import { cellField, buildCsvLines, buildRowUpdateValues, downloadSavedChartPng } from '../utils/project'
 import { useManualDatasetBuilder, useValidationReport, useProjectDataLoader, useProjectWorkspace, useProjectChartState, } from '../composables/project'
+import { useNotifications } from '../composables/useNotifications'
+import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'ProjectPage',
@@ -131,6 +133,7 @@ export default {
     const workspaceRef = ref(null)
     const chartViewportRef = ref(null)
     const schemaStore = useDatasetSchemaStore()
+    const notify = useNotifications()
 
     const selectedFile = ref(null)
     const importing = ref(false)
@@ -154,6 +157,7 @@ export default {
     const {
       project,
       loading,
+      projectError,
       tableRows,
       analysisRows,
       suggestions,
@@ -348,8 +352,7 @@ export default {
         const nextCharts = Array.isArray(response?.charts) ? response.charts.map(normalizeSavedChart) : []
         savedCharts.value = nextCharts
       } catch (e) {
-        console.error(e)
-        savedChartsError.value = e?.response?.data?.message || 'Failed to load saved charts.'
+        savedChartsError.value = extractApiErrorMessage(e, 'Failed to load saved charts.')
       } finally {
         savedChartsLoading.value = false
       }
@@ -357,7 +360,7 @@ export default {
 
     const saveCurrentChart = async () => {
       if (!chartDatasets.value.length) {
-        window.alert('Build a chart before saving it to the project library.')
+        notify.warning('Build a chart before saving it to the project library.')
         return
       }
 
@@ -377,9 +380,9 @@ export default {
         })
         await loadSavedCharts()
         setViewMode('library')
+        notify.success('Chart saved to the project library.')
       } catch (e) {
-        console.error(e)
-        window.alert('Failed to save chart: ' + (e?.response?.data?.message || e.message))
+        notify.error(extractApiErrorMessage(e, 'Failed to save chart.'))
       }
     }
 
@@ -388,8 +391,7 @@ export default {
       try {
         await downloadSavedChartPng(savedChart, savedChart.title || `chart-${savedChart.id}`)
       } catch (e) {
-        console.error(e)
-        window.alert('Failed to download chart PNG.')
+        notify.error(extractApiErrorMessage(e, 'Failed to download chart PNG.'))
       }
     }
 
@@ -397,7 +399,7 @@ export default {
       if (!chartId) return
       const nextTitle = String(title || '').trim()
       if (!nextTitle) {
-        window.alert('Chart name cannot be empty.')
+        notify.warning('Chart name cannot be empty.')
         return
       }
 
@@ -416,9 +418,9 @@ export default {
               }
             : chart
         )
+        notify.success('Chart renamed successfully.')
       } catch (e) {
-        console.error(e)
-        window.alert('Failed to rename chart: ' + (e?.response?.data?.message || e.message))
+        notify.error(extractApiErrorMessage(e, 'Failed to rename chart.'))
       }
     }
 
@@ -430,9 +432,9 @@ export default {
       try {
         await projectsApi.deleteSavedChart(projectId.value, savedChartId)
         await loadSavedCharts()
+        notify.success('Saved chart deleted.')
       } catch (e) {
-        console.error(e)
-        window.alert('Failed to delete chart: ' + (e?.response?.data?.message || e.message))
+        notify.error(extractApiErrorMessage(e, 'Failed to delete chart.'))
       }
     }
 
@@ -507,6 +509,7 @@ export default {
       setValidationReport(response?.validation || null)
       await loadProjectPage()
       openValidationModal()
+      notify.success('Dataset imported successfully.')
     }
 
     const applyImportValidationError = (error) => {
@@ -514,11 +517,16 @@ export default {
       if (!validation) return false
       setValidationReport(validation)
       openValidationModal()
+      const validationMessage = validation?.blocking_error?.message
+      notify.warning(validationMessage || 'Import completed with validation issues. Please review the report.')
       return true
     }
 
     const handleImport = async () => {
-      if (!selectedFile.value) return
+      if (!selectedFile.value) {
+        notify.warning('Choose a file before importing.')
+        return
+      }
       importing.value = true
       manualError.value = ''
       try {
@@ -526,7 +534,7 @@ export default {
         await afterDatasetImport(response)
       } catch (e) {
         if (!applyImportValidationError(e)) {
-          window.alert('Import error: ' + (e.response?.data?.message || e.message))
+          notify.error(extractApiErrorMessage(e, 'Import failed.'))
         }
       } finally {
         importing.value = false
@@ -545,7 +553,8 @@ export default {
         if (applyImportValidationError(e)) {
           manualError.value = ''
         } else {
-          manualError.value = e?.response?.data?.message || 'Failed to create table from manual data.'
+          manualError.value = extractApiErrorMessage(e, 'Failed to create table from manual data.')
+          notify.error(manualError.value)
         }
       } finally {
         importing.value = false
@@ -557,7 +566,7 @@ export default {
         const values = buildRowUpdateValues(data.row, sortedDatasetColumns.value)
         await projectsApi.updateRow(projectId.value, data.row.id, values)
       } catch (e) {
-        console.error(e)
+        notify.error(extractApiErrorMessage(e, 'Failed to save row changes.'))
       }
     }
 
@@ -575,7 +584,7 @@ export default {
         })
         await refreshDerivedData()
       } catch (e) {
-        console.error(e)
+        notify.error(extractApiErrorMessage(e, 'Failed to update semantic type.'))
       }
     }
 
@@ -585,13 +594,13 @@ export default {
         await schemaStore.setOrdinalOrder(projectId.value, columnId, ordinalOrder)
         await refreshDerivedData()
       } catch (e) {
-        console.error(e)
+        notify.error(extractApiErrorMessage(e, 'Failed to update ordinal order.'))
       }
     }
 
     const exportTableCsv = () => {
       if (!tableColumns.value.length || !tableRows.value.length) {
-        window.alert('No table data to export.')
+        notify.info('No table data to export.')
         return
       }
 
@@ -662,7 +671,7 @@ export default {
     })
 
     return {
-      project, loading, selectedFile, importing, importOptions, importMode, manualHeaders, manualRowsInput, manualError,
+      project, loading, projectError, selectedFile, importing, importOptions, importMode, manualHeaders, manualRowsInput, manualError,
       importValidation, validationModalOpen,
       openValidationModal, closeValidationModal, clearValidationReport,
       validationSummary, validationSummaryLine,

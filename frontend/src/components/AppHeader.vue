@@ -108,6 +108,8 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
+import { useNotifications } from '../composables/useNotifications'
+import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'AppHeader',
@@ -116,6 +118,7 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const projectsStore = useProjectsStore()
+    const notify = useNotifications()
     const menuOpen = ref(false)
     const projectsMenuOpen = ref(false)
     const profileWrap = ref(null)
@@ -197,10 +200,15 @@ export default {
     }
 
     const handleLogout = async () => {
-      await authStore.logout()
-      closeMenu()
-      closeProjectsMenu()
-      router.push({ name: 'home' })
+      try {
+        await authStore.logout()
+        closeMenu()
+        closeProjectsMenu()
+        notify.success('Logged out successfully.')
+        router.push({ name: 'home' })
+      } catch (error) {
+        notify.error(extractApiErrorMessage(error, 'Failed to log out.'))
+      }
     }
 
     const projectTitle = (project) => {

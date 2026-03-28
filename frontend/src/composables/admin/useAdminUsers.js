@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { adminApi } from '../../api/admin'
 import { extractAdminApiError } from '../../utils/admin'
+import { useNotifications } from '../useNotifications'
 
 const createInitialUserForm = () => ({
   id: null,
@@ -20,6 +21,7 @@ const normalizeUsers = (items) => (
 )
 
 export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
+  const notify = useNotifications()
   const loadingUsers = ref(false)
   const usersError = ref('')
   const users = ref([])
@@ -148,6 +150,7 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
       }
 
       closeUserModal()
+      notify.success('User updated successfully.')
     } catch (error) {
       userFormError.value = extractAdminApiError(error, 'Failed to update user.')
     } finally {
@@ -169,8 +172,9 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
         selectedUserId.value = null
       }
       await onStatsRefresh()
+      notify.success('User deleted successfully.')
     } catch (error) {
-      window.alert(extractAdminApiError(error, 'Failed to delete user.'))
+      notify.error(extractAdminApiError(error, 'Failed to delete user.'))
     } finally {
       deletingUserId.value = null
     }

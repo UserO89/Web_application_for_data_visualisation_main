@@ -57,7 +57,6 @@
               <input v-model="profileForm.name" type="text" maxlength="120" required />
             </div>
             <div v-if="profileError" class="form-error">{{ profileError }}</div>
-            <div v-if="profileSuccess" class="form-success">{{ profileSuccess }}</div>
             <div class="settings-actions">
               <button class="btn primary" type="submit" :disabled="profileUpdating">
                 {{ profileUpdating ? 'Saving...' : 'Save nickname' }}
@@ -80,7 +79,6 @@
               <input v-model="passwordForm.password_confirmation" type="password" minlength="8" required />
             </div>
             <div v-if="passwordError" class="form-error">{{ passwordError }}</div>
-            <div v-if="passwordSuccess" class="form-success">{{ passwordSuccess }}</div>
             <div class="settings-actions">
               <button class="btn primary" type="submit" :disabled="passwordUpdating">
                 {{ passwordUpdating ? 'Updating...' : 'Update password' }}
@@ -139,6 +137,8 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
+import { useNotifications } from '../composables/useNotifications'
+import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'ProfilePage',
@@ -146,15 +146,14 @@ export default {
     const router = useRouter()
     const authStore = useAuthStore()
     const projectsStore = useProjectsStore()
+    const notify = useNotifications()
     const avatarInput = ref(null)
     const avatarUploading = ref(false)
     const avatarError = ref('')
     const profileUpdating = ref(false)
     const profileError = ref('')
-    const profileSuccess = ref('')
     const passwordUpdating = ref(false)
     const passwordError = ref('')
-    const passwordSuccess = ref('')
     const deletingAccount = ref(false)
     const deleteError = ref('')
     const profileForm = ref({
@@ -203,43 +202,43 @@ export default {
       const file = event.target.files?.[0]
       if (!file) return
 
+      if (file.size > 5 * 1024 * 1024) {
+        avatarError.value = 'Image is too large. Maximum size is 5MB.'
+        notify.warning(avatarError.value)
+        event.target.value = ''
+        return
+      }
+
       avatarError.value = ''
       avatarUploading.value = true
 
       try {
         await authStore.uploadAvatar(file)
+        notify.success('Profile photo updated successfully.')
       } catch (error) {
-        avatarError.value = error?.response?.data?.message || 'Failed to upload image'
+        avatarError.value = extractApiErrorMessage(error, 'Failed to upload image.')
+        notify.error(avatarError.value)
       } finally {
         avatarUploading.value = false
         event.target.value = ''
       }
     }
 
-    const formatApiError = (error, fallback) => {
-      const apiData = error?.response?.data
-      if (apiData?.message) return apiData.message
-      if (apiData?.errors) return Object.values(apiData.errors).flat().join(' ')
-      return fallback
-    }
-
     const handleProfileUpdate = async () => {
       const name = (profileForm.value.name || '').trim()
       if (!name) {
         profileError.value = 'Nickname is required.'
-        profileSuccess.value = ''
         return
       }
 
       profileUpdating.value = true
       profileError.value = ''
-      profileSuccess.value = ''
 
       try {
         await authStore.updateProfile({ name })
-        profileSuccess.value = 'Nickname updated successfully.'
+        notify.success('Nickname updated successfully.')
       } catch (error) {
-        profileError.value = formatApiError(error, 'Failed to update nickname.')
+        notify.error(extractApiErrorMessage(error, 'Failed to update nickname.'))
       } finally {
         profileUpdating.value = false
       }
@@ -248,13 +247,11 @@ export default {
     const handlePasswordUpdate = async () => {
       if (passwordForm.value.password !== passwordForm.value.password_confirmation) {
         passwordError.value = 'Password confirmation does not match.'
-        passwordSuccess.value = ''
         return
       }
 
       passwordUpdating.value = true
       passwordError.value = ''
-      passwordSuccess.value = ''
 
       try {
         await authStore.changePassword(passwordForm.value)
@@ -263,9 +260,9 @@ export default {
           password: '',
           password_confirmation: '',
         }
-        passwordSuccess.value = 'Password updated successfully.'
+        notify.success('Password updated successfully.')
       } catch (error) {
-        passwordError.value = formatApiError(error, 'Failed to update password.')
+        notify.error(extractApiErrorMessage(error, 'Failed to update password.'))
       } finally {
         passwordUpdating.value = false
       }
@@ -286,9 +283,10 @@ export default {
 
       try {
         await authStore.deleteAccount({ current_password: currentPassword })
+        notify.success('Account deleted successfully.')
         await router.push({ name: 'home' })
       } catch (error) {
-        deleteError.value = formatApiError(error, 'Failed to delete account.')
+        notify.error(extractApiErrorMessage(error, 'Failed to delete account.'))
       } finally {
         deletingAccount.value = false
       }
@@ -312,10 +310,8 @@ export default {
       avatarError,
       profileUpdating,
       profileError,
-      profileSuccess,
       passwordUpdating,
       passwordError,
-      passwordSuccess,
       deletingAccount,
       deleteError,
       profileForm,

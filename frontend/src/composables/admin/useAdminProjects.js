@@ -1,6 +1,7 @@
 import { ref } from 'vue'
 import { adminApi } from '../../api/admin'
 import { extractAdminApiError } from '../../utils/admin'
+import { useNotifications } from '../useNotifications'
 
 const createInitialProjectForm = () => ({
   mode: 'create',
@@ -11,6 +12,7 @@ const createInitialProjectForm = () => ({
 })
 
 export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh }) => {
+  const notify = useNotifications()
   const showProjectModal = ref(false)
   const savingProject = ref(false)
   const deletingProjectId = ref(null)
@@ -98,6 +100,7 @@ export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh 
 
       closeProjectModal()
       await onStatsRefresh()
+      notify.success(projectForm.value.mode === 'create' ? 'Project created successfully.' : 'Project updated successfully.')
     } catch (error) {
       projectFormError.value = extractAdminApiError(error, 'Failed to save project.')
     } finally {
@@ -123,8 +126,9 @@ export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh 
         }
       })
       await onStatsRefresh()
+      notify.success('Project deleted successfully.')
     } catch (error) {
-      window.alert(extractAdminApiError(error, 'Failed to delete project.'))
+      notify.error(extractAdminApiError(error, 'Failed to delete project.'))
     } finally {
       deletingProjectId.value = null
     }
