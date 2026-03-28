@@ -10,6 +10,7 @@
         >
           <label class="stats-check">
             <input
+              :name="`stats_column_${column.id}`"
               type="checkbox"
               :checked="isSelected(column.id)"
               @change="$emit('toggle-column', { columnId: column.id, checked: $event.target.checked })"

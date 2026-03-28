@@ -1,31 +1,52 @@
 <template>
-  <div :ref="setWorkspaceRef" class="workspace-canvas" :style="{ height: `${workspaceHeight}px` }">
+  <div
+    :ref="setWorkspaceRef"
+    :class="['workspace-canvas', { 'workspace-canvas-compact': isCompactWorkspace }]"
+    :style="canvasStyle"
+  >
     <section
       v-for="panelId in panelIds"
       :key="panelId"
       v-show="isPanelVisible(panelId)"
       class="workspace-panel panel"
-      :style="panelStyle(panelId)"
-      @mousedown="viewMode === 'workspace' && $emit('bring-to-front', panelId)"
+      :style="panelInlineStyle(panelId)"
+      @mousedown="viewMode === 'workspace' && !isCompactWorkspace && $emit('bring-to-front', panelId)"
     >
-      <header class="drag-handle" @mousedown.left.prevent="viewMode === 'workspace' && $emit('start-drag', { panelId, event: $event })">
+      <header class="drag-handle" @mousedown.left.prevent="viewMode === 'workspace' && !isCompactWorkspace && $emit('start-drag', { panelId, event: $event })">
         <div class="title">{{ panelConfig[panelId].title }}</div>
         <div class="sub">{{ panelConfig[panelId].subtitle }}</div>
       </header>
 
       <div :class="['panel-content', `${panelId}-content`]">
         <template v-if="panelId === 'table'">
-          <div class="table-wrap table-fill">
-            <DataTable
-              :columns="tableColumns"
-              :rows="tableRows"
-              :active="isPanelVisible('table')"
-              @cell-edited="$emit('cell-edit', $event)"
-            />
+          <div v-if="requiresLandscapeForTable" class="rotate-device-lock">
+            <div class="rotate-device-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M9 4h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" stroke-width="1.8"/>
+                <path d="M4 18a8 8 0 0 0 13 2M20 6a8 8 0 0 0-13-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div class="rotate-device-title">Rotate device to landscape</div>
+            <div class="rotate-device-text">
+              Table editing is optimized for horizontal view on phones.
+            </div>
+            <button class="btn rotate-device-continue" type="button" @click="allowPortraitTable">
+              Continue without rotating
+            </button>
           </div>
-          <div class="table-bottom-actions">
-            <button class="btn" type="button" @click="$emit('export-csv')">Export Table CSV</button>
-          </div>
+          <template v-else>
+            <div class="table-wrap table-fill">
+              <DataTable
+                :columns="tableColumns"
+                :rows="tableRows"
+                :active="isPanelVisible('table')"
+                @cell-edited="$emit('cell-edit', $event)"
+              />
+            </div>
+            <div class="table-bottom-actions">
+              <button class="btn" type="button" @click="$emit('export-csv')">Export Table CSV</button>
+            </div>
+          </template>
         </template>
 
         <template v-else-if="panelId === 'chart'">
@@ -53,6 +74,7 @@
                 <label class="chart-size-control" for="chart-height-select">Chart height</label>
                 <select
                   id="chart-height-select"
+                  name="chart_height"
                   class="chart-size-select"
                   :value="chartViewportPresetValue"
                   @change="$emit('set-chart-height', $event.target.value)"
@@ -81,6 +103,8 @@
                     <input
                       type="color"
                       class="series-color-input"
+                      :name="`series_color_${i}`"
+                      :aria-label="`Series color ${ds.label || `Series ${i + 1}`}`"
                       :value="getSeriesColor(ds.label, i)"
                       @input="$emit('set-series-color', { label: ds.label, index: i, color: $event.target.value })"
                     />
@@ -131,6 +155,8 @@
                       <input
                         class="saved-chart-title-input-inline"
                         type="text"
+                        :name="`saved_chart_title_${savedChart.id}`"
+                        :aria-label="`Saved chart title for chart ${savedChart.id}`"
                         maxlength="255"
                         :value="getSavedChartTitleDraft(savedChart)"
                         @input="setSavedChartTitleDraft(savedChart.id, $event.target.value)"
@@ -175,7 +201,7 @@
       </div>
 
       <div
-        v-if="viewMode === 'workspace'"
+        v-if="viewMode === 'workspace' && !isCompactWorkspace"
         v-for="d in resizeDirs"
         :key="`${panelId}-${d}`"
         :class="['resize-handle', `h-${d}`]"
@@ -186,7 +212,7 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import ChartPanel from './ChartPanel.vue'
 import ChartBuilder from './ChartBuilder.vue'
 import DataTable from './DataTable.vue'
@@ -204,6 +230,7 @@ export default {
   },
   props: {
     viewMode: { type: String, default: 'workspace' },
+    isCompactWorkspace: { type: Boolean, default: false },
     workspaceHeight: { type: Number, default: 760 },
     visiblePanelIds: { type: Array, default: () => [] },
     panelConfig: { type: Object, default: () => ({}) },
@@ -256,7 +283,40 @@ export default {
   setup(props, { emit }) {
     const panelIds = computed(() => Object.keys(props.panelConfig || {}))
     const isPanelVisible = (panelId) => props.visiblePanelIds.includes(panelId)
+    const canvasStyle = computed(() =>
+      props.isCompactWorkspace ? {} : { height: `${props.workspaceHeight}px` }
+    )
+    const panelInlineStyle = (panelId) =>
+      props.isCompactWorkspace ? {} : props.panelStyle(panelId)
+    const requiresLandscapeForTable = ref(false)
+    const portraitTableBypass = ref(false)
     const titleDrafts = ref({})
+
+    const detectLandscapeRequirement = () => {
+      if (typeof window === 'undefined') {
+        requiresLandscapeForTable.value = false
+        return
+      }
+
+      const width = window.innerWidth || 0
+      const height = window.innerHeight || 0
+      const isPortrait = height > width
+      const hasCoarsePointer = window.matchMedia?.('(pointer: coarse)')?.matches
+      const likelyPhone = width <= 820
+
+      requiresLandscapeForTable.value = Boolean(
+        hasCoarsePointer &&
+        likelyPhone &&
+        isPortrait &&
+        !portraitTableBypass.value &&
+        (props.viewMode === 'table' || props.viewMode === 'workspace')
+      )
+    }
+
+    const allowPortraitTable = () => {
+      portraitTableBypass.value = true
+      requiresLandscapeForTable.value = false
+    }
 
     const normalizedSavedChartTitle = (savedChart) => {
       const value = String(savedChart?.title || '').trim()
@@ -326,9 +386,29 @@ export default {
       set: (value) => emit('update-chart-definition', value),
     })
 
+    onMounted(() => {
+      detectLandscapeRequirement()
+      window.addEventListener('resize', detectLandscapeRequirement)
+      window.addEventListener('orientationchange', detectLandscapeRequirement)
+    })
+
+    onBeforeUnmount(() => {
+      window.removeEventListener('resize', detectLandscapeRequirement)
+      window.removeEventListener('orientationchange', detectLandscapeRequirement)
+    })
+
+    watch(
+      () => props.viewMode,
+      () => detectLandscapeRequirement()
+    )
+
     return {
       panelIds,
       isPanelVisible,
+      canvasStyle,
+      panelInlineStyle,
+      requiresLandscapeForTable,
+      allowPortraitTable,
       getSavedChartTitleDraft,
       setSavedChartTitleDraft,
       selectAllInputText,
@@ -416,6 +496,44 @@ export default {
 .series-color-input::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 6px; }
 .table-bottom-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 .analysis-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.rotate-device-lock {
+  min-height: 260px;
+  height: 100%;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+  background: #151515;
+  color: var(--muted);
+  padding: 18px;
+}
+.rotate-device-icon {
+  width: 34px;
+  height: 34px;
+  color: #93f6b3;
+}
+.rotate-device-icon svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+}
+.rotate-device-title {
+  color: var(--text);
+  font-weight: 700;
+  font-size: 14px;
+}
+.rotate-device-text {
+  font-size: 13px;
+  line-height: 1.35;
+  max-width: 240px;
+}
+.rotate-device-continue {
+  margin-top: 4px;
+}
 
 .resize-handle { position: absolute; z-index: 5; }
 .h-n { top: -4px; left: 12px; right: 12px; height: 8px; cursor: n-resize; }
@@ -425,5 +543,70 @@ export default {
 
 @media (max-width: 980px) {
   .workspace-canvas { min-height: 980px; }
+}
+
+.workspace-canvas-compact {
+  min-height: 0;
+  height: auto !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.workspace-canvas-compact .workspace-panel {
+  position: relative;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 380px;
+}
+
+.workspace-canvas-compact .drag-handle {
+  cursor: default;
+}
+
+.workspace-canvas-compact .panel-content {
+  height: auto;
+  min-height: 260px;
+  overflow: visible;
+}
+
+.workspace-canvas-compact .table-fill {
+  height: min(62vh, 460px);
+  max-height: none;
+  min-height: 260px;
+}
+
+.workspace-canvas-compact .chart-main {
+  min-height: 260px;
+}
+
+.workspace-canvas-compact .chart-main-resizable {
+  min-width: 0;
+  resize: vertical;
+}
+
+@media (max-width: 760px) {
+  .controls .btn {
+    width: 100%;
+  }
+
+  .chart-size-control {
+    width: 100%;
+    align-self: flex-start;
+  }
+
+  .chart-size-select {
+    width: 100%;
+  }
+
+  .saved-chart-actions .btn {
+    width: 100%;
+  }
+
+  .series-colors-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -4,9 +4,11 @@
       <h2 class="modal-title">Edit User</h2>
       <form @submit.prevent="$emit('save')">
         <div class="form-group">
-          <label>Name</label>
+          <label for="admin-user-name">Name</label>
           <input
+            id="admin-user-name"
             :value="form.name"
+            name="name"
             type="text"
             required
             maxlength="120"
@@ -14,9 +16,11 @@
           />
         </div>
         <div class="form-group">
-          <label>Email</label>
+          <label for="admin-user-email">Email</label>
           <input
+            id="admin-user-email"
             :value="form.email"
+            name="email"
             type="email"
             required
             maxlength="190"
@@ -24,9 +28,11 @@
           />
         </div>
         <div class="form-group">
-          <label>Role</label>
+          <label for="admin-user-role">Role</label>
           <select
+            id="admin-user-role"
             :value="form.role"
+            name="role"
             :disabled="form.id === currentUserId"
             @change="updateField('role', $event.target.value)"
           >
@@ -35,9 +41,11 @@
           </select>
         </div>
         <div class="form-group">
-          <label>New password (optional)</label>
+          <label for="admin-user-password">New password (optional)</label>
           <input
+            id="admin-user-password"
             :value="form.password"
+            name="password"
             type="password"
             minlength="8"
             @input="updateField('password', $event.target.value)"

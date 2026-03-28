@@ -10,8 +10,8 @@
 
     <div class="chart-builder-grid">
       <div class="field-selector">
-        <label>Chart type</label>
-        <select class="field-select" :value="localDefinition.chartType" @change="changeChartType($event.target.value)">
+        <label for="chart-builder-type">Chart type</label>
+        <select id="chart-builder-type" name="chart_type" class="field-select" :value="localDefinition.chartType" @change="changeChartType($event.target.value)">
           <option v-for="typeOption in chartTypeOptions" :key="typeOption.key" :value="typeOption.key">
             {{ typeOption.label }}
           </option>
@@ -32,8 +32,8 @@
           placeholder="Select one numeric column"
         />
         <div class="field-selector">
-          <label>Value mode</label>
-          <select class="field-select" :value="localDefinition.bindings.y.aggregation" @change="changeAggregation('y', $event.target.value)">
+          <label for="chart-line-value-mode">Value mode</label>
+          <select id="chart-line-value-mode" name="line_value_mode" class="field-select" :value="localDefinition.bindings.y.aggregation" @change="changeAggregation('y', $event.target.value)">
             <option value="sum">Sum</option>
             <option value="avg">Mean</option>
             <option value="min">Min</option>
@@ -56,8 +56,8 @@
           placeholder="Select one category column"
         />
         <div class="field-selector">
-          <label>Value mode</label>
-          <select class="field-select" :value="barValueMode" @change="setBarValueMode($event.target.value)">
+          <label for="chart-bar-value-mode">Value mode</label>
+          <select id="chart-bar-value-mode" name="bar_value_mode" class="field-select" :value="barValueMode" @change="setBarValueMode($event.target.value)">
             <option value="count">Count</option>
             <option value="sum">Sum</option>
             <option value="avg">Mean</option>
@@ -107,8 +107,10 @@
           placeholder="Select one numeric variable"
         />
         <div class="field-selector">
-          <label>Bins</label>
+          <label for="chart-histogram-bins">Bins</label>
           <input
+            id="chart-histogram-bins"
+            name="histogram_bins"
             class="field-input"
             type="number"
             min="3"
@@ -118,14 +120,15 @@
           />
         </div>
         <div class="field-selector">
-          <label>Display mode</label>
-          <select class="field-select" :value="localDefinition.settings.densityMode" @change="updateHistogramSetting('densityMode', $event.target.value)">
+          <label for="chart-histogram-display-mode">Display mode</label>
+          <select id="chart-histogram-display-mode" name="histogram_display_mode" class="field-select" :value="localDefinition.settings.densityMode" @change="updateHistogramSetting('densityMode', $event.target.value)">
             <option value="frequency">Frequency</option>
             <option value="density">Density</option>
           </select>
         </div>
         <label class="check-row">
           <input
+            name="histogram_show_mean_marker"
             type="checkbox"
             :checked="localDefinition.settings.showMeanMarker"
             @change="updateHistogramSetting('showMeanMarker', $event.target.checked)"
@@ -134,6 +137,7 @@
         </label>
         <label class="check-row">
           <input
+            name="histogram_show_median_marker"
             type="checkbox"
             :checked="localDefinition.settings.showMedianMarker"
             @change="updateHistogramSetting('showMedianMarker', $event.target.checked)"
@@ -156,14 +160,15 @@
           placeholder="No grouping"
         />
         <div class="field-selector">
-          <label>Orientation</label>
-          <select class="field-select" :value="localDefinition.settings.orientation" @change="updateBoxplotSetting('orientation', $event.target.value)">
+          <label for="chart-boxplot-orientation">Orientation</label>
+          <select id="chart-boxplot-orientation" name="boxplot_orientation" class="field-select" :value="localDefinition.settings.orientation" @change="updateBoxplotSetting('orientation', $event.target.value)">
             <option value="vertical">Vertical</option>
             <option value="horizontal">Horizontal</option>
           </select>
         </div>
         <label class="check-row">
           <input
+            name="boxplot_show_outliers"
             type="checkbox"
             :checked="localDefinition.settings.showOutliers"
             @change="updateBoxplotSetting('showOutliers', $event.target.checked)"
@@ -172,6 +177,7 @@
         </label>
         <label class="check-row">
           <input
+            name="boxplot_show_mean"
             type="checkbox"
             :checked="localDefinition.settings.showMean"
             @change="updateBoxplotSetting('showMean', $event.target.checked)"
@@ -188,8 +194,8 @@
           placeholder="Select one category column"
         />
         <div class="field-selector">
-          <label>Value mode</label>
-          <select class="field-select" :value="pieValueMode" @change="setPieValueMode($event.target.value)">
+          <label for="chart-pie-value-mode">Value mode</label>
+          <select id="chart-pie-value-mode" name="pie_value_mode" class="field-select" :value="pieValueMode" @change="setPieValueMode($event.target.value)">
             <option value="count">Count</option>
             <option value="sum">Sum</option>
             <option value="avg">Mean</option>

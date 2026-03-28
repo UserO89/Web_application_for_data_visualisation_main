@@ -6,9 +6,11 @@
       </h2>
       <form @submit.prevent="$emit('save')">
         <div class="form-group">
-          <label>Title</label>
+          <label for="admin-project-title">Title</label>
           <input
+            id="admin-project-title"
             :value="form.title"
+            name="title"
             type="text"
             required
             maxlength="255"
@@ -16,9 +18,11 @@
           />
         </div>
         <div class="form-group">
-          <label>Description</label>
+          <label for="admin-project-description">Description</label>
           <textarea
+            id="admin-project-description"
             :value="form.description"
+            name="description"
             rows="3"
             maxlength="1000"
             @input="updateField('description', $event.target.value)"

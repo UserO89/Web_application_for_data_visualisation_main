@@ -1,105 +1,176 @@
 <template>
   <header class="app-header">
-    <div class="header-left">
-      <router-link :to="{ name: 'home' }" class="brand home-link">
-        <div class="logo">DV</div>
-        <div class="title">DataViz</div>
-      </router-link>
+    <div class="header-main-row">
+      <div class="header-left">
+        <router-link :to="{ name: 'home' }" class="brand home-link">
+          <div class="logo">DV</div>
+          <div class="title">DataViz</div>
+        </router-link>
 
-      <router-link :to="{ name: 'home' }" class="nav-btn">Home</router-link>
-      <div v-if="authStore.isAuthenticated" class="projects-nav" ref="projectsWrap">
+        <div class="desktop-nav-group">
+          <router-link :to="{ name: 'home' }" class="nav-btn">Home</router-link>
+          <div v-if="authStore.isAuthenticated" class="projects-nav" ref="projectsWrap">
+            <button
+              class="nav-btn nav-dropdown"
+              type="button"
+              :class="{ active: isProjectsRoute }"
+              :aria-expanded="projectsMenuOpen.toString()"
+              aria-haspopup="menu"
+              @click="toggleProjectsMenu"
+            >
+              <span>Projects</span>
+              <span class="dropdown-chevron" :class="{ open: projectsMenuOpen }" aria-hidden="true">
+                <svg viewBox="0 0 16 16" fill="none">
+                  <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </span>
+            </button>
+
+            <transition name="fade-slide">
+              <div v-if="projectsMenuOpen" class="projects-menu" role="menu">
+                <router-link :to="{ name: 'projects' }" class="projects-item projects-all" @click="closeProjectsMenu">
+                  Open Projects
+                </router-link>
+                <div class="projects-divider"></div>
+
+                <div v-if="projectsStore.loading && !quickProjects.length" class="projects-empty">
+                  Loading projects...
+                </div>
+                <template v-else-if="quickProjects.length">
+                  <router-link
+                    v-for="project in quickProjects"
+                    :key="`quick-project-${project.id}`"
+                    :to="{ name: 'project', params: { id: project.id } }"
+                    class="projects-item"
+                    @click="closeProjectsMenu"
+                  >
+                    <span class="projects-item-title">{{ projectTitle(project) }}</span>
+                  </router-link>
+                </template>
+                <div v-else class="projects-empty">No projects yet.</div>
+              </div>
+            </transition>
+          </div>
+          <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="nav-btn">Admin</router-link>
+        </div>
+      </div>
+
+      <div class="header-actions">
         <button
-          class="nav-btn nav-dropdown"
+          ref="compactNavButton"
           type="button"
-          :class="{ active: isProjectsRoute }"
-          :aria-expanded="projectsMenuOpen.toString()"
-          aria-haspopup="menu"
-          @click="toggleProjectsMenu"
+          class="compact-menu-btn"
+          :aria-expanded="compactNavOpen.toString()"
+          aria-controls="compact-nav-accordion"
+          aria-label="Toggle navigation menu"
+          @click.stop="toggleCompactNav"
+        >
+          <svg v-if="!compactNavOpen" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/>
+          </svg>
+        </button>
+
+        <div class="header-right" ref="profileWrap">
+          <router-link v-if="showGuestLogin" :to="{ name: 'login' }" class="btn">
+            Log in
+          </router-link>
+
+          <template v-else-if="authStore.isAuthenticated">
+            <button
+              class="profile-trigger"
+              @click="toggleMenu"
+              type="button"
+              :aria-expanded="menuOpen.toString()"
+              aria-haspopup="menu"
+            >
+              <span class="profile-name">{{ displayName }}</span>
+              <img
+                v-if="avatarUrl"
+                :src="avatarUrl"
+                alt="avatar"
+                class="avatar"
+              />
+              <div v-else class="avatar avatar-fallback">{{ initials }}</div>
+            </button>
+
+            <transition name="fade-slide">
+              <div v-if="menuOpen" class="profile-menu" role="menu">
+                <router-link :to="{ name: 'projects' }" class="menu-item" @click="closeMenu">
+                  <span class="menu-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </span>
+                  Projects
+                </router-link>
+                <router-link :to="{ name: 'profile' }" class="menu-item" @click="closeMenu">
+                  <span class="menu-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-0.001-8.001A4 4 0 0 0 12 12zm0 2c-4.2 0-7 2.1-7 5v1h14v-1c0-2.9-2.8-5-7-5z" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </span>
+                  Profile
+                </router-link>
+                <div class="menu-divider"></div>
+                <button class="menu-item menu-danger" @click="handleLogout" type="button">
+                  <span class="menu-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M14 7V4h6v16h-6v-3M10 12h10M10 12l3-3M10 12l3 3M4 4h6v4H8v8h2v4H4z" stroke="currentColor" stroke-width="1.8"/></svg>
+                  </span>
+                  Logout
+                </button>
+              </div>
+            </transition>
+          </template>
+        </div>
+      </div>
+    </div>
+
+    <transition name="fade-slide">
+      <div
+        v-if="compactNavOpen"
+        id="compact-nav-accordion"
+        ref="compactNavPanel"
+        class="compact-nav-accordion"
+        @click.stop
+      >
+        <router-link :to="{ name: 'home' }" class="compact-nav-item" @click="closeCompactNav">
+          Home
+        </router-link>
+
+        <button
+          v-if="authStore.isAuthenticated"
+          class="compact-nav-item compact-projects-toggle"
+          type="button"
+          :aria-expanded="compactProjectsOpen.toString()"
+          @click="toggleCompactProjects"
         >
           <span>Projects</span>
-          <span class="dropdown-chevron" :class="{ open: projectsMenuOpen }" aria-hidden="true">
+          <span class="compact-chevron" :class="{ open: compactProjectsOpen }" aria-hidden="true">
             <svg viewBox="0 0 16 16" fill="none">
               <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </span>
         </button>
 
-        <transition name="fade-slide">
-          <div v-if="projectsMenuOpen" class="projects-menu" role="menu">
-            <router-link :to="{ name: 'projects' }" class="projects-item projects-all" @click="closeProjectsMenu">
-              Open Projects
-            </router-link>
-            <div class="projects-divider"></div>
+        <div v-if="authStore.isAuthenticated && compactProjectsOpen" class="compact-projects-list">
+          <router-link :to="{ name: 'projects' }" class="compact-project-item" @click="closeCompactNav">
+            Open Projects
+          </router-link>
+          <router-link
+            v-for="project in quickProjects"
+            :key="`compact-project-${project.id}`"
+            :to="{ name: 'project', params: { id: project.id } }"
+            class="compact-project-item"
+            @click="closeCompactNav"
+          >
+            {{ projectTitle(project) }}
+          </router-link>
+        </div>
 
-            <div v-if="projectsStore.loading && !quickProjects.length" class="projects-empty">
-              Loading projects...
-            </div>
-            <template v-else-if="quickProjects.length">
-              <router-link
-                v-for="project in quickProjects"
-                :key="`quick-project-${project.id}`"
-                :to="{ name: 'project', params: { id: project.id } }"
-                class="projects-item"
-                @click="closeProjectsMenu"
-              >
-                <span class="projects-item-title">{{ projectTitle(project) }}</span>
-              </router-link>
-            </template>
-            <div v-else class="projects-empty">No projects yet.</div>
-          </div>
-        </transition>
+        <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="compact-nav-item" @click="closeCompactNav">
+          Admin
+        </router-link>
       </div>
-      <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="nav-btn">Admin</router-link>
-    </div>
-
-    <div class="header-right" ref="profileWrap">
-      <router-link v-if="showGuestLogin" :to="{ name: 'login' }" class="btn">
-        Log in
-      </router-link>
-
-      <template v-else-if="authStore.isAuthenticated">
-        <button
-          class="profile-trigger"
-          @click="toggleMenu"
-          type="button"
-          :aria-expanded="menuOpen.toString()"
-          aria-haspopup="menu"
-        >
-          <span class="profile-name">{{ displayName }}</span>
-          <img
-            v-if="avatarUrl"
-            :src="avatarUrl"
-            alt="avatar"
-            class="avatar"
-          />
-          <div v-else class="avatar avatar-fallback">{{ initials }}</div>
-        </button>
-
-        <transition name="fade-slide">
-          <div v-if="menuOpen" class="profile-menu" role="menu">
-            <router-link :to="{ name: 'projects' }" class="menu-item" @click="closeMenu">
-              <span class="menu-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" stroke="currentColor" stroke-width="1.8"/></svg>
-              </span>
-              Projects
-            </router-link>
-            <router-link :to="{ name: 'profile' }" class="menu-item" @click="closeMenu">
-              <span class="menu-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-0.001-8.001A4 4 0 0 0 12 12zm0 2c-4.2 0-7 2.1-7 5v1h14v-1c0-2.9-2.8-5-7-5z" stroke="currentColor" stroke-width="1.8"/></svg>
-              </span>
-              Profile
-            </router-link>
-            <div class="menu-divider"></div>
-            <button class="menu-item menu-danger" @click="handleLogout" type="button">
-              <span class="menu-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none"><path d="M14 7V4h6v16h-6v-3M10 12h10M10 12l3-3M10 12l3 3M4 4h6v4H8v8h2v4H4z" stroke="currentColor" stroke-width="1.8"/></svg>
-              </span>
-              Logout
-            </button>
-          </div>
-        </transition>
-      </template>
-    </div>
+    </transition>
   </header>
 </template>
 
@@ -122,8 +193,12 @@ export default {
     const notify = useNotifications()
     const menuOpen = ref(false)
     const projectsMenuOpen = ref(false)
+    const compactNavOpen = ref(false)
+    const compactProjectsOpen = ref(false)
     const profileWrap = ref(null)
     const projectsWrap = ref(null)
+    const compactNavButton = ref(null)
+    const compactNavPanel = ref(null)
 
     const showGuestLogin = computed(() => {
       return !authStore.isAuthenticated && route.name !== 'login'
@@ -156,6 +231,15 @@ export default {
       projectsMenuOpen.value = false
     }
 
+    const closeCompactProjects = () => {
+      compactProjectsOpen.value = false
+    }
+
+    const closeCompactNav = () => {
+      compactNavOpen.value = false
+      closeCompactProjects()
+    }
+
     const loadProjects = async () => {
       if (!authStore.isAuthenticated || projectsStore.loading) return
       try {
@@ -164,6 +248,7 @@ export default {
     }
 
     const toggleProjectsMenu = async () => {
+      closeCompactNav()
       const willOpen = !projectsMenuOpen.value
       projectsMenuOpen.value = willOpen
       if (!willOpen) return
@@ -171,19 +256,52 @@ export default {
       await loadProjects()
     }
 
+    const toggleCompactNav = () => {
+      const willOpen = !compactNavOpen.value
+      compactNavOpen.value = willOpen
+      if (!willOpen) {
+        closeCompactProjects()
+        return
+      }
+      closeMenu()
+      closeProjectsMenu()
+    }
+
+    const toggleCompactProjects = async () => {
+      if (!authStore.isAuthenticated) return
+      const willOpen = !compactProjectsOpen.value
+      compactProjectsOpen.value = willOpen
+      if (!willOpen) return
+      await loadProjects()
+    }
+
     const toggleMenu = () => {
       menuOpen.value = !menuOpen.value
       if (menuOpen.value) closeProjectsMenu()
+      if (menuOpen.value) closeCompactNav()
+    }
+
+    const isInside = (event, element) => {
+      if (!element) return false
+      if (typeof event.composedPath === 'function') {
+        return event.composedPath().includes(element)
+      }
+      return element.contains(event.target)
     }
 
     const handleOutsideClick = (event) => {
-      const insideProfile = profileWrap.value?.contains(event.target)
-      const insideProjects = projectsWrap.value?.contains(event.target)
+      const insideProfile = isInside(event, profileWrap.value)
+      const insideProjects = isInside(event, projectsWrap.value)
+      const insideCompactButton = isInside(event, compactNavButton.value)
+      const insideCompactPanel = isInside(event, compactNavPanel.value)
       if (!insideProfile) {
         closeMenu()
       }
       if (!insideProjects) {
         closeProjectsMenu()
+      }
+      if (!insideCompactButton && !insideCompactPanel) {
+        closeCompactNav()
       }
     }
 
@@ -191,6 +309,7 @@ export default {
       if (event.key === 'Escape') {
         closeMenu()
         closeProjectsMenu()
+        closeCompactNav()
       }
     }
 
@@ -199,6 +318,7 @@ export default {
         await authStore.logout()
         closeMenu()
         closeProjectsMenu()
+        closeCompactNav()
         notify.success('Logged out successfully.')
         router.push({ name: 'home' })
       } catch (error) {
@@ -225,6 +345,7 @@ export default {
     watch(() => route.fullPath, () => {
       closeMenu()
       closeProjectsMenu()
+      closeCompactNav()
     })
 
     return {
@@ -232,8 +353,12 @@ export default {
       projectsStore,
       menuOpen,
       projectsMenuOpen,
+      compactNavOpen,
+      compactProjectsOpen,
       profileWrap,
       projectsWrap,
+      compactNavButton,
+      compactNavPanel,
       showGuestLogin,
       isAdmin,
       isProjectsRoute,
@@ -243,7 +368,10 @@ export default {
       initials,
       closeMenu,
       closeProjectsMenu,
+      closeCompactNav,
       toggleProjectsMenu,
+      toggleCompactNav,
+      toggleCompactProjects,
       toggleMenu,
       handleLogout,
       projectTitle,
@@ -253,7 +381,29 @@ export default {
 </script>
 
 <style scoped>
+.app-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.header-main-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
 .header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.desktop-nav-group {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -263,6 +413,7 @@ export default {
 .home-link {
   text-decoration: none;
   color: inherit;
+  flex: 0 0 auto;
 }
 
 .title {
@@ -281,6 +432,7 @@ export default {
   font-size: 13px;
   font-weight: 600;
   transition: all 0.16s ease;
+  white-space: nowrap;
 }
 
 .nav-btn:hover {
@@ -387,9 +539,44 @@ export default {
   color: var(--muted);
 }
 
-.header-right {
+.header-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.compact-menu-btn {
+  display: none;
+  border: 1px solid var(--border);
+  background: #1f1f1f;
+  color: var(--muted);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.compact-menu-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.compact-menu-btn:hover,
+.compact-menu-btn[aria-expanded="true"] {
+  color: #b9f0c9;
+  border-color: rgba(29, 185, 84, 0.45);
+  background: rgba(29, 185, 84, 0.16);
+}
+
+.header-right {
   position: relative;
+  flex: 0 0 auto;
 }
 
 .profile-trigger {
@@ -415,6 +602,11 @@ export default {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
+  min-width: 0;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .avatar {
@@ -494,6 +686,10 @@ export default {
   color: #ff9b9b;
 }
 
+.compact-nav-accordion {
+  display: none;
+}
+
 .fade-slide-enter-active,
 .fade-slide-leave-active {
   transition: all 0.18s cubic-bezier(0.2, 0.9, 0.3, 1);
@@ -505,25 +701,130 @@ export default {
   transform: translateY(-8px) scale(0.98);
 }
 
-@media (max-width: 720px) {
-  .title {
-    font-size: 18px;
+@media (max-width: 860px) {
+  .desktop-nav-group {
+    display: none;
   }
 
-  .nav-btn {
-    padding: 6px 8px;
-    font-size: 12px;
+  .compact-menu-btn {
+    display: inline-flex;
+  }
+
+  .compact-nav-accordion {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #1c1c1c;
+    padding: 10px;
+  }
+
+  .compact-nav-item {
+    width: 100%;
+    border: 1px solid var(--border);
+    background: #222222;
+    color: var(--text);
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+
+  .compact-nav-item:hover {
+    background: #2a2a2a;
+  }
+
+  .compact-projects-toggle {
+    border: 1px solid var(--border);
+  }
+
+  .compact-chevron {
+    width: 14px;
+    height: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    transition: transform 0.16s ease;
+  }
+
+  .compact-chevron svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+  }
+
+  .compact-chevron.open {
+    transform: rotate(180deg);
+  }
+
+  .compact-projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--border);
+    background: #181818;
+    border-radius: 10px;
+    padding: 8px;
+  }
+
+  .compact-project-item {
+    display: block;
+    padding: 8px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: all 0.14s ease;
+  }
+
+  .compact-project-item:hover {
+    background: #2a2a2a;
   }
 
   .profile-name {
     max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
   }
 
   .projects-menu {
-    width: min(280px, 86vw);
+    width: min(320px, 92vw);
+  }
+
+  .profile-menu {
+    min-width: min(240px, 92vw);
+    right: 0;
+    left: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .profile-trigger {
+    gap: 6px;
+    padding: 4px;
+  }
+
+  .profile-name {
+    display: none;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+  }
+
+  .compact-nav-accordion {
+    padding: 8px;
   }
 }
 </style>

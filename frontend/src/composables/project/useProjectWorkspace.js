@@ -13,8 +13,11 @@ import {
 
 const WORKSPACE_IDS = ['table', 'chart', 'stats']
 const STORAGE_PREFIX = 'dataviz.workspace.layout.v5.'
-const TABLE_TO_CHART_WIDTH_RATIO = 1.18
+const TOP_ROW_TARGET_TABLE_TO_CHART_RATIO = 1.05
+const TOP_ROW_MIN_TABLE_TO_CHART_RATIO = 0.8
+const TOP_ROW_MAX_TABLE_TO_CHART_RATIO = 1.35
 const PANEL_GAP = 16
+const COMPACT_WORKSPACE_BREAKPOINT = 980
 const MIN = {
   table: { w: 420, h: 280 },
   chart: { w: 360, h: 320 },
@@ -34,6 +37,7 @@ export const useProjectWorkspace = ({
   const initializedForProjectId = ref(null)
   const activePreset = ref('default')
   const listenersAttached = ref(false)
+  const isCompactWorkspace = ref(false)
 
   const resizeDirs = ['n', 'e', 's', 'w']
   const panelConfig = {
@@ -44,10 +48,32 @@ export const useProjectWorkspace = ({
   }
 
   const canvasW = () => Math.max(320, workspaceRef?.value?.clientWidth || 1120)
+  const isCompactViewport = () => canvasW() <= COMPACT_WORKSPACE_BREAKPOINT
   const resolvedProjectId = () => resolveProjectId(projectId).trim()
   const key = () => {
     const id = resolvedProjectId()
     return id ? `${STORAGE_PREFIX}${id}` : ''
+  }
+
+  const buildCompactWorkspaceLayouts = () => {
+    const width = canvasW()
+    const tableHeight = Math.max(MIN.table.h, 440)
+    const chartHeight = Math.max(MIN.chart.h, 560)
+    const statsHeight = Math.max(MIN.stats.h, 520)
+    const tableY = 0
+    const chartY = tableY + tableHeight + PANEL_GAP
+    const statsY = chartY + chartHeight + PANEL_GAP
+
+    return {
+      table: { x: 0, y: tableY, w: width, h: tableHeight, z: 1 },
+      chart: { x: 0, y: chartY, w: width, h: chartHeight, z: 2 },
+      stats: { x: 0, y: statsY, w: width, h: statsHeight, z: 3 },
+    }
+  }
+
+  const applyCompactWorkspaceLayouts = () => {
+    panelLayouts.value = buildCompactWorkspaceLayouts()
+    zCounter.value = 4
   }
 
   const visiblePanelIds = computed(() => {
@@ -162,9 +188,15 @@ export const useProjectWorkspace = ({
     const table = { ...layouts.table }
     const chart = { ...layouts.chart }
     const ratio = chart.w > 0 ? table.w / chart.w : 0
-    if (Number.isFinite(ratio) && ratio >= TABLE_TO_CHART_WIDTH_RATIO) return layouts
+    if (
+      Number.isFinite(ratio) &&
+      ratio >= TOP_ROW_MIN_TABLE_TO_CHART_RATIO &&
+      ratio <= TOP_ROW_MAX_TABLE_TO_CHART_RATIO
+    ) {
+      return layouts
+    }
 
-    let nextChartWidth = Math.round(available / (TABLE_TO_CHART_WIDTH_RATIO + 1))
+    let nextChartWidth = Math.round(available / (TOP_ROW_TARGET_TABLE_TO_CHART_RATIO + 1))
     nextChartWidth = Math.max(MIN.chart.w, nextChartWidth)
 
     let nextTableWidth = available - nextChartWidth
@@ -176,7 +208,7 @@ export const useProjectWorkspace = ({
     table.x = 0
     table.w = nextTableWidth
     chart.x = table.w + PANEL_GAP
-    chart.w = Math.max(MIN.chart.w, width - chart.x)
+    chart.w = Math.max(MIN.chart.w, available - table.w)
 
     const next = { ...layouts, table, chart }
     if (next.stats) {
@@ -200,6 +232,7 @@ export const useProjectWorkspace = ({
   const saveLayouts = () => {
     const storageKey = key()
     if (!storageKey) return
+    if (isCompactWorkspace.value) return
     if (!project.value?.dataset || !WORKSPACE_IDS.every((id) => panelLayouts.value[id])) return
     writeJsonStorage(storageKey, {
       width: canvasW(),
@@ -240,11 +273,15 @@ export const useProjectWorkspace = ({
         return false
       }
 
-      // Keep the standard workspace proportions: table should be visibly wider than chart.
+      // Keep saved custom layouts only when top row balance remains sane.
       const tableWidth = Number(layouts.table?.w || 0)
       const chartWidth = Number(layouts.chart?.w || 0)
       const ratio = chartWidth > 0 ? tableWidth / chartWidth : 0
-      if (!Number.isFinite(ratio) || ratio < TABLE_TO_CHART_WIDTH_RATIO) {
+      if (
+        !Number.isFinite(ratio) ||
+        ratio < TOP_ROW_MIN_TABLE_TO_CHART_RATIO ||
+        ratio > TOP_ROW_MAX_TABLE_TO_CHART_RATIO
+      ) {
         activePreset.value = 'default'
         setLayouts(buildPreset('default'), true)
         return true
@@ -295,6 +332,7 @@ export const useProjectWorkspace = ({
   }
 
   const startDrag = (id, event) => {
+    if (isCompactWorkspace.value) return
     if (viewMode.value !== 'workspace') return
     const panel = panelLayouts.value[id]
     if (!panel) return
@@ -304,6 +342,7 @@ export const useProjectWorkspace = ({
   }
 
   const startResize = (id, dir, event) => {
+    if (isCompactWorkspace.value) return
     if (viewMode.value !== 'workspace') return
     const panel = panelLayouts.value[id]
     if (!panel) return
@@ -360,7 +399,7 @@ export const useProjectWorkspace = ({
   const onUp = () => {
     if (interaction.value) {
       interaction.value = null
-      if (viewMode.value === 'workspace') {
+      if (viewMode.value === 'workspace' && !isCompactWorkspace.value) {
         activePreset.value = 'custom'
         saveLayouts()
       }
@@ -371,6 +410,21 @@ export const useProjectWorkspace = ({
   const onResizeWindow = () => {
     resizeTick.value += 1
     if (viewMode.value !== 'workspace') return
+    const compact = isCompactViewport()
+
+    if (compact) {
+      isCompactWorkspace.value = true
+      applyCompactWorkspaceLayouts()
+      return
+    }
+
+    if (isCompactWorkspace.value) {
+      isCompactWorkspace.value = false
+      if (!loadLayouts()) {
+        activePreset.value = 'default'
+        setLayouts(buildPreset('default'), false)
+      }
+    }
 
     const next = {}
     WORKSPACE_IDS.forEach((id) => {
@@ -393,6 +447,9 @@ export const useProjectWorkspace = ({
 
   const setViewMode = (mode) => {
     viewMode.value = mode
+    if (mode === 'workspace') {
+      requestAnimationFrame(() => onResizeWindow())
+    }
   }
 
   const ensureWorkspaceInitializedForProject = async () => {
@@ -401,9 +458,15 @@ export const useProjectWorkspace = ({
     if (initializedForProjectId.value === id) return
 
     await nextTick()
-    if (!loadLayouts()) {
-      activePreset.value = 'default'
-      setLayouts(buildPreset('default'), true)
+    if (isCompactViewport()) {
+      isCompactWorkspace.value = true
+      applyCompactWorkspaceLayouts()
+    } else {
+      isCompactWorkspace.value = false
+      if (!loadLayouts()) {
+        activePreset.value = 'default'
+        setLayouts(buildPreset('default'), true)
+      }
     }
     requestAnimationFrame(() => {
       requestAnimationFrame(() => onResizeWindow())
@@ -413,6 +476,7 @@ export const useProjectWorkspace = ({
 
   const resetWorkspaceRouteState = () => {
     initializedForProjectId.value = null
+    isCompactWorkspace.value = false
     viewMode.value = 'workspace'
     panelLayouts.value = {}
   }
@@ -449,6 +513,7 @@ export const useProjectWorkspace = ({
     panelConfig,
     resizeDirs,
     viewMode,
+    isCompactWorkspace,
     visiblePanelIds,
     workspaceHeight,
     panelStyle,

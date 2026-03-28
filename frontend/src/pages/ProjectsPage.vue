@@ -45,12 +45,12 @@
         <h2 style="margin-bottom: 16px; font-size: 18px;">{{ isEditing ? 'Edit Project' : 'Create Project' }}</h2>
         <form @submit.prevent="handleSave">
           <div class="form-group">
-            <label>Title</label>
-            <input v-model="projectForm.title" type="text" required />
+            <label for="project-form-title">Title</label>
+            <input id="project-form-title" v-model="projectForm.title" name="title" type="text" required />
           </div>
           <div class="form-group">
-            <label>Description (optional)</label>
-            <textarea v-model="projectForm.description" rows="3"></textarea>
+            <label for="project-form-description">Description (optional)</label>
+            <textarea id="project-form-description" v-model="projectForm.description" name="description" rows="3"></textarea>
           </div>
           <div v-if="formError" class="form-error">
             {{ formError }}

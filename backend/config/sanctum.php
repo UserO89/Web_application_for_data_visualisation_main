@@ -6,25 +6,42 @@ $toCsvArray = static function (string $value): array {
     return array_values(array_filter(array_map('trim', explode(',', $value))));
 };
 
-$hostWithPortFromUrl = static function (?string $url): ?string {
-    $value = trim((string) $url);
-    if ($value === '') return null;
+$normalizeStatefulDomain = static function (?string $value): ?string {
+    $domain = trim((string) $value);
+    if ($domain === '') {
+        return null;
+    }
 
-    $parsedHost = parse_url($value, PHP_URL_HOST);
-    if (!is_string($parsedHost) || trim($parsedHost) === '') return null;
+    if (str_contains($domain, '://')) {
+        $parsed = parse_url($domain);
+        $host = is_array($parsed) ? trim((string) ($parsed['host'] ?? '')) : '';
+        $port = is_array($parsed) ? ($parsed['port'] ?? null) : null;
+        if ($host === '') {
+            return null;
+        }
 
-    $parsedPort = parse_url($value, PHP_URL_PORT);
-    $host = trim($parsedHost);
+        $normalizedHost = strtolower($host);
+        return is_int($port) ? "{$normalizedHost}:{$port}" : $normalizedHost;
+    }
 
-    return is_int($parsedPort) ? "{$host}:{$parsedPort}" : $host;
+    $slashPos = strpos($domain, '/');
+    if ($slashPos !== false) {
+        $domain = substr($domain, 0, $slashPos);
+    }
+
+    $domain = strtolower(rtrim(trim($domain), '/'));
+    return $domain !== '' ? $domain : null;
 };
 
-$statefulFromEnv = $toCsvArray((string) env('SANCTUM_STATEFUL_DOMAINS', ''));
+$statefulFromEnv = array_values(array_unique(array_filter(array_map(
+    $normalizeStatefulDomain,
+    $toCsvArray((string) env('SANCTUM_STATEFUL_DOMAINS', ''))
+))));
 
 if (empty($statefulFromEnv)) {
     $derived = array_values(array_filter([
-        $hostWithPortFromUrl((string) env('FRONTEND_URL', '')),
-        $hostWithPortFromUrl((string) env('APP_URL', '')),
+        $normalizeStatefulDomain((string) env('FRONTEND_URL', '')),
+        $normalizeStatefulDomain((string) env('APP_URL', '')),
     ]));
     $statefulFromEnv = array_values(array_unique($derived));
 }

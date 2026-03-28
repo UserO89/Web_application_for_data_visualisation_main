@@ -28,6 +28,7 @@
           <div class="file-picker">
             <input
               id="dataset-file-input"
+              name="dataset_file"
               class="file-input-native"
               type="file"
               accept=".csv,.txt"
@@ -41,8 +42,10 @@
           </div>
         </div>
         <div class="form-group">
-          <label>
+          <label for="dataset-has-header">
             <input
+              id="dataset-has-header"
+              name="has_header"
               type="checkbox"
               :checked="Boolean(importOptions?.has_header)"
               @change="setHasHeader($event.target.checked)"
@@ -51,8 +54,10 @@
           </label>
         </div>
         <div class="form-group">
-          <label>Delimiter</label>
+          <label for="dataset-delimiter">Delimiter</label>
           <input
+            id="dataset-delimiter"
+            name="delimiter"
             type="text"
             maxlength="1"
             :value="importOptions?.delimiter ?? ','"
@@ -93,6 +98,8 @@
                 <th v-for="(header, headerIndex) in manualHeaders" :key="`h-${headerIndex}`">
                   <input
                     class="manual-input header"
+                    :name="`manual_header_${headerIndex}`"
+                    :aria-label="`Column header ${headerIndex + 1}`"
                     :value="header"
                     :placeholder="`Column ${headerIndex + 1}`"
                     @input="updateHeader(headerIndex, $event.target.value)"
@@ -105,6 +112,8 @@
                 <td v-for="(_, colIndex) in manualHeaders" :key="`c-${rowIndex}-${colIndex}`">
                   <input
                     class="manual-input"
+                    :name="`manual_cell_${rowIndex}_${colIndex}`"
+                    :aria-label="`Row ${rowIndex + 1}, column ${colIndex + 1}`"
                     :value="row?.[colIndex] ?? ''"
                     @input="updateCell(rowIndex, colIndex, $event.target.value)"
                   />

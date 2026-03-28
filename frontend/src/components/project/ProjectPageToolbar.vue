@@ -3,20 +3,79 @@
     <div class="top-row-left">
       <button class="btn" @click="$emit('back')"><- Back to Projects</button>
       <div class="view-mode-switch">
-        <button type="button" :class="['btn', { primary: viewMode === 'table' }]" @click="$emit('change-view-mode', 'table')">
-          Table
+        <button
+          type="button"
+          :class="['btn', 'mode-btn', { primary: viewMode === 'table' }]"
+          aria-label="Table"
+          title="Table"
+          @click="$emit('change-view-mode', 'table')"
+        >
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 5h16v14H4zM4 10h16M9 5v14M15 5v14" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="mode-label">Table</span>
         </button>
-        <button type="button" :class="['btn', { primary: viewMode === 'visualization' }]" @click="$emit('change-view-mode', 'visualization')">
-          Visualization
+        <button
+          type="button"
+          :class="['btn', 'mode-btn', { primary: viewMode === 'visualization' }]"
+          aria-label="Visualization"
+          title="Visualization"
+          @click="$emit('change-view-mode', 'visualization')"
+        >
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 17l5-5 4 3 7-8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="4" cy="17" r="1.2" fill="currentColor"/>
+              <circle cx="9" cy="12" r="1.2" fill="currentColor"/>
+              <circle cx="13" cy="15" r="1.2" fill="currentColor"/>
+              <circle cx="20" cy="7" r="1.2" fill="currentColor"/>
+            </svg>
+          </span>
+          <span class="mode-label">Visualization</span>
         </button>
-        <button type="button" :class="['btn', { primary: viewMode === 'statistics' }]" @click="$emit('change-view-mode', 'statistics')">
-          Statistics
+        <button
+          type="button"
+          :class="['btn', 'mode-btn', { primary: viewMode === 'statistics' }]"
+          aria-label="Statistics"
+          title="Statistics"
+          @click="$emit('change-view-mode', 'statistics')"
+        >
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M5 19V9M12 19V5M19 19v-7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="mode-label">Statistics</span>
         </button>
-        <button type="button" :class="['btn', { primary: viewMode === 'workspace' }]" @click="$emit('change-view-mode', 'workspace')">
-          Workspace
+        <button
+          type="button"
+          :class="['btn', 'mode-btn', { primary: viewMode === 'workspace' }]"
+          aria-label="Workspace"
+          title="Workspace"
+          @click="$emit('change-view-mode', 'workspace')"
+        >
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 4h8v8H4zM14 4h6v5h-6zM14 11h6v9h-6zM4 14h8v6H4z" stroke="currentColor" stroke-width="1.8"/>
+            </svg>
+          </span>
+          <span class="mode-label">Workspace</span>
         </button>
-        <button type="button" :class="['btn', { primary: viewMode === 'library' }]" @click="$emit('change-view-mode', 'library')">
-          Saved Charts
+        <button
+          type="button"
+          :class="['btn', 'mode-btn', { primary: viewMode === 'library' }]"
+          aria-label="Saved Charts"
+          title="Saved Charts"
+          @click="$emit('change-view-mode', 'library')"
+        >
+          <span class="mode-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none">
+              <path d="M4 6h16v12H4zM8 3v6M16 3v6M8 15h8" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+          </span>
+          <span class="mode-label">Saved Charts</span>
         </button>
       </div>
     </div>
@@ -61,6 +120,22 @@ export default {
 .top-row-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .top-row-right { display: flex; align-items: center; gap: 8px; }
 .view-mode-switch { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.mode-btn { display: inline-flex; align-items: center; gap: 7px; }
+.mode-icon {
+  width: 16px;
+  height: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.mode-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+.mode-label {
+  line-height: 1;
+}
 .validation-pill {
   display: inline-flex;
   align-items: center;
@@ -73,5 +148,58 @@ export default {
   color: #93f6b3;
   font-size: 11px;
   font-weight: 700;
+}
+
+@media (max-width: 760px) {
+  .top-row-actions {
+    gap: 8px;
+  }
+
+  .top-row-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .top-row-left > .btn {
+    width: 100%;
+  }
+
+  .view-mode-switch {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 6px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #1c1c1c;
+  }
+
+  .view-mode-switch::-webkit-scrollbar {
+    height: 0;
+  }
+
+  .view-mode-switch .mode-btn {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .view-mode-switch .mode-label {
+    display: none;
+  }
+
+  .top-row-right {
+    width: 100%;
+    justify-content: flex-end;
+  }
 }
 </style>

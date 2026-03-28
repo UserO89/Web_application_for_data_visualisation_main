@@ -21,10 +21,13 @@
             </div>
             <div class="avatar-actions">
               <input
+                id="profile-avatar-input"
                 ref="avatarInput"
+                name="avatar"
                 type="file"
                 accept="image/png,image/jpeg,image/webp"
                 class="hidden-input"
+                aria-label="Upload profile photo"
                 @change="handleAvatarChange"
               />
               <button class="btn" @click="pickAvatar" :disabled="avatarUploading">
@@ -53,8 +56,8 @@
           <form class="settings-form" @submit.prevent="handleProfileUpdate">
             <div style="font-weight: 700; margin-bottom: 10px;">Public profile</div>
             <div class="form-group">
-              <label>Nickname</label>
-              <input v-model="profileForm.name" type="text" maxlength="120" required />
+              <label for="profile-nickname">Nickname</label>
+              <input id="profile-nickname" v-model="profileForm.name" name="nickname" type="text" maxlength="120" required />
             </div>
             <div v-if="profileError" class="form-error">{{ profileError }}</div>
             <div class="settings-actions">
@@ -67,16 +70,16 @@
           <form class="settings-form" @submit.prevent="handlePasswordUpdate">
             <div style="font-weight: 700; margin-bottom: 10px;">Change password</div>
             <div class="form-group">
-              <label>Current password</label>
-              <input v-model="passwordForm.current_password" type="password" required />
+              <label for="profile-current-password">Current password</label>
+              <input id="profile-current-password" v-model="passwordForm.current_password" name="current_password" type="password" required />
             </div>
             <div class="form-group">
-              <label>New password</label>
-              <input v-model="passwordForm.password" type="password" minlength="8" required />
+              <label for="profile-new-password">New password</label>
+              <input id="profile-new-password" v-model="passwordForm.password" name="new_password" type="password" minlength="8" required />
             </div>
             <div class="form-group">
-              <label>Confirm new password</label>
-              <input v-model="passwordForm.password_confirmation" type="password" minlength="8" required />
+              <label for="profile-confirm-password">Confirm new password</label>
+              <input id="profile-confirm-password" v-model="passwordForm.password_confirmation" name="new_password_confirmation" type="password" minlength="8" required />
             </div>
             <div v-if="passwordError" class="form-error">{{ passwordError }}</div>
             <div class="settings-actions">
@@ -93,8 +96,8 @@
             </div>
             <form @submit.prevent="handleDeleteAccount">
               <div class="form-group">
-                <label>Current password</label>
-                <input v-model="deleteForm.current_password" type="password" required />
+                <label for="profile-delete-current-password">Current password</label>
+                <input id="profile-delete-current-password" v-model="deleteForm.current_password" name="delete_current_password" type="password" required />
               </div>
               <div v-if="deleteError" class="form-error">{{ deleteError }}</div>
               <div class="settings-actions">

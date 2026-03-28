@@ -33,6 +33,11 @@ describe('extractApiErrorMessage', () => {
     expect(message).toContain('Cannot connect to API')
   })
 
+  it('returns a friendly message for csrf/session mismatch status', () => {
+    const message = extractApiErrorMessage({ response: { status: 419, data: {} } }, 'Fallback')
+    expect(message).toContain('CSRF token')
+  })
+
   it('falls back when no response details are available', () => {
     const message = extractApiErrorMessage({}, 'Something went wrong.')
     expect(message).toBe('Something went wrong.')

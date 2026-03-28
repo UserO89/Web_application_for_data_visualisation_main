@@ -38,6 +38,7 @@
 
       <ProjectWorkspaceCanvas
         :view-mode="viewMode"
+        :is-compact-workspace="isCompactWorkspace"
         :workspace-height="workspaceHeight"
         :visible-panel-ids="visiblePanelIds"
         :panel-config="panelConfig"
@@ -205,6 +206,7 @@ export default {
       panelConfig,
       resizeDirs,
       viewMode,
+      isCompactWorkspace,
       visiblePanelIds,
       workspaceHeight,
       panelStyle,
@@ -751,7 +753,7 @@ export default {
       validationBlockingError,
       validationProblemColumnCount, validationProblemColumns,
       getSeriesColor, setSeriesColor, resetSeriesColors,
-      viewMode, setViewMode, visiblePanelIds,
+      viewMode, setViewMode, isCompactWorkspace, visiblePanelIds,
       tableRows, tableColumns, analysisRows, schemaColumns, schemaUpdatingColumnId,
       suggestions, statisticsSummary, statisticsLoading, statisticsError,
       savedCharts, savedChartsLoading, savedChartsError,

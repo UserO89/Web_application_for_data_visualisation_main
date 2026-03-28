@@ -118,7 +118,7 @@ describe('useProjectWorkspace', () => {
 
   it('restores layouts by project-specific key and does not leak across projects', async () => {
     localStorage.setItem(`${STORAGE_PREFIX}1`, JSON.stringify(customPayload(560)))
-    localStorage.setItem(`${STORAGE_PREFIX}2`, JSON.stringify(customPayload(620)))
+    localStorage.setItem(`${STORAGE_PREFIX}2`, JSON.stringify(customPayload(540)))
 
     const { state, projectId } = createWorkspaceState('1')
     await state.ensureWorkspaceInitializedForProject()
@@ -131,6 +131,6 @@ describe('useProjectWorkspace', () => {
     await state.ensureWorkspaceInitializedForProject()
 
     const tableWidthProject2 = Number.parseInt(state.panelStyle('table').width, 10)
-    expect(tableWidthProject2).toBe(620)
+    expect(tableWidthProject2).toBe(540)
   })
 })

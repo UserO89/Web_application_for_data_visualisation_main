@@ -6,6 +6,7 @@
       <div class="metrics-title">Numeric</div>
       <label v-for="metric in metricOptions.numeric" :key="`mn-${metric.key}`" class="metric-item">
         <input
+          :name="`metric_numeric_${metric.key}`"
           type="checkbox"
           :checked="metricSelected.numeric.includes(metric.key)"
           @change="$emit('toggle-metric', { group: 'numeric', metricKey: metric.key, checked: $event.target.checked })"
@@ -18,6 +19,7 @@
       <div class="metrics-title">Category</div>
       <label v-for="metric in metricOptions.category" :key="`mc-${metric.key}`" class="metric-item">
         <input
+          :name="`metric_category_${metric.key}`"
           type="checkbox"
           :checked="metricSelected.category.includes(metric.key)"
           @change="$emit('toggle-metric', { group: 'category', metricKey: metric.key, checked: $event.target.checked })"
@@ -30,6 +32,7 @@
       <div class="metrics-title">Date</div>
       <label v-for="metric in metricOptions.date" :key="`md-${metric.key}`" class="metric-item">
         <input
+          :name="`metric_date_${metric.key}`"
           type="checkbox"
           :checked="metricSelected.date.includes(metric.key)"
           @change="$emit('toggle-metric', { group: 'date', metricKey: metric.key, checked: $event.target.checked })"
@@ -42,6 +45,7 @@
       <div class="metrics-title">Ordered</div>
       <label v-for="metric in metricOptions.ordered" :key="`mo-${metric.key}`" class="metric-item">
         <input
+          :name="`metric_ordered_${metric.key}`"
           type="checkbox"
           :checked="metricSelected.ordered.includes(metric.key)"
           @change="$emit('toggle-metric', { group: 'ordered', metricKey: metric.key, checked: $event.target.checked })"
@@ -54,8 +58,10 @@
   <div class="grouped-stats">
     <div class="stats-group-title">Grouped descriptive statistics (optional)</div>
     <div class="grouped-controls">
-      <label class="field-label">Group numeric columns by category</label>
+      <label class="field-label" for="stats-group-by-column">Group numeric columns by category</label>
       <select
+        id="stats-group-by-column"
+        name="group_by_column"
         class="field-select"
         :value="groupByColumnId || ''"
         @change="$emit('update-group-by-column', $event.target.value)"

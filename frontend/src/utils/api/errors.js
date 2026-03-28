@@ -19,6 +19,10 @@ export const extractApiErrorMessage = (error, fallback = 'Request failed.') => {
   const validationMessage = joinValidationMessages(apiData?.errors)
   if (validationMessage) return validationMessage
 
+  if (Number(error?.response?.status || 0) === 419) {
+    return 'Session expired or CSRF token is invalid. Please try again.'
+  }
+
   if (error?.code === 'ERR_NETWORK') {
     return 'Cannot connect to API. Please check your network and backend server.'
   }

@@ -11,22 +11,26 @@
 
       <form @submit.prevent="handleSubmit" class="login-form">
         <div v-if="isRegister" class="form-group">
-          <label>Name</label>
-          <input v-model="form.name" type="text" placeholder="Your name" required />
+          <label for="auth-name">Name</label>
+          <input id="auth-name" v-model="form.name" name="name" type="text" placeholder="Your name" required />
         </div>
         <div class="form-group">
-          <label>Email</label>
+          <label for="auth-email">Email</label>
           <input
+            id="auth-email"
             v-model="form.email"
+            name="email"
             type="email"
             placeholder="your@email.com"
             required
           />
         </div>
         <div class="form-group">
-          <label>Password</label>
+          <label for="auth-password">Password</label>
           <input
+            id="auth-password"
             v-model="form.password"
+            name="password"
             type="password"
             placeholder="Password"
             required

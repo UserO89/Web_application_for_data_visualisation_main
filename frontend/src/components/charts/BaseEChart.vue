@@ -14,6 +14,7 @@ import {
   DatasetComponent,
   TransformComponent,
 } from 'echarts/components'
+import { LegacyGridContainLabel } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 
 echarts.use([
@@ -23,6 +24,7 @@ echarts.use([
   ScatterChart,
   BoxplotChart,
   GridComponent,
+  LegacyGridContainLabel,
   TooltipComponent,
   LegendComponent,
   TitleComponent,
@@ -45,6 +47,20 @@ export default {
     let resizeObserver = null
     let resizeFrameId = null
 
+    const getRootSize = () => {
+      const el = rootEl.value
+      if (!el) return { width: 0, height: 0 }
+      const rect = typeof el.getBoundingClientRect === 'function' ? el.getBoundingClientRect() : null
+      const width = Number(rect?.width ?? el.clientWidth ?? 0)
+      const height = Number(rect?.height ?? el.clientHeight ?? 0)
+      return { width, height }
+    }
+
+    const hasRenderableSize = () => {
+      const { width, height } = getRootSize()
+      return width > 0 && height > 0
+    }
+
     const applyOption = () => {
       if (!chart) return
       const option = props.option && typeof props.option === 'object' ? props.option : {}
@@ -54,14 +70,28 @@ export default {
       }
     }
 
-    const resize = () => {
-      if (chart) chart.resize()
+    const initChartIfReady = () => {
+      if (chart || !rootEl.value) return Boolean(chart)
+      if (!hasRenderableSize()) return false
+      chart = echarts.init(rootEl.value)
+      applyOption()
+      return true
     }
 
-    const scheduleResize = () => {
+    const resize = () => {
+      if (!chart) return
+      if (!hasRenderableSize()) return
+      chart.resize()
+    }
+
+    const scheduleInitOrResize = () => {
       if (resizeFrameId !== null) return
       resizeFrameId = requestAnimationFrame(() => {
         resizeFrameId = null
+        if (!chart) {
+          initChartIfReady()
+          return
+        }
         resize()
       })
     }
@@ -82,18 +112,30 @@ export default {
 
     onMounted(() => {
       if (!rootEl.value) return
-      chart = echarts.init(rootEl.value)
-      applyOption()
+      scheduleInitOrResize()
 
       if (typeof ResizeObserver !== 'undefined') {
-        resizeObserver = new ResizeObserver(() => scheduleResize())
+        resizeObserver = new ResizeObserver(() => scheduleInitOrResize())
         resizeObserver.observe(rootEl.value)
       }
+
+      window.addEventListener('resize', scheduleInitOrResize)
     })
 
-    watch(() => props.option, applyOption, { deep: false })
+    watch(
+      () => props.option,
+      () => {
+        if (!chart) {
+          scheduleInitOrResize()
+          return
+        }
+        applyOption()
+      },
+      { deep: false }
+    )
 
     onBeforeUnmount(() => {
+      window.removeEventListener('resize', scheduleInitOrResize)
       if (resizeObserver) {
         resizeObserver.disconnect()
         resizeObserver = null

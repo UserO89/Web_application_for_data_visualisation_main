@@ -1,7 +1,9 @@
 <template>
   <div class="field-selector">
-    <label>{{ label }}</label>
+    <label :for="selectorId">{{ label }}</label>
     <select
+      :id="selectorId"
+      :name="selectorName"
       class="field-select"
       :value="modelValue ?? ''"
       :disabled="disabled"
@@ -21,12 +23,17 @@
 </template>
 
 <script>
+import { computed, ref } from 'vue'
 import { SEMANTIC_TYPE_LABELS } from '../../charts/ui/typeLabels'
+
+let chartFieldSelectorSeed = 0
 
 export default {
   name: 'ChartFieldSelector',
   props: {
     label: { type: String, required: true },
+    id: { type: String, default: '' },
+    name: { type: String, default: '' },
     modelValue: { type: [Number, String, null], default: null },
     options: { type: Array, default: () => [] },
     placeholder: { type: String, default: '' },
@@ -34,14 +41,17 @@ export default {
     disabled: { type: Boolean, default: false },
   },
   emits: ['update:modelValue'],
-  setup() {
+  setup(props) {
+    const selectorId = ref(props.id || `chart-field-${++chartFieldSelectorSeed}`)
+    const selectorName = computed(() => props.name || selectorId.value)
+
     const normalizeValue = (value) => {
       if (!value) return null
       const parsed = Number(value)
       return Number.isFinite(parsed) ? parsed : null
     }
     const typeLabel = (semanticType) => SEMANTIC_TYPE_LABELS[semanticType] || semanticType || 'Unknown'
-    return { normalizeValue, typeLabel }
+    return { selectorId, selectorName, normalizeValue, typeLabel }
   },
 }
 </script>

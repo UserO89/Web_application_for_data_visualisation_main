@@ -18,8 +18,10 @@
       </div>
 
       <div class="advanced-row">
-        <label>Final type override</label>
+        <label for="advanced-semantic-type">Final type override</label>
         <select
+          id="advanced-semantic-type"
+          name="advanced_semantic_type"
           class="field-select"
           :value="advancedDraft.semanticType"
           @change="$emit('update-semantic-type', $event.target.value)"
@@ -32,6 +34,7 @@
 
       <label class="check-row">
         <input
+          name="advanced_excluded_from_analysis"
           type="checkbox"
           :checked="Boolean(advancedDraft.isExcludedFromAnalysis)"
           @change="$emit('update-excluded', $event.target.checked)"
@@ -40,8 +43,10 @@
       </label>
 
       <div v-if="advancedDraft.semanticType === 'ordinal'" class="advanced-row">
-        <label>Ordered values</label>
+        <label for="advanced-ordinal-order">Ordered values</label>
         <input
+          id="advanced-ordinal-order"
+          name="advanced_ordinal_order"
           class="field-input"
           type="text"
           :value="advancedDraft.ordinalOrderText"

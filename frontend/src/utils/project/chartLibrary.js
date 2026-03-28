@@ -8,6 +8,7 @@ import {
   DatasetComponent,
   TransformComponent,
 } from 'echarts/components'
+import { LegacyGridContainLabel } from 'echarts/features'
 import { CanvasRenderer } from 'echarts/renderers'
 import { buildEChartOption } from '../../charts/chartTransformers/chartDefinitionToEChartsOption'
 
@@ -18,6 +19,7 @@ echarts.use([
   ScatterChart,
   BoxplotChart,
   GridComponent,
+  LegacyGridContainLabel,
   TooltipComponent,
   LegendComponent,
   TitleComponent,

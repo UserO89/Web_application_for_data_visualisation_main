@@ -10,8 +10,11 @@
     </div>
 
     <form class="search-row" @submit.prevent="$emit('search')">
+      <label for="admin-users-search" class="sr-only">Search users</label>
       <input
+        id="admin-users-search"
         :value="search"
+        name="search"
         type="text"
         placeholder="Search by name or email"
         @input="$emit('update:search', $event.target.value)"
@@ -148,6 +151,18 @@ export default {
   gap: 10px;
   flex-wrap: wrap;
   margin-bottom: 14px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .search-row input {
