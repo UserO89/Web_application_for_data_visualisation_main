@@ -14,9 +14,22 @@ export const readRowValue = (values, position, columnName) => {
   return null
 }
 
+const parseRowValues = (rawValues) => {
+  if (typeof rawValues !== 'string') {
+    return rawValues || {}
+  }
+
+  try {
+    const parsed = JSON.parse(rawValues)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch (_) {
+    return {}
+  }
+}
+
 export const mapApiRows = (rows, columns) =>
   rows.map((row) => {
-    const values = typeof row.values === 'string' ? JSON.parse(row.values) : (row.values || {})
+    const values = parseRowValues(row.values)
     const mapped = { id: row.id }
     columns.forEach((col) => {
       const position = Number(col.position)
