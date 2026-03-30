@@ -16,6 +16,9 @@
           <router-link :to="primaryAction.to" class="btn primary hero-btn">
             {{ primaryAction.label }}
           </router-link>
+          <router-link :to="demoAction.to" class="btn hero-btn hero-btn-demo">
+            {{ demoAction.label }}
+          </router-link>
           <a
             href="#capabilities"
             class="btn hero-btn hero-btn-secondary"
@@ -49,6 +52,7 @@ export default {
   },
   props: {
     primaryAction: { type: Object, required: true },
+    demoAction: { type: Object, required: true },
     heroStages: { type: Array, default: () => [] },
     heroHighlights: { type: Array, default: () => [] },
   },
@@ -214,6 +218,17 @@ h1 {
   color: #d9d9d9;
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(255, 255, 255, 0.13);
+}
+
+.hero-btn-demo {
+  color: #d9edff;
+  border-color: rgba(83, 160, 255, 0.45);
+  background: rgba(83, 160, 255, 0.16);
+}
+
+.hero-btn-demo:hover {
+  background: rgba(83, 160, 255, 0.24);
+  box-shadow: 0 10px 20px rgba(83, 160, 255, 0.22);
 }
 
 .hero-btn-secondary:hover {

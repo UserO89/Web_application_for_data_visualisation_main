@@ -17,6 +17,9 @@ vi.mock('vue-router', () => ({
       id: mockRouteState.id,
     },
   }),
+  useRouter: () => ({
+    push: vi.fn(),
+  }),
 }))
 
 vi.mock('../../src/stores/datasetSchema', () => ({
@@ -38,6 +41,16 @@ vi.mock('../../src/api/projects', () => ({
     updateSavedChart: vi.fn(),
     deleteSavedChart: vi.fn(),
     updateRow: vi.fn(),
+  },
+}))
+
+vi.mock('../../src/api/demo', () => ({
+  demoProjectsApi: {
+    get: vi.fn(),
+    getRows: vi.fn(),
+    getStatistics: vi.fn(),
+    getChartSuggestions: vi.fn(),
+    getSchema: vi.fn(),
   },
 }))
 

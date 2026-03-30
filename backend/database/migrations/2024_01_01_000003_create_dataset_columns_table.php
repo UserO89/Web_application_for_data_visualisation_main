@@ -14,7 +14,8 @@ return new class extends Migration
             $table->string('name');
             $table->string('type'); // string, integer, float, date
             $table->integer('position');
-            $table->timestamps();
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 

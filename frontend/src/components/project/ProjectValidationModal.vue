@@ -5,23 +5,48 @@
       class="validation-modal-backdrop"
       @click.self="$emit('close')"
     >
-      <div class="validation-modal panel" role="dialog" aria-modal="true" aria-label="Import review">
-        <div v-if="showDatasetBindingNote" class="dataset-binding-note">
-          <div class="dataset-binding-title">This project already contains a dataset.</div>
-          <div class="dataset-binding-text">To work with another dataset, create a new project.</div>
+      <div class="validation-modal-shell">
+        <div class="validation-floating-actions">
+          <button
+            type="button"
+            class="validation-float-btn validation-clear-btn"
+            aria-label="Clear validation report"
+            title="Clear Report"
+            @click="$emit('clear')"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 4h6" />
+              <path d="M5 7h14" />
+              <path d="M8 7l1 12h6l1-12" />
+              <path d="M10 10v7M14 10v7" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            class="validation-float-btn validation-close-btn"
+            aria-label="Close validation modal"
+            title="Close"
+            @click="$emit('close')"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 6l12 12M18 6l-12 12" />
+            </svg>
+          </button>
         </div>
 
-        <div class="validation-head">
-          <div class="validation-title">Import Review</div>
-          <div class="validation-actions">
-            <button type="button" class="btn" @click="$emit('clear')">Clear Report</button>
-            <button type="button" class="btn" @click="$emit('close')">Close</button>
+        <div class="validation-modal panel" role="dialog" aria-modal="true" aria-label="Import review">
+          <div v-if="showDatasetBindingNote" class="dataset-binding-note">
+            <div class="dataset-binding-title">This project already contains a dataset.</div>
+            <div class="dataset-binding-text">To work with another dataset, create a new project.</div>
           </div>
-        </div>
 
-        <div v-if="blockingError?.message" class="blocking-error">
-          {{ blockingError.message }}
-        </div>
+          <div class="validation-head">
+            <div class="validation-title">Import Review</div>
+          </div>
+
+          <div v-if="blockingError?.message" class="blocking-error">
+            {{ blockingError.message }}
+          </div>
 
         <section class="validation-section">
           <div class="section-title">Summary</div>
@@ -142,7 +167,8 @@
             </article>
           </div>
           <div v-else class="validation-summary-empty">No review samples found.</div>
-        </section>
+          </section>
+        </div>
       </div>
     </div>
   </Teleport>
@@ -196,14 +222,77 @@ export default {
   justify-content: center;
   padding: 18px;
 }
-.validation-modal {
+.validation-modal-shell {
   width: min(860px, 94vw);
+  position: relative;
+}
+.validation-modal {
+  width: 100%;
   max-height: 84vh;
   overflow: auto;
+  border-top-right-radius: 0;
 }
 .validation-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.validation-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .validation-title { font-size: 15px; font-weight: 700; color: #93f6b3; }
+.validation-floating-actions {
+  position: absolute;
+  top: -32px;
+  right: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  z-index: 4;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  overflow: hidden;
+  background: #181818;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+.validation-float-btn {
+  height: 32px;
+  min-width: 42px;
+  border: none;
+  border-radius: 0;
+  background: #1db954;
+  color: #e8f8ec;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  transition: background .15s ease, transform .1s ease, color .15s ease;
+}
+.validation-float-btn:hover {
+  background: #26d466;
+}
+.validation-float-btn:active {
+  transform: translateY(1px);
+}
+.validation-float-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.validation-clear-btn {
+  color: #ffecec;
+  background: #d93b3b;
+}
+.validation-clear-btn:hover {
+  background: #ef4f4f;
+  color: #fff4f4;
+}
+.validation-close-btn {
+  color: #f4fff8;
+  background: #1db954;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+}
+.validation-close-btn:hover {
+  background: #26d466;
+}
 .dataset-binding-note {
   border: 1px solid var(--border);
   border-radius: 10px;

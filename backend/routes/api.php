@@ -9,11 +9,17 @@ use App\Http\Controllers\Api\V1\DatasetRowController;
 use App\Http\Controllers\Api\V1\DatasetSchemaController;
 use App\Http\Controllers\Api\V1\DatasetStatisticsController;
 use App\Http\Controllers\Api\V1\DatasetSuggestionController;
+use App\Http\Controllers\Api\V1\DemoProjectController;
 use App\Http\Controllers\Api\V1\ProjectChartController;
 use App\Http\Controllers\Api\V1\UserAvatarController;
 
 Route::prefix('v1')->group(function () {
     Route::get('/users/{user}/avatar', [UserAvatarController::class, 'show']);
+    Route::get('/demo/project', [DemoProjectController::class, 'show']);
+    Route::get('/demo/project/rows', [DemoProjectController::class, 'rows']);
+    Route::get('/demo/project/schema', [DemoProjectController::class, 'schema']);
+    Route::get('/demo/project/statistics', [DemoProjectController::class, 'statistics']);
+    Route::get('/demo/project/chart-suggestions', [DemoProjectController::class, 'suggestions']);
 
     // Auth (SPA via Sanctum) — web middleware explicitly includes session, so we don't depend on Referer
     Route::middleware('web')->group(function () {

@@ -19,6 +19,7 @@ const DEFAULT_CHART_PALETTE = [
 const MIN_CHART_VIEWPORT_HEIGHT = 280
 const MAX_CHART_VIEWPORT_HEIGHT = 920
 const CHART_HEIGHT_PRESETS = [320, 420, 520, 620]
+const DEFAULT_CHART_VIEWPORT_HEIGHT = 320
 
 export const useProjectChartState = ({
   projectId,
@@ -28,7 +29,7 @@ export const useProjectChartState = ({
 } = {}) => {
   const chartType = ref('line')
   const chartDefinition = ref(createDefaultChartDefinition('line'))
-  const chartViewportHeight = ref(320)
+  const chartViewportHeight = ref(DEFAULT_CHART_VIEWPORT_HEIGHT)
   const chartViewportCustom = ref(false)
   const chartLabels = ref([])
   const chartDatasets = ref([])
@@ -41,15 +42,10 @@ export const useProjectChartState = ({
       : 'custom'
   )
 
-  const chartViewportStyle = computed(() => {
-    if (chartViewportCustom.value) {
-      return { minHeight: `${MIN_CHART_VIEWPORT_HEIGHT}px` }
-    }
-    return {
-      height: `${chartViewportHeight.value}px`,
-      minHeight: `${MIN_CHART_VIEWPORT_HEIGHT}px`,
-    }
-  })
+  const chartViewportStyle = computed(() => ({
+    height: `${chartViewportHeight.value}px`,
+    minHeight: `${MIN_CHART_VIEWPORT_HEIGHT}px`,
+  }))
 
   const chartColorsKey = () => `${CHART_COLORS_STORAGE_PREFIX}${resolveProjectId(projectId)}`
 
@@ -122,10 +118,11 @@ export const useProjectChartState = ({
       return
     }
 
-    if (!chartViewportCustom.value && Math.abs(next - chartViewportHeight.value) < 2) return
-    if (!chartViewportCustom.value && Math.abs(next - chartViewportHeight.value) >= 2) {
-      chartViewportCustom.value = true
-    }
+    // Keep preset mode stable: incidental layout observer changes should not
+    // switch to custom height automatically and squeeze the initial chart view.
+    if (!chartViewportCustom.value) return
+
+    if (Math.abs(next - chartViewportHeight.value) < 2) return
     chartViewportHeight.value = next
   }
 

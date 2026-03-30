@@ -22,6 +22,10 @@ export default {
       type: Boolean,
       default: true,
     },
+    editable: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ['cell-edited'],
   setup(props, { emit }) {
@@ -36,6 +40,13 @@ export default {
     const mapColumns = (columns) =>
       columns.map((column) => {
         const { metaType, ...mapped } = column
+        if (!props.editable) {
+          return {
+            ...mapped,
+            editor: false,
+            editable: false,
+          }
+        }
         return mapped
       })
 
@@ -97,9 +108,11 @@ export default {
           flushPendingUpdates()
         },
         cellClick: (_e, cell) => {
+          if (!props.editable) return
           if (cell) cell.edit(true)
         },
         cellEdited: (cell) => {
+          if (!props.editable) return
           emit('cell-edited', {
             row: cell.getRow().getData(),
             field: cell.getField(),
@@ -152,6 +165,17 @@ export default {
       () => props.active,
       (active) => {
         if (!active) return
+        scheduleRedraw()
+      }
+    )
+
+    watch(
+      () => props.editable,
+      () => {
+        if (!table || !tableReady) return
+        try {
+          table.setColumns(mapColumns(props.columns))
+        } catch (_) {}
         scheduleRedraw()
       }
     )

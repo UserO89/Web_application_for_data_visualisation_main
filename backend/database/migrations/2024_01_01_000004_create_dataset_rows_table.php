@@ -13,7 +13,8 @@ return new class extends Migration
             $table->foreignId('dataset_id')->constrained()->onDelete('cascade');
             $table->integer('row_index');
             $table->json('values'); // Array of values for this row
-            $table->timestamps();
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
 
             $table->index(['dataset_id', 'row_index']);
         });

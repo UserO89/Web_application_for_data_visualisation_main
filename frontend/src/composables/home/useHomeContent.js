@@ -21,6 +21,11 @@ export const useHomeContent = ({ authStore } = {}) => {
       : { label: 'Start Analyzing', to: { name: 'login' } }
   })
 
+  const demoAction = computed(() => ({
+    label: 'Try Public Demo',
+    to: { name: 'project-demo' },
+  }))
+
   const currentDemoScenario = computed(() => {
     return HOME_DEMO_SCENARIOS.find((scenario) => scenario.key === activeDemoScenarioKey.value)
       || HOME_DEMO_SCENARIOS[0]
@@ -47,6 +52,7 @@ export const useHomeContent = ({ authStore } = {}) => {
 
   return {
     primaryAction,
+    demoAction,
     heroStages: HOME_HERO_STAGES,
     heroHighlights: HOME_HERO_HIGHLIGHTS,
     capabilities: HOME_CAPABILITIES,

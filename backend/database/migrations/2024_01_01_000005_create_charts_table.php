@@ -14,7 +14,8 @@ return new class extends Migration
             $table->string('type'); // line, bar, pie, scatter, etc.
             $table->string('title');
             $table->json('config'); // Chart configuration (axes, colors, etc.)
-            $table->timestamps();
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 

@@ -20,6 +20,9 @@
         >
           Manual Input
         </button>
+        <button type="button" class="btn" @click="$emit('open-demo')">
+          Demo
+        </button>
       </div>
 
       <form v-if="importMode === 'file'" @submit.prevent="$emit('import')">
@@ -150,6 +153,7 @@ export default {
     'back',
     'change-import-mode',
     'change-import-options',
+    'open-demo',
     'file-select',
     'import',
     'add-manual-column',

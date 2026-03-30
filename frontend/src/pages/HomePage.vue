@@ -6,6 +6,7 @@
       <HomeHeroSection
         ref="heroSectionRef"
         :primary-action="primaryAction"
+        :demo-action="demoAction"
         :hero-stages="heroStages"
         :hero-highlights="heroHighlights"
         @explore-capabilities="handleExploreCapabilities"

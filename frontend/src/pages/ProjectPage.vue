@@ -4,7 +4,7 @@
     <div v-else-if="!project" class="error panel">{{ projectError || 'Project not found' }}</div>
 
     <ProjectDatasetImportSection
-      v-else-if="!project.dataset"
+      v-else-if="!project.dataset && !isReadOnly"
       :import-mode="importMode"
       :import-options="importOptions"
       :selected-file="selectedFile"
@@ -12,9 +12,10 @@
       :manual-headers="manualHeaders"
       :manual-rows-input="manualRowsInput"
       :manual-error="manualError"
-      @back="$router.push({ name: 'projects' })"
+      @back="handleBack"
       @change-import-mode="importMode = $event"
       @change-import-options="importOptions = $event"
+      @open-demo="openDemoProject"
       @file-select="handleFileSelect"
       @import="handleImport"
       @add-manual-column="addManualColumn"
@@ -25,13 +26,22 @@
       @change-manual-headers="manualHeaders = $event"
       @change-manual-rows="manualRowsInput = $event"
     />
+    <div v-else-if="!project.dataset" class="panel demo-unavailable">
+      Demo dataset is currently unavailable.
+    </div>
 
     <div v-else>
+      <div v-if="isReadOnly" class="panel demo-readonly-banner">
+        Demo mode is public and read-only. You can view data and build charts, but table edits are disabled.
+      </div>
+
       <ProjectPageToolbar
         :view-mode="viewMode"
         :import-validation="importValidation"
         :validation-problem-column-count="validationProblemColumnCount"
-        @back="$router.push({ name: 'projects' })"
+        :read-only="isReadOnly"
+        :back-label="backButtonLabel"
+        @back="handleBack"
         @change-view-mode="setViewMode"
         @open-validation="openValidationModal"
       />
@@ -41,7 +51,7 @@
         :is-compact-workspace="isCompactWorkspace"
         :workspace-height="workspaceHeight"
         :visible-panel-ids="visiblePanelIds"
-        :panel-config="panelConfig"
+        :panel-config="workspacePanelConfig"
         :resize-dirs="resizeDirs"
         :panel-style="panelStyle"
         :set-workspace-ref="setWorkspaceCanvasRef"
@@ -66,6 +76,8 @@
         :analysis-rows="analysisRows"
         :schema-updating-column-id="schemaUpdatingColumnId"
         :get-series-color="getSeriesColor"
+        :read-only="isReadOnly"
+        :table-editable="!isReadOnly"
         @bring-to-front="handleBringToFront"
         @start-drag="handleStartDrag"
         @start-resize="handleStartResize"
@@ -104,9 +116,10 @@
 
 <script>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ProjectDatasetImportSection, ProjectValidationModal, ProjectPageToolbar, ProjectWorkspaceCanvas, } from '../components/project'
 import { projectsApi } from '../api/projects'
+import { demoProjectsApi } from '../api/demo'
 import { useDatasetSchemaStore } from '../stores/datasetSchema'
 import { createDefaultChartDefinition, mergeChartDefinition } from '../charts/chartDefinitions/createUniversalChartDefinition'
 import { normalizeChartDefinition } from '../charts/rules/chartDefinitionValidator'
@@ -117,15 +130,33 @@ import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'ProjectPage',
+  props: {
+    mode: {
+      type: String,
+      default: 'project',
+    },
+  },
   components: {
     ProjectDatasetImportSection,
     ProjectValidationModal,
     ProjectPageToolbar,
     ProjectWorkspaceCanvas,
   },
-  setup() {
+  setup(props) {
     const route = useRoute()
-    const projectId = computed(() => String(route.params.id))
+    const router = useRouter()
+    const isReadOnly = computed(() => props.mode === 'demo')
+    const projectId = computed(() => (
+      isReadOnly.value ? 'demo' : String(route.params.id)
+    ))
+    const projectApi = computed(() => (isReadOnly.value ? demoProjectsApi : projectsApi))
+    const backButtonLabel = computed(() => (isReadOnly.value ? '<- Back to Home' : '<- Back to Projects'))
+    const handleBack = () => {
+      router.push(isReadOnly.value ? { name: 'home' } : { name: 'projects' })
+    }
+    const openDemoProject = () => {
+      router.push({ name: 'project-demo' })
+    }
     const workspaceRef = ref(null)
     const chartViewportRef = ref(null)
     const schemaStore = useDatasetSchemaStore()
@@ -169,6 +200,7 @@ export default {
     } = useProjectDataLoader({
       projectId,
       schemaStore,
+      apiClient: projectApi,
     })
 
     const sortedDatasetColumns = computed(() =>
@@ -225,6 +257,14 @@ export default {
       workspaceRef,
     })
 
+    const workspacePanelConfig = computed(() => ({
+      ...panelConfig,
+      table: {
+        ...(panelConfig.table || {}),
+        subtitle: isReadOnly.value ? 'Read-only demo' : 'Editable',
+      },
+    }))
+
     const {
       chartType,
       chartDefinition,
@@ -267,7 +307,7 @@ export default {
         title: c.name,
         field: cellField(c.position),
         metaType: c.type,
-        editor: 'input',
+        editor: isReadOnly.value ? false : 'input',
         formatter: nullAwareFormatter,
       }))
     )
@@ -336,6 +376,10 @@ export default {
 
     const loadSavedCharts = async () => {
       if (savedChartsLoading.value) return
+      if (isReadOnly.value) {
+        savedCharts.value = []
+        return
+      }
 
       if (!project.value?.dataset) {
         savedCharts.value = []
@@ -356,6 +400,11 @@ export default {
     }
 
     const saveCurrentChart = async () => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Saving charts is disabled.')
+        return
+      }
+
       if (!chartDatasets.value.length) {
         notify.warning('Build a chart before saving it to the project library.')
         return
@@ -393,6 +442,10 @@ export default {
     }
 
     const renameSavedChart = async ({ chartId, title }) => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Renaming is disabled.')
+        return
+      }
       if (!chartId) return
       const nextTitle = String(title || '').trim()
       if (!nextTitle) {
@@ -422,6 +475,10 @@ export default {
     }
 
     const deleteSavedChart = async (savedChartId) => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Deleting is disabled.')
+        return
+      }
       if (!savedChartId) return
       const confirmed = window.confirm('Delete this saved chart from the project library?')
       if (!confirmed) return
@@ -491,7 +548,9 @@ export default {
     const handleProjectWithDataset = async (loadedProject) => {
       seriesColors.value = loadSeriesColors()
       await reloadAllProjectData({ rebuildSchema: false })
-      await loadSavedCharts()
+      if (!isReadOnly.value) {
+        await loadSavedCharts()
+      }
       applySuggestedChartDefinition()
       applyValidationReportFromProject(loadedProject?.dataset?.validation_report_json)
       await ensureWorkspaceInitializedForProject()
@@ -535,6 +594,10 @@ export default {
     }
 
     const handleImport = async () => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Import is disabled.')
+        return
+      }
       if (!selectedFile.value) {
         notify.warning('Choose a file before importing.')
         return
@@ -554,6 +617,10 @@ export default {
     }
 
     const handleManualImport = async () => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Import is disabled.')
+        return
+      }
       const file = prepareManualImportFile()
       if (!file) return
 
@@ -574,6 +641,10 @@ export default {
     }
 
     const handleCellEdit = async (data) => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Table edits are disabled.')
+        return
+      }
       try {
         const values = buildRowUpdateValues(data.row, sortedDatasetColumns.value)
         await projectsApi.updateRow(projectId.value, data.row.id, values)
@@ -588,6 +659,10 @@ export default {
     }
 
     const handleSemanticTypeChange = async ({ columnId, semanticType, analyticalRole, isExcludedFromAnalysis }) => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Semantic edits are disabled.')
+        return
+      }
       try {
         await schemaStore.setSemanticType(projectId.value, columnId, {
           semantic_type: semanticType,
@@ -601,6 +676,10 @@ export default {
     }
 
     const handleOrdinalOrderChange = async ({ columnId, ordinalOrder }) => {
+      if (isReadOnly.value) {
+        notify.info('Demo mode is read-only. Ordinal edits are disabled.')
+        return
+      }
       if (!Array.isArray(ordinalOrder) || ordinalOrder.length < 2) return
       try {
         await schemaStore.setOrdinalOrder(projectId.value, columnId, ordinalOrder)
@@ -641,6 +720,29 @@ export default {
       if (e.key === 'Escape' && validationModalOpen.value) {
         closeValidationModal()
       }
+    }
+
+    const parseCssPx = (value) => {
+      const parsed = Number.parseFloat(value)
+      return Number.isFinite(parsed) ? parsed : 0
+    }
+
+    const readViewportContentHeight = (element) => {
+      if (!element) return 0
+
+      const clientHeight = Number(element.clientHeight || 0)
+      if (
+        clientHeight > 0
+        && typeof window !== 'undefined'
+        && typeof window.getComputedStyle === 'function'
+      ) {
+        const style = window.getComputedStyle(element)
+        const verticalPadding = parseCssPx(style?.paddingTop) + parseCssPx(style?.paddingBottom)
+        const contentHeight = clientHeight - verticalPadding
+        if (contentHeight > 0) return contentHeight
+      }
+
+      return Number(element.getBoundingClientRect?.().height || clientHeight || 0)
     }
 
     let chartViewportResizeObserver = null
@@ -693,7 +795,7 @@ export default {
 
       chartViewportResizeObserver.observe(element)
       observedChartViewportElement = element
-      const initialHeight = element.getBoundingClientRect?.().height || element.clientHeight
+      const initialHeight = readViewportContentHeight(element)
       syncChartViewportHeight(initialHeight)
     }
 
@@ -716,14 +818,15 @@ export default {
       saveLayouts()
     })
 
-    watch(() => route.params.id, (nextId, prevId) => {
+    watch([projectId, isReadOnly], ([nextId, nextReadOnly], [prevId, prevReadOnly]) => {
       if (!nextId || String(nextId) === 'undefined') return
-      if (String(nextId) === String(prevId)) return
+      if (String(nextId) === String(prevId) && nextReadOnly === prevReadOnly) return
       resetRouteState()
       loadProjectPage()
     })
 
     watch(() => viewMode.value, (mode) => {
+      if (isReadOnly.value) return
       if (mode !== 'library') return
       if (!project.value?.dataset) return
       loadSavedCharts()
@@ -746,6 +849,7 @@ export default {
     )
 
     return {
+      isReadOnly, backButtonLabel, handleBack, openDemoProject,
       project, loading, projectError, selectedFile, importing, importOptions, importMode, manualHeaders, manualRowsInput, manualError,
       importValidation, validationModalOpen,
       openValidationModal, closeValidationModal, clearValidationReport,
@@ -759,7 +863,7 @@ export default {
       savedCharts, savedChartsLoading, savedChartsError,
       chartType, chartDefinition,
       chartViewportPresetValue, chartViewportStyle, setChartViewportHeight,
-      chartLabels, chartDatasets, chartMeta, workspaceHeight, panelConfig, resizeDirs, panelStyle,
+      chartLabels, chartDatasets, chartMeta, workspaceHeight, workspacePanelConfig, resizeDirs, panelStyle,
       setWorkspaceCanvasRef, setChartViewportElementRef,
       handleBringToFront, handleStartDrag, handleStartResize, handleChartDefinitionUpdate, handleSetSeriesColor,
       handleFileSelect, handleImport,
@@ -777,4 +881,16 @@ export default {
 .app-content { flex: 1; }
 .loading { text-align: center; padding: 3rem; color: var(--muted); }
 .error { text-align: center; padding: 2rem; color: #fca5a5; }
+.demo-unavailable {
+  text-align: center;
+  color: var(--muted);
+  padding: 1.2rem;
+}
+.demo-readonly-banner {
+  border: 1px solid rgba(29, 185, 84, 0.4);
+  background: rgba(29, 185, 84, 0.08);
+  color: #b6f6cb;
+  font-size: 13px;
+  line-height: 1.4;
+}
 </style>

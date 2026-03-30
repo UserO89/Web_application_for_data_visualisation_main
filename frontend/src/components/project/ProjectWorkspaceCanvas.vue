@@ -40,6 +40,7 @@
                 :columns="tableColumns"
                 :rows="tableRows"
                 :active="isPanelVisible('table')"
+                :editable="tableEditable"
                 @cell-edited="$emit('cell-edit', $event)"
               />
             </div>
@@ -62,7 +63,7 @@
                 :datasets="chartDatasets"
                 :meta="chartMeta"
                 :type="chartType"
-                allow-save
+                :allow-save="!readOnly"
                 @clear="$emit('clear-chart')"
                 @save="$emit('save-chart')"
               />
@@ -124,6 +125,7 @@
               :loading="statisticsLoading"
               :error="statisticsError"
               :updating-column-id="schemaUpdatingColumnId"
+              :read-only="readOnly"
               @change-semantic="$emit('change-semantic', $event)"
               @change-ordinal-order="$emit('change-ordinal-order', $event)"
             />
@@ -258,6 +260,8 @@ export default {
     analysisRows: { type: Array, default: () => [] },
     schemaUpdatingColumnId: { type: [String, Number], default: null },
     getSeriesColor: { type: Function, default: () => '#1db954' },
+    readOnly: { type: Boolean, default: false },
+    tableEditable: { type: Boolean, default: true },
   },
   emits: [
     'bring-to-front',

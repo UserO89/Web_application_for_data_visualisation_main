@@ -44,7 +44,14 @@ const router = createRouter({
       path: '/projects/:id',
       name: 'project',
       component: ProjectPage,
+      props: { mode: 'project' },
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/demo',
+      name: 'project-demo',
+      component: ProjectPage,
+      props: { mode: 'demo' },
     },
   ],
 })

@@ -1,11 +1,12 @@
 import { ref } from 'vue'
 import { projectsApi } from '../../api/projects'
-import { mapApiRows, resolveProjectId, unpackRowsPayload } from '../../utils/project'
+import { mapApiRows, resolveProjectId, resolveRefValue, unpackRowsPayload } from '../../utils/project'
 import { extractApiErrorMessage } from '../../utils/api/errors'
 
 export const useProjectDataLoader = ({
   projectId,
   schemaStore,
+  apiClient = projectsApi,
 } = {}) => {
   const project = ref(null)
   const loading = ref(true)
@@ -23,6 +24,7 @@ export const useProjectDataLoader = ({
   const statisticsError = ref('')
 
   const resolvedProjectId = () => resolveProjectId(projectId)
+  const resolvedApiClient = () => resolveRefValue(apiClient) || projectsApi
   const yieldToMainThread = () =>
     new Promise((resolve) => {
       if (typeof requestAnimationFrame === 'function') {
@@ -49,9 +51,10 @@ export const useProjectDataLoader = ({
   const fetchProjectRows = async ({ allPages = false, perPage = 500 } = {}) => {
     const id = resolvedProjectId()
     if (!id) return []
+    const api = resolvedApiClient()
 
     if (!allPages) {
-      const response = await projectsApi.getRows(id)
+      const response = await api.getRows(id)
       const payload = response.data ?? response
       return unpackRowsPayload(payload).rows
     }
@@ -59,7 +62,7 @@ export const useProjectDataLoader = ({
     const collected = []
     let page = 1
     while (true) {
-      const response = await projectsApi.getRows(id, page, perPage)
+      const response = await api.getRows(id, page, perPage)
       const payload = response.data ?? response
       const { rows, lastPage, isPaginated } = unpackRowsPayload(payload)
       collected.push(...rows)
@@ -96,11 +99,18 @@ export const useProjectDataLoader = ({
 
   const loadSemanticSchema = async (rebuild = false) => {
     const id = resolvedProjectId()
-    if (!id) return
+    if (!id || !schemaStore) return
 
     schemaError.value = ''
     try {
-      await schemaStore.fetchSchema(id, { rebuild })
+      const api = resolvedApiClient()
+      if (api === projectsApi && typeof schemaStore.fetchSchema === 'function') {
+        await schemaStore.fetchSchema(id, { rebuild })
+        return
+      }
+
+      const response = await api.getSchema(id, { rebuild })
+      schemaStore.applySchema(response?.schema || null)
     } catch (e) {
       schemaError.value = extractApiErrorMessage(e, 'Failed to load semantic schema.')
     }
@@ -117,7 +127,7 @@ export const useProjectDataLoader = ({
     statisticsLoading.value = true
     statisticsError.value = ''
     try {
-      const response = await projectsApi.getStatistics(id)
+      const response = await resolvedApiClient().getStatistics(id)
       statisticsSummary.value = response.statistics || []
     } catch (e) {
       statisticsError.value = extractApiErrorMessage(e, 'Failed to load statistics summary.')
@@ -135,7 +145,7 @@ export const useProjectDataLoader = ({
 
     suggestionsError.value = ''
     try {
-      const response = await projectsApi.getChartSuggestions(id)
+      const response = await resolvedApiClient().getChartSuggestions(id)
       suggestions.value = response.suggestions || []
     } catch (e) {
       suggestions.value = []
@@ -171,7 +181,7 @@ export const useProjectDataLoader = ({
 
     projectError.value = ''
     try {
-      const response = await projectsApi.get(id)
+      const response = await resolvedApiClient().get(id)
       project.value = response.project
 
       if (!project.value?.dataset) {

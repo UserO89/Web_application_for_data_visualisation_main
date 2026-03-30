@@ -14,7 +14,8 @@ return new class extends Migration
             $table->string('file_path');
             $table->string('delimiter', 1)->default(',');
             $table->boolean('has_header')->default(true);
-            $table->timestamps();
+            $table->dateTime('created_at')->nullable();
+            $table->dateTime('updated_at')->nullable();
         });
     }
 

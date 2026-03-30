@@ -14,8 +14,9 @@
       :grouped-columns="groupedColumns"
       :is-selected="isSelected"
       :type-label="typeLabel"
+      :read-only="readOnly"
       @toggle-column="toggleColumn($event.columnId, $event.checked)"
-      @open-advanced="openAdvanced"
+      @open-advanced="handleOpenAdvanced"
     />
 
     <StatisticsMetricSelector
@@ -52,6 +53,7 @@
     />
 
     <StatisticsAdvancedModal
+      v-if="!readOnly"
       :advanced-column="advancedColumn"
       :advanced-draft="advancedDraft"
       :semantic-override-options="semanticOverrideOptions"
@@ -117,6 +119,10 @@ export default {
       type: [Number, String],
       default: null,
     },
+    readOnly: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ['change-semantic', 'change-ordinal-order'],
   setup(props, { emit }) {
@@ -128,8 +134,14 @@ export default {
       onChangeOrdinalOrder: (payload) => emit('change-ordinal-order', payload),
     })
 
+    const handleOpenAdvanced = (columnId) => {
+      if (props.readOnly) return
+      statisticsState.openAdvanced(columnId)
+    }
+
     return {
       ...statisticsState,
+      handleOpenAdvanced,
       hasValue,
       formatValue,
       formatPercent,

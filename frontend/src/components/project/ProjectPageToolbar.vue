@@ -1,7 +1,7 @@
 <template>
   <div class="top-row top-row-actions">
     <div class="top-row-left">
-      <button class="btn" @click="$emit('back')"><- Back to Projects</button>
+      <button class="btn" @click="$emit('back')">{{ backLabel }}</button>
       <div class="view-mode-switch">
         <button
           type="button"
@@ -64,6 +64,7 @@
           <span class="mode-label">Workspace</span>
         </button>
         <button
+          v-if="!readOnly"
           type="button"
           :class="['btn', 'mode-btn', { primary: viewMode === 'library' }]"
           aria-label="Saved Charts"
@@ -100,6 +101,8 @@ export default {
     viewMode: { type: String, default: 'workspace' },
     importValidation: { type: Object, default: null },
     validationProblemColumnCount: { type: Number, default: 0 },
+    readOnly: { type: Boolean, default: false },
+    backLabel: { type: String, default: '<- Back to Projects' },
   },
   emits: ['back', 'change-view-mode', 'open-validation'],
 }

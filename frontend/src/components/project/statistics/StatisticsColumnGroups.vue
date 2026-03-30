@@ -18,7 +18,14 @@
             <span class="stats-column-name">{{ column.name }}</span>
           </label>
           <span class="stats-type-badge">{{ typeLabel(column.semanticType) }}</span>
-          <button type="button" class="btn tiny" @click.stop="$emit('open-advanced', column.id)">Advanced</button>
+          <button
+            type="button"
+            class="btn tiny"
+            :disabled="readOnly"
+            @click.stop="$emit('open-advanced', column.id)"
+          >
+            {{ readOnly ? 'Locked' : 'Advanced' }}
+          </button>
         </div>
       </div>
       <div v-else class="muted">{{ section.emptyText }}</div>
@@ -30,7 +37,14 @@
         <div v-for="column in groupedColumns.hidden" :key="`hidden-${column.id}`" class="stats-column-item no-check">
           <span class="stats-column-name">{{ column.name }}</span>
           <span class="stats-type-badge">{{ typeLabel(column.semanticType) }}</span>
-          <button type="button" class="btn tiny" @click="$emit('open-advanced', column.id)">Advanced</button>
+          <button
+            type="button"
+            class="btn tiny"
+            :disabled="readOnly"
+            @click="$emit('open-advanced', column.id)"
+          >
+            {{ readOnly ? 'Locked' : 'Advanced' }}
+          </button>
         </div>
       </div>
       <div v-else class="muted">No hidden columns.</div>
@@ -66,6 +80,10 @@ export default {
     typeLabel: {
       type: Function,
       default: (value) => String(value || 'Unknown'),
+    },
+    readOnly: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ['toggle-column', 'open-advanced'],
