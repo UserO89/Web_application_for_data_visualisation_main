@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\ImportDatasetRequest;
 use App\Models\Project;
 use App\Services\CsvImportService;
+use App\Services\CsvImportLimitException;
 use App\Services\DatasetSemanticSchemaService;
 use App\Services\DatasetValidation\DatasetValidationService;
 use Illuminate\Database\QueryException;
@@ -60,6 +61,18 @@ class DatasetImportController extends Controller
 
         try {
             $parsed = $this->csvImportService->parse($file, $delimiter, $hasHeader);
+        } catch (CsvImportLimitException $e) {
+            $report = $this->datasetValidationService->buildFatalReport(
+                code: $e->validationCode(),
+                message: $e->getMessage(),
+                metadata: $e->metadata(),
+                summaryOverrides: $e->summaryOverrides(),
+                hasHeader: $hasHeader
+            );
+            return response()->json([
+                'message' => $e->getMessage(),
+                'validation' => $report,
+            ], 422);
         } catch (Throwable $e) {
             $report = $this->datasetValidationService->buildFatalReport(
                 'file_unreadable',

@@ -82,11 +82,19 @@ class DatasetValidationService
         ];
     }
 
-    public function buildFatalReport(string $code, string $message, array $metadata = []): array
+    public function buildFatalReport(
+        string $code,
+        string $message,
+        array $metadata = [],
+        array $summaryOverrides = [],
+        bool $hasHeader = true
+    ): array
     {
         return $this->failedPlan(
             code: $code,
             message: $message,
+            summaryOverrides: $summaryOverrides,
+            hasHeader: $hasHeader,
             metadata: $metadata
         )['report'];
     }
@@ -168,4 +176,3 @@ class DatasetValidationService
         ];
     }
 }
-

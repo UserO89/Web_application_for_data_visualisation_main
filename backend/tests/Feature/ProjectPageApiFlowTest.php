@@ -204,6 +204,75 @@ CSV
         $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);
     }
 
+    public function test_import_is_blocked_when_data_row_limit_is_exceeded(): void
+    {
+        Storage::fake('local');
+        config()->set('dataset_import.max_data_rows', 2);
+        config()->set('dataset_import.max_columns', 10);
+
+        $user = $this->authenticateUser();
+        $project = $this->createProjectForUser($user, 'Too many rows');
+
+        $response = $this->importCsv($project, <<<'CSV'
+Region,Revenue
+North,100
+South,200
+West,300
+CSV
+        );
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'message',
+                'Import blocked: this file contains 3 data rows, but the current limit is 2. Split the dataset into a smaller file before importing.'
+            )
+            ->assertJsonPath('validation.summary.import_status', 'blocked')
+            ->assertJsonPath('validation.summary.rows_total', 3)
+            ->assertJsonPath('validation.summary.rows_checked', 3)
+            ->assertJsonPath('validation.summary.rows_imported', 0)
+            ->assertJsonPath('validation.summary.columns_detected', 2)
+            ->assertJsonPath('validation.blocking_error.code', 'file_too_many_rows')
+            ->assertJsonPath('validation.blocking_error.metadata.limit', 2)
+            ->assertJsonPath('validation.blocking_error.metadata.detected_rows', 3);
+
+        $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);
+    }
+
+    public function test_import_is_blocked_when_column_limit_is_exceeded(): void
+    {
+        Storage::fake('local');
+        config()->set('dataset_import.max_data_rows', 10);
+        config()->set('dataset_import.max_columns', 2);
+
+        $user = $this->authenticateUser();
+        $project = $this->createProjectForUser($user, 'Too many columns');
+
+        $response = $this->importCsv($project, <<<'CSV'
+Region,Revenue
+North,100,unexpected
+CSV
+        );
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath(
+                'message',
+                'Import blocked: line 2 contains 3 columns, but the current limit is 2. Remove extra columns or split the dataset before importing.'
+            )
+            ->assertJsonPath('validation.summary.import_status', 'blocked')
+            ->assertJsonPath('validation.summary.rows_total', 1)
+            ->assertJsonPath('validation.summary.rows_checked', 1)
+            ->assertJsonPath('validation.summary.rows_imported', 0)
+            ->assertJsonPath('validation.summary.columns_detected', 3)
+            ->assertJsonPath('validation.blocking_error.code', 'file_too_many_columns')
+            ->assertJsonPath('validation.blocking_error.metadata.limit', 2)
+            ->assertJsonPath('validation.blocking_error.metadata.detected_columns', 3)
+            ->assertJsonPath('validation.blocking_error.metadata.line', 2);
+
+        $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);
+    }
+
     public function test_descriptive_statistics_result_builds_correctly(): void
     {
         Storage::fake('local');
