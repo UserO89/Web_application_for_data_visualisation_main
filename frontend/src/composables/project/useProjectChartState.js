@@ -25,7 +25,6 @@ export const useProjectChartState = ({
   projectId,
   schemaColumns,
   analysisRows,
-  tableRows,
 } = {}) => {
   const chartType = ref('line')
   const chartDefinition = ref(createDefaultChartDefinition('line'))
@@ -142,7 +141,7 @@ export const useProjectChartState = ({
     const definition = buildSemanticChartData({
       definition: validation.normalizedDefinition,
       schemaColumns: schemaColumns.value,
-      rows: analysisRows.value.length ? analysisRows.value : tableRows.value,
+      rows: analysisRows.value,
       getSeriesColor,
     })
 

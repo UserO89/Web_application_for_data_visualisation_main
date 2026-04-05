@@ -5,10 +5,24 @@
         <div class="section-title">Descriptive Statistics</div>
         <div class="section-subtitle">Select columns, choose measures, and review results.</div>
       </div>
-      <div v-if="loading" class="stats-status">Refreshing...</div>
+      <div class="stats-head-actions">
+        <button
+          type="button"
+          class="btn"
+          :disabled="rowsLoading"
+          @click="$emit('load-rows')"
+        >
+          {{ rowsLoading ? 'Loading full dataset...' : (rowsReady ? 'Reload full dataset' : 'Load full dataset') }}
+        </button>
+        <div v-if="loading" class="stats-status">Refreshing...</div>
+      </div>
     </div>
 
     <div v-if="error" class="stats-error">{{ error }}</div>
+    <div v-if="rowsError" class="stats-error">{{ rowsError }}</div>
+    <div v-else-if="!rowsReady" class="stats-note">
+      Summary cards use backend statistics. Grouped statistics need the full dataset loaded in the browser.
+    </div>
 
     <StatisticsColumnGroups
       :grouped-columns="groupedColumns"
@@ -45,6 +59,8 @@
       :grouped-summary-rows="groupedSummaryRows"
       :group-by-column-id="groupByColumnId"
       :group-by-column-name="groupByColumnName"
+      :grouped-source-ready="rowsReady"
+      :grouped-source-loading="rowsLoading"
       :metric-label="metricLabel"
       :has-value="hasValue"
       :format-value="formatValue"
@@ -107,6 +123,18 @@ export default {
       type: Array,
       default: () => [],
     },
+    rowsReady: {
+      type: Boolean,
+      default: false,
+    },
+    rowsLoading: {
+      type: Boolean,
+      default: false,
+    },
+    rowsError: {
+      type: String,
+      default: '',
+    },
     loading: {
       type: Boolean,
       default: false,
@@ -124,7 +152,7 @@ export default {
       default: false,
     },
   },
-  emits: ['change-semantic', 'change-ordinal-order'],
+  emits: ['change-semantic', 'change-ordinal-order', 'load-rows'],
   setup(props, { emit }) {
     const statisticsState = useStatisticsWorkspace({
       schemaColumns: toRef(props, 'schemaColumns'),
@@ -155,6 +183,35 @@ export default {
 <style scoped>
 .stats-workspace { display: flex; flex-direction: column; gap: 12px; }
 .stats-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.stats-head-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
 .stats-status { color: var(--muted); font-size: 12px; }
 .stats-error { color: #ff9b9b; font-size: 13px; }
+.stats-note {
+  color: var(--muted);
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #171717;
+  padding: 10px;
+}
+
+@media (max-width: 760px) {
+  .stats-head {
+    flex-direction: column;
+  }
+
+  .stats-head-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .stats-head-actions .btn {
+    width: 100%;
+  }
+}
 </style>

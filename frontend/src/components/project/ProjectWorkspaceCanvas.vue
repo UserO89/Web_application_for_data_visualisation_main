@@ -69,6 +69,28 @@
               />
             </div>
             <div class="chart-tools">
+              <div class="analysis-state-card">
+                <div class="analysis-state-head">
+                  <div class="analysis-title">Chart data</div>
+                  <button
+                    class="btn"
+                    type="button"
+                    :disabled="analysisRowsLoading"
+                    @click="$emit('load-analysis-rows')"
+                  >
+                    {{ analysisRowsLoading ? 'Loading full dataset...' : (analysisRowsReady ? 'Reload full dataset' : 'Load full dataset') }}
+                  </button>
+                </div>
+                <div v-if="analysisRowsError" class="analysis-state-text analysis-state-error">
+                  {{ analysisRowsError }}
+                </div>
+                <div v-else-if="analysisRowsReady" class="analysis-state-text">
+                  Charts now use the full dataset loaded in the browser.
+                </div>
+                <div v-else class="analysis-state-text">
+                  Full dataset rows are loaded only on demand for chart building.
+                </div>
+              </div>
               <div class="controls">
                 <button class="btn" type="button" @click="$emit('refresh-data')">Refresh Data</button>
                 <button class="btn" type="button" @click="$emit('export-csv')">Export CSV</button>
@@ -122,10 +144,14 @@
               :schema-columns="schemaColumns"
               :statistics="statisticsSummary"
               :rows="analysisRows"
+              :rows-ready="analysisRowsReady"
+              :rows-loading="analysisRowsLoading"
+              :rows-error="analysisRowsError"
               :loading="statisticsLoading"
               :error="statisticsError"
               :updating-column-id="schemaUpdatingColumnId"
               :read-only="readOnly"
+              @load-rows="$emit('load-analysis-rows')"
               @change-semantic="$emit('change-semantic', $event)"
               @change-ordinal-order="$emit('change-ordinal-order', $event)"
             />
@@ -258,6 +284,9 @@ export default {
     savedChartsLoading: { type: Boolean, default: false },
     savedChartsError: { type: String, default: '' },
     analysisRows: { type: Array, default: () => [] },
+    analysisRowsReady: { type: Boolean, default: false },
+    analysisRowsLoading: { type: Boolean, default: false },
+    analysisRowsError: { type: String, default: '' },
     schemaUpdatingColumnId: { type: [String, Number], default: null },
     getSeriesColor: { type: Function, default: () => '#1db954' },
     readOnly: { type: Boolean, default: false },
@@ -270,6 +299,7 @@ export default {
     'cell-edit',
     'refresh-data',
     'export-csv',
+    'load-analysis-rows',
     'set-chart-height',
     'build-chart',
     'save-chart',
@@ -451,6 +481,26 @@ export default {
   padding: 6px;
 }
 .chart-tools { display: flex; flex-direction: column; gap: 10px; }
+.analysis-state-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #171717;
+  padding: 10px;
+}
+.analysis-state-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.analysis-state-text {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.analysis-state-error {
+  color: #ff9b9b;
+}
 .chart-size-control { color: var(--muted); font-size: 12px; align-self: center; }
 .chart-size-select {
   min-width: 120px;
@@ -592,6 +642,15 @@ export default {
 }
 
 @media (max-width: 760px) {
+  .analysis-state-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .analysis-state-head .btn {
+    width: 100%;
+  }
+
   .controls .btn {
     width: 100%;
   }

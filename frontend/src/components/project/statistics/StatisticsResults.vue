@@ -316,6 +316,12 @@
     <div v-else-if="!selectedNumericColumns.length" class="muted">
       Select at least one numeric column to see grouped statistics.
     </div>
+    <div v-else-if="groupedSourceLoading" class="muted">
+      Loading full dataset for grouped statistics...
+    </div>
+    <div v-else-if="!groupedSourceReady" class="muted">
+      Load the full dataset to enable grouped statistics.
+    </div>
     <div v-else-if="!groupedSummaryRows.length" class="muted">
       No grouped statistics available for the current selection.
     </div>
@@ -364,6 +370,8 @@ export default {
     groupedSummaryRows: { type: Array, default: () => [] },
     groupByColumnId: { type: [Number, String], default: null },
     groupByColumnName: { type: String, default: '' },
+    groupedSourceReady: { type: Boolean, default: false },
+    groupedSourceLoading: { type: Boolean, default: false },
     metricLabel: { type: Function, default: identity },
     hasValue: { type: Function, default: alwaysTrue },
     formatValue: { type: Function, default: identity },

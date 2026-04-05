@@ -74,6 +74,9 @@
         :saved-charts-loading="savedChartsLoading"
         :saved-charts-error="savedChartsError"
         :analysis-rows="analysisRows"
+        :analysis-rows-ready="analysisRowsReady"
+        :analysis-rows-loading="analysisRowsLoading"
+        :analysis-rows-error="analysisRowsError"
         :schema-updating-column-id="schemaUpdatingColumnId"
         :get-series-color="getSeriesColor"
         :read-only="isReadOnly"
@@ -84,9 +87,10 @@
         @cell-edit="handleCellEdit"
         @refresh-data="refreshData"
         @export-csv="exportTableCsv"
+        @load-analysis-rows="handleLoadAnalysisRows"
         @set-chart-height="setChartViewportHeight"
         @update-chart-definition="handleChartDefinitionUpdate"
-        @build-chart="buildChart"
+        @build-chart="handleBuildChart"
         @save-chart="saveCurrentChart"
         @clear-chart="clearChart"
         @set-series-color="handleSetSeriesColor"
@@ -187,11 +191,16 @@ export default {
       projectError,
       tableRows,
       analysisRows,
+      analysisRowsReady,
+      analysisRowsLoading,
+      analysisRowsError,
       suggestions,
       statisticsSummary,
       statisticsLoading,
       statisticsError,
       loadProject,
+      loadAnalysisRows,
+      ensureAnalysisRowsLoaded,
       loadSuggestions,
       loadStatisticsSummary,
       reloadProjectData,
@@ -288,7 +297,6 @@ export default {
       projectId,
       schemaColumns,
       analysisRows,
-      tableRows,
     })
 
     const nullAwareFormatter = (cell) => {
@@ -507,10 +515,32 @@ export default {
       })
     }
 
-    const reloadAllProjectData = async ({ rebuildSchema = true } = {}) => {
+    const loadAnalysisRowsForUi = async ({ force = false, notifyOnError = false } = {}) => {
+      const loader = force ? loadAnalysisRows : ensureAnalysisRowsLoaded
+      const rows = await loader({
+        columns: sortedDatasetColumns.value,
+        force,
+      })
+
+      if (!rows && notifyOnError && analysisRowsError.value) {
+        notify.error(analysisRowsError.value)
+      }
+
+      return rows
+    }
+
+    const ensureAnalysisRowsForChart = async (definition = chartDefinition.value) => {
+      const rows = await loadAnalysisRowsForUi({ notifyOnError: true })
+      if (!rows) return false
+      scheduleBuildChart(definition)
+      return true
+    }
+
+    const reloadAllProjectData = async ({ rebuildSchema = true, includeAnalysisRows = false } = {}) => {
       await reloadProjectData({
         rebuildSchema,
         columns: sortedDatasetColumns.value,
+        includeAnalysisRows,
       })
     }
 
@@ -533,7 +563,6 @@ export default {
     }
 
     const applySuggestedChartDefinition = () => {
-      if (chartDatasets.value.length) return
       const suggested = suggestions.value[0]?.definition
       if (!suggested) {
         clearChart()
@@ -542,7 +571,11 @@ export default {
       chartDefinition.value = normalizeChartDefinition(
         mergeChartDefinition(createDefaultChartDefinition(suggested.chartType || 'line'), suggested)
       )
-      scheduleBuildChart(chartDefinition.value)
+      if (analysisRowsReady.value) {
+        scheduleBuildChart(chartDefinition.value)
+      } else {
+        clearChart()
+      }
     }
 
     const handleProjectWithDataset = async (loadedProject) => {
@@ -566,10 +599,29 @@ export default {
     }
 
     const refreshData = async () => {
+      const includeAnalysisRows = analysisRowsReady.value
       await refreshProjectData({
         columns: sortedDatasetColumns.value,
-        onAfterRefresh: () => scheduleBuildChart(chartDefinition.value),
+        includeAnalysisRows,
+        onAfterRefresh: () => {
+          if (includeAnalysisRows) {
+            scheduleBuildChart(chartDefinition.value)
+          }
+        },
       })
+    }
+
+    const handleLoadAnalysisRows = async () => {
+      const rows = await loadAnalysisRowsForUi({
+        force: analysisRowsReady.value,
+        notifyOnError: true,
+      })
+      if (!rows) return
+      scheduleBuildChart(chartDefinition.value)
+    }
+
+    const handleBuildChart = async (definition = chartDefinition.value) => {
+      await ensureAnalysisRowsForChart(definition)
     }
 
     const handleFileSelect = (e) => {
@@ -655,7 +707,9 @@ export default {
 
     const refreshDerivedData = async () => {
       await Promise.all([loadSuggestions(), loadStatisticsSummary()])
-      scheduleBuildChart(chartDefinition.value)
+      if (analysisRowsReady.value) {
+        scheduleBuildChart(chartDefinition.value)
+      }
     }
 
     const handleSemanticTypeChange = async ({ columnId, semanticType, analyticalRole, isExcludedFromAnalysis }) => {
@@ -826,10 +880,20 @@ export default {
     })
 
     watch(() => viewMode.value, (mode) => {
-      if (isReadOnly.value) return
-      if (mode !== 'library') return
       if (!project.value?.dataset) return
-      loadSavedCharts()
+
+      if (!isReadOnly.value && mode === 'library') {
+        loadSavedCharts()
+      }
+
+      if (mode !== 'visualization' && mode !== 'statistics') return
+
+      loadAnalysisRowsForUi({ notifyOnError: false }).then((rows) => {
+        if (!rows) return
+        if (mode === 'visualization') {
+          scheduleBuildChart(chartDefinition.value)
+        }
+      })
     })
 
     watch(
@@ -858,7 +922,7 @@ export default {
       validationProblemColumnCount, validationProblemColumns,
       getSeriesColor, setSeriesColor, resetSeriesColors,
       viewMode, setViewMode, isCompactWorkspace, visiblePanelIds,
-      tableRows, tableColumns, analysisRows, schemaColumns, schemaUpdatingColumnId,
+      tableRows, tableColumns, analysisRows, analysisRowsReady, analysisRowsLoading, analysisRowsError, schemaColumns, schemaUpdatingColumnId,
       suggestions, statisticsSummary, statisticsLoading, statisticsError,
       savedCharts, savedChartsLoading, savedChartsError,
       chartType, chartDefinition,
@@ -866,11 +930,11 @@ export default {
       chartLabels, chartDatasets, chartMeta, workspaceHeight, workspacePanelConfig, resizeDirs, panelStyle,
       setWorkspaceCanvasRef, setChartViewportElementRef,
       handleBringToFront, handleStartDrag, handleStartResize, handleChartDefinitionUpdate, handleSetSeriesColor,
-      handleFileSelect, handleImport,
+      handleFileSelect, handleImport, handleLoadAnalysisRows, handleBuildChart,
       addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
       handleSemanticTypeChange, handleOrdinalOrderChange,
       loadSavedCharts, saveCurrentChart, renameSavedChart, downloadSavedChart, deleteSavedChart,
-      buildChart, clearChart, refreshData, exportTableCsv,
+      clearChart, refreshData, exportTableCsv,
     }
   },
 }

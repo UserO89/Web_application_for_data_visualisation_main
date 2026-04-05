@@ -15,6 +15,8 @@ export const useProjectDataLoader = ({
   const tableRows = ref([])
   const tableRowsError = ref('')
   const analysisRows = ref([])
+  const analysisRowsReady = ref(false)
+  const analysisRowsLoading = ref(false)
   const analysisRowsError = ref('')
   const suggestions = ref([])
   const suggestionsError = ref('')
@@ -25,6 +27,22 @@ export const useProjectDataLoader = ({
 
   const resolvedProjectId = () => resolveProjectId(projectId)
   const resolvedApiClient = () => resolveRefValue(apiClient) || projectsApi
+  let analysisRowsPromise = null
+  const unwrapRowsResponsePayload = (response) => {
+    if (Array.isArray(response)) return response
+
+    if (response && typeof response === 'object') {
+      if ('last_page' in response || 'current_page' in response) {
+        return response
+      }
+
+      if ('data' in response) {
+        return response.data
+      }
+    }
+
+    return response
+  }
   const yieldToMainThread = () =>
     new Promise((resolve) => {
       if (typeof requestAnimationFrame === 'function') {
@@ -55,7 +73,7 @@ export const useProjectDataLoader = ({
 
     if (!allPages) {
       const response = await api.getRows(id)
-      const payload = response.data ?? response
+      const payload = unwrapRowsResponsePayload(response)
       return unpackRowsPayload(payload).rows
     }
 
@@ -63,7 +81,7 @@ export const useProjectDataLoader = ({
     let page = 1
     while (true) {
       const response = await api.getRows(id, page, perPage)
-      const payload = response.data ?? response
+      const payload = unwrapRowsResponsePayload(response)
       const { rows, lastPage, isPaginated } = unpackRowsPayload(payload)
       collected.push(...rows)
       if (!isPaginated || !lastPage || page >= lastPage) break
@@ -86,15 +104,47 @@ export const useProjectDataLoader = ({
     }
   }
 
-  const loadAnalysisRows = async ({ columns = [], perPage = 500 } = {}) => {
-    analysisRowsError.value = ''
-    try {
-      const rows = await fetchProjectRows({ allPages: true, perPage })
-      analysisRows.value = await mapRowsInBatches(rows, columns)
-    } catch (e) {
-      analysisRows.value = []
-      analysisRowsError.value = extractApiErrorMessage(e, 'Failed to load analysis rows.')
+  const loadAnalysisRows = async ({ columns = [], perPage = 500, force = false } = {}) => {
+    if (!force && analysisRowsReady.value) {
+      return analysisRows.value
     }
+
+    if (!force && analysisRowsPromise) {
+      return analysisRowsPromise
+    }
+
+    const requestPromise = (async () => {
+      analysisRowsLoading.value = true
+      analysisRowsError.value = ''
+
+      try {
+        const rows = await fetchProjectRows({ allPages: true, perPage })
+        analysisRows.value = await mapRowsInBatches(rows, columns)
+        analysisRowsReady.value = true
+        return analysisRows.value
+      } catch (e) {
+        analysisRows.value = []
+        analysisRowsReady.value = false
+        analysisRowsError.value = extractApiErrorMessage(e, 'Failed to load analysis rows.')
+        return null
+      } finally {
+        analysisRowsLoading.value = false
+        if (analysisRowsPromise === requestPromise) {
+          analysisRowsPromise = null
+        }
+      }
+    })()
+
+    analysisRowsPromise = requestPromise
+    return requestPromise
+  }
+
+  const ensureAnalysisRowsLoaded = async ({ columns = [], perPage = 500 } = {}) => {
+    if (analysisRowsReady.value) {
+      return analysisRows.value
+    }
+
+    return loadAnalysisRows({ columns, perPage })
   }
 
   const loadSemanticSchema = async (rebuild = false) => {
@@ -153,18 +203,38 @@ export const useProjectDataLoader = ({
     }
   }
 
-  const reloadProjectData = async ({ rebuildSchema = true, columns = [], onRowsLoaded } = {}) => {
-    await Promise.all([
+  const reloadProjectData = async ({
+    rebuildSchema = true,
+    columns = [],
+    onRowsLoaded,
+    includeAnalysisRows = false,
+  } = {}) => {
+    const tasks = [
       loadRows({ columns, onRowsLoaded }),
-      loadAnalysisRows({ columns }),
       loadSemanticSchema(rebuildSchema),
       loadSuggestions(),
       loadStatisticsSummary(),
-    ])
+    ]
+
+    if (includeAnalysisRows) {
+      tasks.push(loadAnalysisRows({ columns, force: true }))
+    }
+
+    await Promise.all(tasks)
   }
 
-  const refreshData = async ({ columns = [], onRowsLoaded, onAfterRefresh } = {}) => {
-    await reloadProjectData({ rebuildSchema: true, columns, onRowsLoaded })
+  const refreshData = async ({
+    columns = [],
+    onRowsLoaded,
+    onAfterRefresh,
+    includeAnalysisRows = false,
+  } = {}) => {
+    await reloadProjectData({
+      rebuildSchema: true,
+      columns,
+      onRowsLoaded,
+      includeAnalysisRows,
+    })
     if (typeof onAfterRefresh === 'function') {
       onAfterRefresh()
     }
@@ -208,6 +278,9 @@ export const useProjectDataLoader = ({
     }
     tableRows.value = []
     analysisRows.value = []
+    analysisRowsReady.value = false
+    analysisRowsLoading.value = false
+    analysisRowsPromise = null
     suggestions.value = []
     statisticsSummary.value = []
     projectError.value = ''
@@ -225,6 +298,8 @@ export const useProjectDataLoader = ({
     tableRows,
     tableRowsError,
     analysisRows,
+    analysisRowsReady,
+    analysisRowsLoading,
     analysisRowsError,
     suggestions,
     suggestionsError,
@@ -235,6 +310,7 @@ export const useProjectDataLoader = ({
     loadProject,
     loadRows,
     loadAnalysisRows,
+    ensureAnalysisRowsLoaded,
     loadSemanticSchema,
     loadStatisticsSummary,
     loadSuggestions,
