@@ -193,6 +193,15 @@
       "updated": "Nickname updated successfully.",
       "updateFailed": "Failed to update nickname."
     },
+    "language": {
+      "title": "Language preference",
+      "description": "Save your interface language to use the same locale on every device.",
+      "save": "Save language",
+      "saving": "Saving...",
+      "required": "Language is required.",
+      "updated": "Language preference updated successfully.",
+      "updateFailed": "Failed to save language preference."
+    },
     "password": {
       "title": "Change password",
       "currentPassword": "Current password",

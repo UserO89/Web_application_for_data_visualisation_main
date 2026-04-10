@@ -6,7 +6,7 @@ export const LOCALE_STORAGE_KEY = 'dataviz.locale'
 
 export const SUPPORTED_LOCALES = [
   { code: 'en', label: 'English', nativeLabel: 'English', htmlLang: 'en', dir: 'ltr' },
-  { code: 'sk', label: 'Slovak', nativeLabel: 'Slovencina', htmlLang: 'sk', dir: 'ltr' },
+  { code: 'sk', label: 'Slovak', nativeLabel: 'Slovenčina', htmlLang: 'sk', dir: 'ltr' },
   { code: 'ru', label: 'Russian', nativeLabel: 'Русский', htmlLang: 'ru', dir: 'ltr' },
   { code: 'uk', label: 'Ukrainian', nativeLabel: 'Українська', htmlLang: 'uk', dir: 'ltr' },
 ]

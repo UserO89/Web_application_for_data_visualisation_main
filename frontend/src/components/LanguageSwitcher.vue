@@ -28,6 +28,7 @@
           :data-locale="locale.code"
           role="menuitemradio"
           :aria-checked="(locale.code === currentLocale).toString()"
+          :disabled="savingLocale"
           @click="selectLocale(locale.code)"
         >
           <span class="language-option-name">{{ locale.nativeLabel }}</span>
@@ -44,7 +45,11 @@
 
 <script>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useLocale } from '../composables/useLocale'
+import { useNotifications } from '../composables/useNotifications'
+import { useAuthStore } from '../stores/auth'
+import { extractApiErrorMessage } from '../utils/api/errors'
 
 export default {
   name: 'LanguageSwitcher',
@@ -59,14 +64,18 @@ export default {
     },
   },
   setup() {
+    const { t } = useI18n({ useScope: 'global' })
     const {
       currentLocale,
       languageLabel,
       supportedLocales,
       setLocale,
     } = useLocale()
+    const authStore = useAuthStore()
+    const notify = useNotifications()
     const menuOpen = ref(false)
     const root = ref(null)
+    const savingLocale = ref(false)
 
     const closeMenu = () => {
       menuOpen.value = false
@@ -76,9 +85,30 @@ export default {
       menuOpen.value = !menuOpen.value
     }
 
-    const selectLocale = (localeCode) => {
+    const selectLocale = async (localeCode) => {
+      if (localeCode === currentLocale.value || savingLocale.value) {
+        closeMenu()
+        return
+      }
+
+      const previousLocale = currentLocale.value
       setLocale(localeCode)
       closeMenu()
+
+      if (!authStore.isAuthenticated) {
+        return
+      }
+
+      savingLocale.value = true
+
+      try {
+        await authStore.updatePreferredLocale(localeCode)
+      } catch (error) {
+        setLocale(previousLocale)
+        notify.error(extractApiErrorMessage(error, t('profile.language.updateFailed')))
+      } finally {
+        savingLocale.value = false
+      }
     }
 
     const isInside = (event, element) => {
@@ -118,6 +148,7 @@ export default {
       supportedLocales,
       menuOpen,
       root,
+      savingLocale,
       toggleMenu,
       selectLocale,
     }
@@ -210,6 +241,12 @@ export default {
 .language-option:hover {
   background: #2a2a2a;
   transform: translateX(2px);
+}
+
+.language-option:disabled {
+  opacity: 0.7;
+  cursor: wait;
+  transform: none;
 }
 
 .language-option.active {

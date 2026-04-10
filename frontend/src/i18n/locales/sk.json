@@ -193,6 +193,15 @@
       "updated": "Prezivka bola uspesne aktualizovana.",
       "updateFailed": "Prezivku sa nepodarilo aktualizovat."
     },
+    "language": {
+      "title": "Jazyk rozhrania",
+      "description": "Ulozte si jazyk rozhrania, aby sa rovnake nastavenie pouzilo na kazdom zariadeni.",
+      "save": "Ulozit jazyk",
+      "saving": "Uklada sa...",
+      "required": "Jazyk je povinny.",
+      "updated": "Nastavenie jazyka bolo uspesne aktualizovane.",
+      "updateFailed": "Nastavenie jazyka sa nepodarilo ulozit."
+    },
     "password": {
       "title": "Zmena hesla",
       "currentPassword": "Aktualne heslo",

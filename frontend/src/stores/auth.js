@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { authApi } from '../api/auth'
+import { setLocale } from '../i18n'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -13,11 +14,19 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
+    applyAuthenticatedUser(user) {
+      this.user = user
+
+      if (user?.locale) {
+        setLocale(user.locale)
+      }
+    },
+
     async register(data) {
       this.loading = true
       try {
         const response = await authApi.register(data)
-        this.user = response.user
+        this.applyAuthenticatedUser(response.user)
         return response
       } finally {
         this.loading = false
@@ -28,7 +37,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         const response = await authApi.login(data)
-        this.user = response.user
+        this.applyAuthenticatedUser(response.user)
         return response
       } finally {
         this.loading = false
@@ -48,7 +57,7 @@ export const useAuthStore = defineStore('auth', {
     async fetchUser() {
       try {
         const response = await authApi.me()
-        this.user = response.user
+        this.applyAuthenticatedUser(response.user)
       } catch (error) {
         this.user = null
         throw error
@@ -59,7 +68,18 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         const response = await authApi.updateProfile(data)
-        this.user = response.user
+        this.applyAuthenticatedUser(response.user)
+        return response
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async updatePreferredLocale(locale) {
+      this.loading = true
+      try {
+        const response = await authApi.updateProfile({ locale })
+        this.applyAuthenticatedUser(response.user)
         return response
       } finally {
         this.loading = false
@@ -89,7 +109,7 @@ export const useAuthStore = defineStore('auth', {
       this.loading = true
       try {
         const response = await authApi.uploadAvatar(file)
-        this.user = response.user
+        this.applyAuthenticatedUser(response.user)
         return response
       } finally {
         this.loading = false
