@@ -56,6 +56,8 @@
       </div>
 
       <div class="header-actions">
+        <LanguageSwitcher :show-label="false" compact />
+
         <button
           ref="compactNavButton"
           type="button"
@@ -182,9 +184,11 @@ import { useProjectsStore } from '../stores/projects'
 import { useNotifications } from '../composables/useNotifications'
 import { extractApiErrorMessage } from '../utils/api/errors'
 import { getInitials } from '../utils/display'
+import LanguageSwitcher from './LanguageSwitcher.vue'
 
 export default {
   name: 'AppHeader',
+  components: { LanguageSwitcher },
   setup() {
     const route = useRoute()
     const router = useRouter()

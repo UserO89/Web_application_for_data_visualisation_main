@@ -1,6 +1,10 @@
 <template>
   <div class="login-page">
     <div class="login-container panel">
+      <div class="login-topbar">
+        <LanguageSwitcher :show-label="false" compact />
+      </div>
+
       <div class="brand" style="margin-bottom: 24px;">
         <div class="logo">DV</div>
         <div>
@@ -61,9 +65,11 @@ import { useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useNotifications } from '../composables/useNotifications'
 import { extractApiErrorMessage } from '../utils/api/errors'
+import LanguageSwitcher from '../components/LanguageSwitcher.vue'
 
 export default {
   name: 'LoginPage',
+  components: { LanguageSwitcher },
   setup() {
     const router = useRouter()
     const authStore = useAuthStore()
@@ -120,6 +126,12 @@ export default {
 .login-container {
   width: 100%;
   max-width: 420px;
+}
+
+.login-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
 }
 
 .login-form {
