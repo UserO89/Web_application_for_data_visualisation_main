@@ -1,7 +1,7 @@
 <template>
   <div class="results-block">
     <div class="results-head">
-      <div class="stats-group-title">Numeric statistics</div>
+      <div class="stats-group-title">{{ $t('statistics.results.sections.numeric') }}</div>
       <button
         type="button"
         class="copy-icon-btn"
@@ -21,16 +21,16 @@
       </button>
     </div>
     <div v-if="!selectedNumericColumns.length" class="muted">
-      Select at least one numeric column and one numeric measure to see numeric statistics.
+      {{ $t('statistics.results.empty.numericSelection') }}
     </div>
     <div v-else-if="!selectedNumericMetricKeys.length" class="muted">
-      Select at least one numeric measure to see numeric statistics.
+      {{ $t('statistics.results.empty.numericMeasures') }}
     </div>
     <div v-else class="table-wrap">
       <table class="data-table stats-table">
         <thead>
           <tr>
-            <th>Measure</th>
+            <th>{{ $t('statistics.results.tables.measure') }}</th>
             <th v-for="column in numericMatrix.columns" :key="`numeric-head-${column.id}`">{{ column.name }}</th>
           </tr>
         </thead>
@@ -46,7 +46,7 @@
 
   <div class="results-block">
     <div class="results-head">
-      <div class="stats-group-title">Category summaries</div>
+      <div class="stats-group-title">{{ $t('statistics.results.sections.category') }}</div>
       <button
         type="button"
         class="copy-icon-btn"
@@ -66,10 +66,10 @@
       </button>
     </div>
     <div v-if="!selectedCategoryColumns.length" class="muted">
-      Select at least one category column to see category summaries.
+      {{ $t('statistics.results.empty.categorySelection') }}
     </div>
     <div v-else-if="!selectedCategoryMetricKeys.length" class="muted">
-      Select at least one category measure to see category summaries.
+      {{ $t('statistics.results.empty.categoryMeasures') }}
     </div>
     <div v-else class="summary-grid">
       <article v-for="summary in categorySummaries" :key="`category-summary-${summary.columnId}`" class="summary-card">
@@ -97,24 +97,24 @@
           </button>
         </div>
         <div v-if="hasValue(summary.distinctCount)" class="summary-line">
-          Distinct categories: <strong>{{ formatValue(summary.distinctCount) }}</strong>
+          {{ $t('statistics.results.tables.distinctCategories') }}: <strong>{{ formatValue(summary.distinctCount) }}</strong>
         </div>
         <div v-if="hasValue(summary.mode)" class="summary-line">
-          Most frequent value: <strong>{{ formatValue(summary.mode) }}</strong>
+          {{ $t('statistics.results.tables.mostFrequentValue') }}: <strong>{{ formatValue(summary.mode) }}</strong>
         </div>
         <div v-if="hasValue(summary.count)" class="summary-line">
-          Count: <strong>{{ formatValue(summary.count) }}</strong>
+          {{ $t('statistics.results.tables.count') }}: <strong>{{ formatValue(summary.count) }}</strong>
         </div>
 
         <div v-if="summary.showFrequency" class="summary-frequency">
-          <div class="summary-subtitle">Top values</div>
+          <div class="summary-subtitle">{{ $t('statistics.results.tables.topValues') }}</div>
           <div v-if="summary.frequencyRows.length" class="table-wrap compact-wrap">
             <table class="data-table compact-table">
               <thead>
                 <tr>
-                  <th>Value</th>
-                  <th>Count</th>
-                  <th>Percent</th>
+                  <th>{{ $t('statistics.results.tables.value') }}</th>
+                  <th>{{ $t('statistics.results.tables.count') }}</th>
+                  <th>{{ $t('statistics.results.tables.percent') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -126,7 +126,7 @@
               </tbody>
             </table>
           </div>
-          <div v-else class="muted">No distribution data available.</div>
+          <div v-else class="muted">{{ $t('statistics.results.empty.noDistribution') }}</div>
         </div>
       </article>
     </div>
@@ -134,7 +134,7 @@
 
   <div class="results-block">
     <div class="results-head">
-      <div class="stats-group-title">Date summaries</div>
+      <div class="stats-group-title">{{ $t('statistics.results.sections.date') }}</div>
       <button
         type="button"
         class="copy-icon-btn"
@@ -154,10 +154,10 @@
       </button>
     </div>
     <div v-if="!selectedDateColumns.length" class="muted">
-      Select at least one date column to see date summaries.
+      {{ $t('statistics.results.empty.dateSelection') }}
     </div>
     <div v-else-if="!selectedDateMetricKeys.length" class="muted">
-      Select at least one date measure to see date summaries.
+      {{ $t('statistics.results.empty.dateMeasures') }}
     </div>
     <div v-else class="summary-grid">
       <article v-for="summary in dateSummaries" :key="`date-summary-${summary.columnId}`" class="summary-card">
@@ -185,16 +185,16 @@
           </button>
         </div>
         <div v-if="hasValue(summary.earliest)" class="summary-line">
-          Earliest: <strong>{{ formatValue(summary.earliest) }}</strong>
+          {{ $t('statistics.results.tables.earliest') }}: <strong>{{ formatValue(summary.earliest) }}</strong>
         </div>
         <div v-if="hasValue(summary.latest)" class="summary-line">
-          Latest: <strong>{{ formatValue(summary.latest) }}</strong>
+          {{ $t('statistics.results.tables.latest') }}: <strong>{{ formatValue(summary.latest) }}</strong>
         </div>
         <div v-if="hasValue(summary.rangeSeconds)" class="summary-line">
-          Range: <strong>{{ formatRangeSeconds(summary.rangeSeconds) }}</strong>
+          {{ $t('statistics.results.tables.range') }}: <strong>{{ formatRangeSeconds(summary.rangeSeconds) }}</strong>
         </div>
         <div v-if="hasValue(summary.count)" class="summary-line">
-          Count: <strong>{{ formatValue(summary.count) }}</strong>
+          {{ $t('statistics.results.tables.count') }}: <strong>{{ formatValue(summary.count) }}</strong>
         </div>
       </article>
     </div>
@@ -202,7 +202,7 @@
 
   <div class="results-block">
     <div class="results-head">
-      <div class="stats-group-title">Ordered summaries</div>
+      <div class="stats-group-title">{{ $t('statistics.results.sections.ordered') }}</div>
       <button
         type="button"
         class="copy-icon-btn"
@@ -222,10 +222,10 @@
       </button>
     </div>
     <div v-if="!selectedOrderedColumns.length" class="muted">
-      Select at least one ordered column to see ordered summaries.
+      {{ $t('statistics.results.empty.orderedSelection') }}
     </div>
     <div v-else-if="!selectedOrderedMetricKeys.length" class="muted">
-      Select at least one ordered measure to see ordered summaries.
+      {{ $t('statistics.results.empty.orderedMeasures') }}
     </div>
     <div v-else class="summary-grid">
       <article v-for="summary in orderedSummaries" :key="`ordered-summary-${summary.columnId}`" class="summary-card">
@@ -253,25 +253,25 @@
           </button>
         </div>
         <div v-if="hasValue(summary.mode)" class="summary-line">
-          Mode: <strong>{{ formatValue(summary.mode) }}</strong>
+          {{ $t('statistics.results.tables.mode') }}: <strong>{{ formatValue(summary.mode) }}</strong>
         </div>
         <div v-if="hasValue(summary.medianRank)" class="summary-line">
-          Median rank: <strong>{{ formatValue(summary.medianRank) }}</strong>
+          {{ $t('statistics.results.tables.medianRank') }}: <strong>{{ formatValue(summary.medianRank) }}</strong>
           <span v-if="hasValue(summary.medianRankLabel)">({{ formatValue(summary.medianRankLabel) }})</span>
         </div>
         <div v-if="hasValue(summary.count)" class="summary-line">
-          Count: <strong>{{ formatValue(summary.count) }}</strong>
+          {{ $t('statistics.results.tables.count') }}: <strong>{{ formatValue(summary.count) }}</strong>
         </div>
 
         <div v-if="summary.showFrequency" class="summary-frequency">
-          <div class="summary-subtitle">Top values</div>
+          <div class="summary-subtitle">{{ $t('statistics.results.tables.topValues') }}</div>
           <div v-if="summary.frequencyRows.length" class="table-wrap compact-wrap">
             <table class="data-table compact-table">
               <thead>
                 <tr>
-                  <th>Value</th>
-                  <th>Count</th>
-                  <th>Percent</th>
+                  <th>{{ $t('statistics.results.tables.value') }}</th>
+                  <th>{{ $t('statistics.results.tables.count') }}</th>
+                  <th>{{ $t('statistics.results.tables.percent') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -283,7 +283,7 @@
               </tbody>
             </table>
           </div>
-          <div v-else class="muted">No distribution data available.</div>
+          <div v-else class="muted">{{ $t('statistics.results.empty.noDistribution') }}</div>
         </div>
       </article>
     </div>
@@ -291,7 +291,7 @@
 
   <div class="results-block">
     <div class="results-head">
-      <div class="stats-group-title">Grouped statistics</div>
+      <div class="stats-group-title">{{ $t('statistics.results.sections.grouped') }}</div>
       <button
         type="button"
         class="copy-icon-btn"
@@ -311,27 +311,27 @@
       </button>
     </div>
     <div v-if="!groupByColumnId" class="muted">
-      Grouped statistics will appear after you choose a grouping column.
+      {{ $t('statistics.results.empty.groupedChooseColumn') }}
     </div>
     <div v-else-if="!selectedNumericColumns.length" class="muted">
-      Select at least one numeric column to see grouped statistics.
+      {{ $t('statistics.results.empty.groupedNumericSelection') }}
     </div>
     <div v-else-if="groupedSourceLoading" class="muted">
-      Loading full dataset for grouped statistics...
+      {{ $t('statistics.results.empty.groupedLoading') }}
     </div>
     <div v-else-if="!groupedSourceReady" class="muted">
-      Load the full dataset to enable grouped statistics.
+      {{ $t('statistics.results.empty.groupedRequiresRows') }}
     </div>
     <div v-else-if="!groupedSummaryRows.length" class="muted">
-      No grouped statistics available for the current selection.
+      {{ $t('statistics.results.empty.groupedUnavailable') }}
     </div>
     <div v-else class="table-wrap">
-      <div class="summary-subtitle">Grouped by {{ groupByColumnName }}</div>
+      <div class="summary-subtitle">{{ $t('statistics.results.groupedBy', { name: groupByColumnName }) }}</div>
       <table class="data-table stats-table">
         <thead>
           <tr>
-            <th>Variable</th>
-            <th>Group</th>
+            <th>{{ $t('statistics.results.tables.variable') }}</th>
+            <th>{{ $t('statistics.results.tables.group') }}</th>
             <th v-for="metric in groupedMetricKeys" :key="`grouped-head-${metric}`">{{ metricLabel(metric) }}</th>
           </tr>
         </thead>
@@ -435,15 +435,16 @@ export default {
       return `${group}-column-${columnId}`
     },
     isCopied(blockKey) {
-      return this.copyStatus[blockKey] === 'Copied'
+      return this.copyStatus[blockKey] === 'copied'
     },
     isCopyFailed(blockKey) {
-      return this.copyStatus[blockKey] === 'Copy failed'
+      return this.copyStatus[blockKey] === 'failed'
     },
     copyButtonLabel(blockKey) {
-      if (this.isCopied(blockKey)) return 'Copied'
-      if (this.isCopyFailed(blockKey)) return 'Copy failed'
-      return 'Copy table'
+      if (this.isCopied(blockKey)) return this.$t('statistics.results.copy.copied')
+      if (this.isCopyFailed(blockKey)) return this.$t('statistics.results.copy.failed')
+      if (this.copyStatus[blockKey] === 'empty') return this.$t('statistics.results.copy.noData')
+      return this.$t('statistics.results.copy.default')
     },
     canCopyCategorySummary(summary) {
       return Boolean(summary && this.buildCategorySummaryCopyText(summary))
@@ -457,23 +458,23 @@ export default {
     async copyBlock(blockKey) {
       const text = this.buildCopyText(blockKey)
       if (!text) {
-        this.setCopyStatus(blockKey, 'No data to copy')
+        this.setCopyStatus(blockKey, 'empty')
         return
       }
 
       const copied = await this.writeToClipboard(text)
-      this.setCopyStatus(blockKey, copied ? 'Copied' : 'Copy failed')
+      this.setCopyStatus(blockKey, copied ? 'copied' : 'failed')
     },
     async copySummary(group, summary) {
       const copyKey = this.summaryCopyKey(group, summary?.columnId)
       const text = this.buildSummaryCopyText(group, summary)
       if (!text) {
-        this.setCopyStatus(copyKey, 'No data to copy')
+        this.setCopyStatus(copyKey, 'empty')
         return
       }
 
       const copied = await this.writeToClipboard(text)
-      this.setCopyStatus(copyKey, copied ? 'Copied' : 'Copy failed')
+      this.setCopyStatus(copyKey, copied ? 'copied' : 'failed')
     },
     setCopyStatus(blockKey, message) {
       if (this.copyStatusTimers[blockKey]) {
@@ -541,7 +542,7 @@ export default {
     },
     buildNumericCopyText() {
       if (!this.canCopyNumeric) return ''
-      const headers = ['Measure', ...this.numericMatrix.columns.map((column) => column.name)]
+      const headers = [this.$t('statistics.results.tables.measure'), ...this.numericMatrix.columns.map((column) => column.name)]
       const rows = this.numericMatrix.rows.map((row) => [
         this.metricLabel(row.key),
         ...row.values.map((cell) => this.formatValue(cell.value)),
@@ -556,10 +557,10 @@ export default {
       const includeCount = this.selectedCategoryMetricKeys.includes('count')
       const includeFrequency = this.selectedCategoryMetricKeys.includes('frequency')
 
-      const headers = ['Column']
-      if (includeDistinctCount) headers.push('Distinct categories')
-      if (includeMode) headers.push('Most frequent value')
-      if (includeCount) headers.push('Count')
+      const headers = [this.$t('statistics.results.tables.column')]
+      if (includeDistinctCount) headers.push(this.$t('statistics.results.tables.distinctCategories'))
+      if (includeMode) headers.push(this.$t('statistics.results.tables.mostFrequentValue'))
+      if (includeCount) headers.push(this.$t('statistics.results.tables.count'))
 
       const rows = this.categorySummaries.map((summary) => {
         const row = [summary.columnName]
@@ -572,10 +573,14 @@ export default {
       const sections = [this.tableToText(headers, rows)]
       if (includeFrequency) {
         this.categorySummaries.forEach((summary) => {
-          sections.push(`Top values: ${this.cleanCell(summary.columnName)}`)
+          sections.push(this.$t('statistics.results.tables.topValuesFor', { column: this.cleanCell(summary.columnName) }))
           if (!summary.frequencyRows.length) {
-            sections.push('Value\tCount\tPercent')
-            sections.push('No distribution data available.\t-\t-')
+            sections.push([
+              this.$t('statistics.results.tables.value'),
+              this.$t('statistics.results.tables.count'),
+              this.$t('statistics.results.tables.percent'),
+            ].join('\t'))
+            sections.push(`${this.$t('statistics.results.empty.noDistribution')}\t-\t-`)
             return
           }
           const frequencyRows = summary.frequencyRows.map((row) => [
@@ -583,7 +588,11 @@ export default {
             this.formatValue(row.count),
             this.hasValue(row.percent) ? this.formatPercent(row.percent) : '-',
           ])
-          sections.push(this.tableToText(['Value', 'Count', 'Percent'], frequencyRows))
+          sections.push(this.tableToText([
+            this.$t('statistics.results.tables.value'),
+            this.$t('statistics.results.tables.count'),
+            this.$t('statistics.results.tables.percent'),
+          ], frequencyRows))
         })
       }
       return sections.join('\n\n')
@@ -596,18 +605,21 @@ export default {
       const includeCount = this.selectedCategoryMetricKeys.includes('count')
       const includeFrequency = this.selectedCategoryMetricKeys.includes('frequency')
 
-      const metricRows = [['Column', summary.columnName]]
+      const metricRows = [[this.$t('statistics.results.tables.column'), summary.columnName]]
       if (includeDistinctCount && this.hasValue(summary.distinctCount)) {
-        metricRows.push(['Distinct categories', this.formatValue(summary.distinctCount)])
+        metricRows.push([this.$t('statistics.results.tables.distinctCategories'), this.formatValue(summary.distinctCount)])
       }
       if (includeMode && this.hasValue(summary.mode)) {
-        metricRows.push(['Most frequent value', this.formatValue(summary.mode)])
+        metricRows.push([this.$t('statistics.results.tables.mostFrequentValue'), this.formatValue(summary.mode)])
       }
       if (includeCount && this.hasValue(summary.count)) {
-        metricRows.push(['Count', this.formatValue(summary.count)])
+        metricRows.push([this.$t('statistics.results.tables.count'), this.formatValue(summary.count)])
       }
 
-      const sections = [this.tableToText(['Field', 'Value'], metricRows)]
+      const sections = [this.tableToText([
+        this.$t('statistics.results.tables.field'),
+        this.$t('statistics.results.tables.value'),
+      ], metricRows)]
       if (includeFrequency) {
         sections.push(this.buildFrequencySectionText(summary))
       }
@@ -621,11 +633,11 @@ export default {
       const includeRange = this.selectedDateMetricKeys.includes('range_seconds')
       const includeCount = this.selectedDateMetricKeys.includes('count')
 
-      const headers = ['Column']
-      if (includeEarliest) headers.push('Earliest')
-      if (includeLatest) headers.push('Latest')
-      if (includeRange) headers.push('Range')
-      if (includeCount) headers.push('Count')
+      const headers = [this.$t('statistics.results.tables.column')]
+      if (includeEarliest) headers.push(this.$t('statistics.results.tables.earliest'))
+      if (includeLatest) headers.push(this.$t('statistics.results.tables.latest'))
+      if (includeRange) headers.push(this.$t('statistics.results.tables.range'))
+      if (includeCount) headers.push(this.$t('statistics.results.tables.count'))
 
       const rows = this.dateSummaries.map((summary) => {
         const row = [summary.columnName]
@@ -648,21 +660,24 @@ export default {
       const includeRange = this.selectedDateMetricKeys.includes('range_seconds')
       const includeCount = this.selectedDateMetricKeys.includes('count')
 
-      const metricRows = [['Column', summary.columnName]]
+      const metricRows = [[this.$t('statistics.results.tables.column'), summary.columnName]]
       if (includeEarliest && this.hasValue(summary.earliest)) {
-        metricRows.push(['Earliest', this.formatValue(summary.earliest)])
+        metricRows.push([this.$t('statistics.results.tables.earliest'), this.formatValue(summary.earliest)])
       }
       if (includeLatest && this.hasValue(summary.latest)) {
-        metricRows.push(['Latest', this.formatValue(summary.latest)])
+        metricRows.push([this.$t('statistics.results.tables.latest'), this.formatValue(summary.latest)])
       }
       if (includeRange && this.hasValue(summary.rangeSeconds)) {
-        metricRows.push(['Range', this.formatRangeSeconds(summary.rangeSeconds)])
+        metricRows.push([this.$t('statistics.results.tables.range'), this.formatRangeSeconds(summary.rangeSeconds)])
       }
       if (includeCount && this.hasValue(summary.count)) {
-        metricRows.push(['Count', this.formatValue(summary.count)])
+        metricRows.push([this.$t('statistics.results.tables.count'), this.formatValue(summary.count)])
       }
 
-      return this.tableToText(['Field', 'Value'], metricRows)
+      return this.tableToText([
+        this.$t('statistics.results.tables.field'),
+        this.$t('statistics.results.tables.value'),
+      ], metricRows)
     },
     buildOrderedCopyText() {
       if (!this.canCopyOrdered) return ''
@@ -672,10 +687,10 @@ export default {
       const includeCount = this.selectedOrderedMetricKeys.includes('count')
       const includeFrequency = this.selectedOrderedMetricKeys.includes('frequency')
 
-      const headers = ['Column']
-      if (includeMode) headers.push('Mode')
-      if (includeMedianRank) headers.push('Median rank')
-      if (includeCount) headers.push('Count')
+      const headers = [this.$t('statistics.results.tables.column')]
+      if (includeMode) headers.push(this.$t('statistics.results.tables.mode'))
+      if (includeMedianRank) headers.push(this.$t('statistics.results.tables.medianRank'))
+      if (includeCount) headers.push(this.$t('statistics.results.tables.count'))
 
       const rows = this.orderedSummaries.map((summary) => {
         const row = [summary.columnName]
@@ -688,10 +703,14 @@ export default {
       const sections = [this.tableToText(headers, rows)]
       if (includeFrequency) {
         this.orderedSummaries.forEach((summary) => {
-          sections.push(`Top values: ${this.cleanCell(summary.columnName)}`)
+          sections.push(this.$t('statistics.results.tables.topValuesFor', { column: this.cleanCell(summary.columnName) }))
           if (!summary.frequencyRows.length) {
-            sections.push('Value\tCount\tPercent')
-            sections.push('No distribution data available.\t-\t-')
+            sections.push([
+              this.$t('statistics.results.tables.value'),
+              this.$t('statistics.results.tables.count'),
+              this.$t('statistics.results.tables.percent'),
+            ].join('\t'))
+            sections.push(`${this.$t('statistics.results.empty.noDistribution')}\t-\t-`)
             return
           }
           const frequencyRows = summary.frequencyRows.map((row) => [
@@ -699,7 +718,11 @@ export default {
             this.formatValue(row.count),
             this.hasValue(row.percent) ? this.formatPercent(row.percent) : '-',
           ])
-          sections.push(this.tableToText(['Value', 'Count', 'Percent'], frequencyRows))
+          sections.push(this.tableToText([
+            this.$t('statistics.results.tables.value'),
+            this.$t('statistics.results.tables.count'),
+            this.$t('statistics.results.tables.percent'),
+          ], frequencyRows))
         })
       }
       return sections.join('\n\n')
@@ -712,18 +735,21 @@ export default {
       const includeCount = this.selectedOrderedMetricKeys.includes('count')
       const includeFrequency = this.selectedOrderedMetricKeys.includes('frequency')
 
-      const metricRows = [['Column', summary.columnName]]
+      const metricRows = [[this.$t('statistics.results.tables.column'), summary.columnName]]
       if (includeMode && this.hasValue(summary.mode)) {
-        metricRows.push(['Mode', this.formatValue(summary.mode)])
+        metricRows.push([this.$t('statistics.results.tables.mode'), this.formatValue(summary.mode)])
       }
       if (includeMedianRank && this.hasValue(summary.medianRank)) {
-        metricRows.push(['Median rank', this.formatMedianRank(summary)])
+        metricRows.push([this.$t('statistics.results.tables.medianRank'), this.formatMedianRank(summary)])
       }
       if (includeCount && this.hasValue(summary.count)) {
-        metricRows.push(['Count', this.formatValue(summary.count)])
+        metricRows.push([this.$t('statistics.results.tables.count'), this.formatValue(summary.count)])
       }
 
-      const sections = [this.tableToText(['Field', 'Value'], metricRows)]
+      const sections = [this.tableToText([
+        this.$t('statistics.results.tables.field'),
+        this.$t('statistics.results.tables.value'),
+      ], metricRows)]
       if (includeFrequency) {
         sections.push(this.buildFrequencySectionText(summary))
       }
@@ -731,7 +757,11 @@ export default {
     },
     buildGroupedCopyText() {
       if (!this.canCopyGrouped) return ''
-      const headers = ['Variable', 'Group', ...this.groupedMetricKeys.map((metric) => this.metricLabel(metric))]
+      const headers = [
+        this.$t('statistics.results.tables.variable'),
+        this.$t('statistics.results.tables.group'),
+        ...this.groupedMetricKeys.map((metric) => this.metricLabel(metric)),
+      ]
       const rows = this.groupedSummaryRows.map((row) => [
         row.column,
         row.group,
@@ -750,7 +780,14 @@ export default {
     },
     buildFrequencySectionText(summary) {
       if (!summary?.frequencyRows?.length) {
-        return 'Value\tCount\tPercent\nNo distribution data available.\t-\t-'
+        return [
+          [
+            this.$t('statistics.results.tables.value'),
+            this.$t('statistics.results.tables.count'),
+            this.$t('statistics.results.tables.percent'),
+          ].join('\t'),
+          `${this.$t('statistics.results.empty.noDistribution')}\t-\t-`,
+        ].join('\n')
       }
 
       const frequencyRows = summary.frequencyRows.map((row) => [
@@ -758,7 +795,11 @@ export default {
         this.formatValue(row.count),
         this.hasValue(row.percent) ? this.formatPercent(row.percent) : '-',
       ])
-      return this.tableToText(['Value', 'Count', 'Percent'], frequencyRows)
+      return this.tableToText([
+        this.$t('statistics.results.tables.value'),
+        this.$t('statistics.results.tables.count'),
+        this.$t('statistics.results.tables.percent'),
+      ], frequencyRows)
     },
     tableToText(headers, rows) {
       const headRow = headers.map((cell) => this.cleanCell(cell)).join('\t')

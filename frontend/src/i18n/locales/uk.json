@@ -330,9 +330,68 @@
       "count": "Kilkist",
       "distinctCount": "Kilkist unikalnyh",
       "frequency": "Chastota",
+      "mode": "Moda",
       "earliest": "Nayrannya",
       "latest": "Naypiznisha",
       "medianRank": "Medianovyy rang"
+    },
+    "results": {
+      "sections": {
+        "numeric": "Chyslova statystyka",
+        "category": "Pidsumky kategoriy",
+        "date": "Pidsumky dat",
+        "ordered": "Pidsumky vporyadkovanyh znachen",
+        "grouped": "Hrupova statystyka"
+      },
+      "empty": {
+        "numericSelection": "Vyberit hotya b odyn chyslovyy stovpets i odnu metryku, schob pobachyty chyslovu statystyku.",
+        "numericMeasures": "Vyberit hotya b odnu chyslovu metryku, schob pobachyty chyslovu statystyku.",
+        "categorySelection": "Vyberit hotya b odyn kategorialnyy stovpets, schob pobachyty pidsumky kategoriy.",
+        "categoryMeasures": "Vyberit hotya b odnu kategorialnu metryku, schob pobachyty pidsumky kategoriy.",
+        "dateSelection": "Vyberit hotya b odyn stovpets z datoyu, schob pobachyty pidsumky dat.",
+        "dateMeasures": "Vyberit hotya b odnu metryku dat, schob pobachyty pidsumky dat.",
+        "orderedSelection": "Vyberit hotya b odyn vporyadkovanyy stovpets, schob pobachyty vidpovidni pidsumky.",
+        "orderedMeasures": "Vyberit hotya b odnu metryku vporyadkovanyh znachen, schob pobachyty vidpovidni pidsumky.",
+        "groupedChooseColumn": "Hrupova statystyka zyavytsya pislya vyboru stovptsya dlya hrupuvannya.",
+        "groupedNumericSelection": "Vyberit hotya b odyn chyslovyy stovpets, schob pobachyty hrupovu statystyku.",
+        "groupedLoading": "Zavantazhuyetsya povnyy nabor danyh dlya hrupovoyi statystyky...",
+        "groupedRequiresRows": "Zavantazhite povnyy nabor danyh, schob vklyuchyty hrupovu statystyku.",
+        "groupedUnavailable": "Dlya potochnoho vyboru hrupova statystyka nedostupna.",
+        "noDistribution": "Dani pro rozpodil nedostupni."
+      },
+      "tables": {
+        "measure": "Metryka",
+        "column": "Stovpets",
+        "field": "Pole",
+        "value": "Znachennya",
+        "variable": "Zminna",
+        "group": "Hrupa",
+        "distinctCategories": "Kilkist kategoriy",
+        "mostFrequentValue": "Naychastishe znachennya",
+        "count": "Kilkist",
+        "topValues": "Top znachen",
+        "topValuesFor": "Top znachen: {column}",
+        "earliest": "Nayrannya",
+        "latest": "Naypiznisha",
+        "range": "Diapazon",
+        "mode": "Moda",
+        "medianRank": "Medianovyy rang",
+        "percent": "Vidstok"
+      },
+      "groupedBy": "Zhrupovano za {name}",
+      "copy": {
+        "default": "Skopiyuvaty tablycyu",
+        "copied": "Skopiyovano",
+        "failed": "Ne vdalosya skopiyuvaty",
+        "noData": "Nemae danyh dlya kopiyuvannya"
+      }
+    },
+    "formatters": {
+      "rowsCount": "{count} ryadkiv",
+      "rangeSeconds": "{value} sek",
+      "rangeMinutes": "{value} hv",
+      "rangeHours": "{value} hod",
+      "rangeDays": "{value} dniv"
     }
   },
   "home": {

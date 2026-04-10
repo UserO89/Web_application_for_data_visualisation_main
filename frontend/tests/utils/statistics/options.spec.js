@@ -26,6 +26,7 @@ describe('statistics options', () => {
     expect(metricLabel('q1')).toBe('Q1')
     expect(metricLabel('q2')).toBe('Q2')
     expect(metricLabel('q3')).toBe('Q3')
+    expect(metricLabel('mode')).toBe('Mode')
     expect(metricLabel('std_dev')).toBe('Std deviation')
     expect(metricLabel('custom_metric')).toBe('custom_metric')
   })

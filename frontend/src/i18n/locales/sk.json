@@ -330,9 +330,68 @@
       "count": "Pocet",
       "distinctCount": "Pocet rozlicnych",
       "frequency": "Frekvencia",
+      "mode": "Modus",
       "earliest": "Najskor",
       "latest": "Najneskor",
       "medianRank": "Medianove poradie"
+    },
+    "results": {
+      "sections": {
+        "numeric": "Ciselna statistika",
+        "category": "Suhrny kategorii",
+        "date": "Suhrny datumov",
+        "ordered": "Suhrny usporiadanych hodnot",
+        "grouped": "Skupinova statistika"
+      },
+      "empty": {
+        "numericSelection": "Vyberte aspon jeden ciselny stlpec a jednu metriku, aby sa zobrazila ciselna statistika.",
+        "numericMeasures": "Vyberte aspon jednu ciselnu metriku, aby sa zobrazila ciselna statistika.",
+        "categorySelection": "Vyberte aspon jeden kategoricky stlpec, aby sa zobrazili suhrny kategorii.",
+        "categoryMeasures": "Vyberte aspon jednu kategoricku metriku, aby sa zobrazili suhrny kategorii.",
+        "dateSelection": "Vyberte aspon jeden datumovy stlpec, aby sa zobrazili suhrny datumov.",
+        "dateMeasures": "Vyberte aspon jednu datumovu metriku, aby sa zobrazili suhrny datumov.",
+        "orderedSelection": "Vyberte aspon jeden usporiadany stlpec, aby sa zobrazili suhrny usporiadanych hodnot.",
+        "orderedMeasures": "Vyberte aspon jednu metriku usporiadanych hodnot, aby sa zobrazili suhrny usporiadanych hodnot.",
+        "groupedChooseColumn": "Skupinova statistika sa zobrazi po vybere zoskupovacieho stlpca.",
+        "groupedNumericSelection": "Vyberte aspon jeden ciselny stlpec, aby sa zobrazila skupinova statistika.",
+        "groupedLoading": "Nacitava sa cely dataset pre skupinovu statistiku...",
+        "groupedRequiresRows": "Nacitajte cely dataset pre skupinovu statistiku.",
+        "groupedUnavailable": "Pre aktualny vyber nie je dostupna ziadna skupinova statistika.",
+        "noDistribution": "Udaje o rozdeleni nie su k dispozicii."
+      },
+      "tables": {
+        "measure": "Metrika",
+        "column": "Stlpec",
+        "field": "Pole",
+        "value": "Hodnota",
+        "variable": "Premenna",
+        "group": "Skupina",
+        "distinctCategories": "Pocet kategorii",
+        "mostFrequentValue": "Najcastejsia hodnota",
+        "count": "Pocet",
+        "topValues": "Najcastejsie hodnoty",
+        "topValuesFor": "Najcastejsie hodnoty: {column}",
+        "earliest": "Najskor",
+        "latest": "Najneskor",
+        "range": "Rozsah",
+        "mode": "Modus",
+        "medianRank": "Medianove poradie",
+        "percent": "Percento"
+      },
+      "groupedBy": "Zoskupene podla {name}",
+      "copy": {
+        "default": "Kopirovat tabulku",
+        "copied": "Skopirovane",
+        "failed": "Kopirovanie zlyhalo",
+        "noData": "Nie su k dispozicii ziadne data na kopirovanie"
+      }
+    },
+    "formatters": {
+      "rowsCount": "{count} riadkov",
+      "rangeSeconds": "{value} s",
+      "rangeMinutes": "{value} min",
+      "rangeHours": "{value} h",
+      "rangeDays": "{value} dni"
     }
   },
   "home": {

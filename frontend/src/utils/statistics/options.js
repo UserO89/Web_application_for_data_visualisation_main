@@ -14,6 +14,7 @@ const METRIC_LABEL_DEFINITIONS = {
   count: { key: 'statistics.metricLabels.count', fallback: 'Count' },
   distinct_count: { key: 'statistics.metricLabels.distinctCount', fallback: 'Distinct count' },
   frequency: { key: 'statistics.metricLabels.frequency', fallback: 'Frequency' },
+  mode: { key: 'statistics.metricLabels.mode', fallback: 'Mode' },
   earliest: { key: 'statistics.metricLabels.earliest', fallback: 'Earliest' },
   latest: { key: 'statistics.metricLabels.latest', fallback: 'Latest' },
   median_rank: { key: 'statistics.metricLabels.medianRank', fallback: 'Median rank' },

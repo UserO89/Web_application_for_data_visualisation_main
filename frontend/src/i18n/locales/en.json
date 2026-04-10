@@ -330,9 +330,68 @@
       "count": "Count",
       "distinctCount": "Distinct count",
       "frequency": "Frequency",
+      "mode": "Mode",
       "earliest": "Earliest",
       "latest": "Latest",
       "medianRank": "Median rank"
+    },
+    "results": {
+      "sections": {
+        "numeric": "Numeric statistics",
+        "category": "Category summaries",
+        "date": "Date summaries",
+        "ordered": "Ordered summaries",
+        "grouped": "Grouped statistics"
+      },
+      "empty": {
+        "numericSelection": "Select at least one numeric column and one numeric measure to see numeric statistics.",
+        "numericMeasures": "Select at least one numeric measure to see numeric statistics.",
+        "categorySelection": "Select at least one category column to see category summaries.",
+        "categoryMeasures": "Select at least one category measure to see category summaries.",
+        "dateSelection": "Select at least one date column to see date summaries.",
+        "dateMeasures": "Select at least one date measure to see date summaries.",
+        "orderedSelection": "Select at least one ordered column to see ordered summaries.",
+        "orderedMeasures": "Select at least one ordered measure to see ordered summaries.",
+        "groupedChooseColumn": "Grouped statistics will appear after you choose a grouping column.",
+        "groupedNumericSelection": "Select at least one numeric column to see grouped statistics.",
+        "groupedLoading": "Loading full dataset for grouped statistics...",
+        "groupedRequiresRows": "Load the full dataset to enable grouped statistics.",
+        "groupedUnavailable": "No grouped statistics available for the current selection.",
+        "noDistribution": "No distribution data available."
+      },
+      "tables": {
+        "measure": "Measure",
+        "column": "Column",
+        "field": "Field",
+        "value": "Value",
+        "variable": "Variable",
+        "group": "Group",
+        "distinctCategories": "Distinct categories",
+        "mostFrequentValue": "Most frequent value",
+        "count": "Count",
+        "topValues": "Top values",
+        "topValuesFor": "Top values: {column}",
+        "earliest": "Earliest",
+        "latest": "Latest",
+        "range": "Range",
+        "mode": "Mode",
+        "medianRank": "Median rank",
+        "percent": "Percent"
+      },
+      "groupedBy": "Grouped by {name}",
+      "copy": {
+        "default": "Copy table",
+        "copied": "Copied",
+        "failed": "Copy failed",
+        "noData": "No data to copy"
+      }
+    },
+    "formatters": {
+      "rowsCount": "{count} rows",
+      "rangeSeconds": "{value} sec",
+      "rangeMinutes": "{value} min",
+      "rangeHours": "{value} h",
+      "rangeDays": "{value} days"
     }
   },
   "home": {

@@ -1,5 +1,6 @@
 import { flushPromises, mount } from '@vue/test-utils'
 import { StatisticsResults } from '../../../../src/components/project/statistics/index.js'
+import { withI18n } from '../../../support/i18n'
 
 const buildRichProps = () => ({
   selectedNumericColumns: [{ id: 1, name: 'Revenue' }],
@@ -79,7 +80,7 @@ const buildRichProps = () => ({
 
 describe('StatisticsResults', () => {
   it('renders empty-state hints when required selections are missing', () => {
-    const wrapper = mount(StatisticsResults)
+    const wrapper = mount(StatisticsResults, withI18n())
 
     expect(wrapper.text()).toContain('Select at least one numeric column and one numeric measure')
     expect(wrapper.text()).toContain('Select at least one category column')
@@ -89,9 +90,9 @@ describe('StatisticsResults', () => {
   })
 
   it('builds copyable text blocks for numeric, category, date, ordered, and grouped sections', () => {
-    const wrapper = mount(StatisticsResults, {
+    const wrapper = mount(StatisticsResults, withI18n({
       props: buildRichProps(),
-    })
+    }))
 
     expect(wrapper.vm.buildNumericCopyText()).toBe(
       'Measure\tRevenue\nlabel:mean\tfmt:10\nlabel:count\tfmt:5'
@@ -124,9 +125,9 @@ describe('StatisticsResults', () => {
       value: { writeText },
     })
 
-    const wrapper = mount(StatisticsResults, {
+    const wrapper = mount(StatisticsResults, withI18n({
       props: buildRichProps(),
-    })
+    }))
 
     await wrapper.vm.copyBlock('numeric')
     await flushPromises()
@@ -134,7 +135,7 @@ describe('StatisticsResults', () => {
     expect(writeText).toHaveBeenCalledWith(
       'Measure\tRevenue\nlabel:mean\tfmt:10\nlabel:count\tfmt:5'
     )
-    expect(wrapper.vm.copyStatus.numeric).toBe('Copied')
+    expect(wrapper.vm.copyStatus.numeric).toBe('copied')
 
     vi.advanceTimersByTime(1800)
     expect(wrapper.vm.copyStatus.numeric).toBe('')
@@ -142,9 +143,9 @@ describe('StatisticsResults', () => {
   })
 
   it('falls back to document.execCommand for summary copy operations', async () => {
-    const wrapper = mount(StatisticsResults, {
+    const wrapper = mount(StatisticsResults, withI18n({
       props: buildRichProps(),
-    })
+    }))
 
     Object.defineProperty(navigator, 'clipboard', {
       configurable: true,
@@ -159,6 +160,6 @@ describe('StatisticsResults', () => {
     await wrapper.vm.copySummary('category', buildRichProps().categorySummaries[0])
 
     expect(execCommandSpy).toHaveBeenCalledWith('copy')
-    expect(wrapper.vm.copyStatus['category-column-2']).toBe('Copied')
+    expect(wrapper.vm.copyStatus['category-column-2']).toBe('copied')
   })
 })

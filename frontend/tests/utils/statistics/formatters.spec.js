@@ -5,8 +5,14 @@ import {
   formatRangeSeconds,
   formatConfidence,
 } from '../../../src/utils/statistics/formatters'
+import { beforeEach } from 'vitest'
+import { setLocale } from '../../../src/i18n'
 
 describe('statistics formatters', () => {
+  beforeEach(() => {
+    setLocale('en')
+  })
+
   describe('hasValue', () => {
     it('returns false for null and undefined, true for non-empty values', () => {
       expect(hasValue(null)).toBe(false)
@@ -20,9 +26,9 @@ describe('statistics formatters', () => {
   describe('formatValue', () => {
     it('formats null, integers, decimals, strings, arrays, and objects', () => {
       expect(formatValue(null)).toBe('-')
-      expect(formatValue(1000)).toBe((1000).toLocaleString())
+      expect(formatValue(1000)).toBe((1000).toLocaleString('en'))
       expect(formatValue(12.34567)).toBe(
-        (12.34567).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 4 })
+        (12.34567).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
       )
       expect(formatValue('North')).toBe('North')
       expect(formatValue([])).toBe('[]')
@@ -38,7 +44,7 @@ describe('statistics formatters', () => {
       expect(formatPercent(undefined)).toBe('-')
       expect(formatPercent(null)).toBe('0%')
       expect(formatPercent(12.345)).toBe(
-        `${(12.345).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
+        `${(12.345).toLocaleString('en', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}%`
       )
     })
   })
@@ -59,6 +65,13 @@ describe('statistics formatters', () => {
       expect(formatConfidence(0)).toBe('0%')
       expect(formatConfidence('0.5')).toBe('n/a')
       expect(formatConfidence(null)).toBe('n/a')
+    })
+
+    it('switches number and unit labels with the active locale', () => {
+      setLocale('sk')
+
+      expect(formatValue([{ id: 1 }, { id: 2 }])).toBe('2 riadkov')
+      expect(formatRangeSeconds(45)).toBe('45 s')
     })
   })
 })

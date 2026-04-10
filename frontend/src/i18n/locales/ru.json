@@ -330,9 +330,68 @@
       "count": "Kolichestvo",
       "distinctCount": "Kolichestvo unikalnyh",
       "frequency": "Chastota",
+      "mode": "Moda",
       "earliest": "Samoe rannee",
       "latest": "Samoe pozdnee",
       "medianRank": "Medianovyy rang"
+    },
+    "results": {
+      "sections": {
+        "numeric": "Chislovaya statistika",
+        "category": "Svodki kategoriy",
+        "date": "Svodki dat",
+        "ordered": "Svodki uporyadochennyh znacheniy",
+        "grouped": "Gruppovaya statistika"
+      },
+      "empty": {
+        "numericSelection": "Vyberite hotya by odin chislovoy stolbets i odnu metriku, chtoby uvidet chislovuyu statistiku.",
+        "numericMeasures": "Vyberite hotya by odnu chislovuyu metriku, chtoby uvidet chislovuyu statistiku.",
+        "categorySelection": "Vyberite hotya by odin kategoriynyy stolbets, chtoby uvidet svodki kategoriy.",
+        "categoryMeasures": "Vyberite hotya by odnu kategoriynuyu metriku, chtoby uvidet svodki kategoriy.",
+        "dateSelection": "Vyberite hotya by odin stolbets s datoy, chtoby uvidet svodki dat.",
+        "dateMeasures": "Vyberite hotya by odnu metriku dat, chtoby uvidet svodki dat.",
+        "orderedSelection": "Vyberite hotya by odin uporyadochennyy stolbets, chtoby uvidet sootvetstvuyuschie svodki.",
+        "orderedMeasures": "Vyberite hotya by odnu metriku uporyadochennyh znacheniy, chtoby uvidet sootvetstvuyuschie svodki.",
+        "groupedChooseColumn": "Gruppovaya statistika poyavitsya posle vybora stolbtsa dlya gruppirovki.",
+        "groupedNumericSelection": "Vyberite hotya by odin chislovoy stolbets, chtoby uvidet gruppovuyu statistiku.",
+        "groupedLoading": "Zagruzhaetsya polnyy nabor dannyh dlya gruppovoy statistiki...",
+        "groupedRequiresRows": "Zagruzite polnyy nabor dannyh, chtoby vklyuchit gruppovuyu statistiku.",
+        "groupedUnavailable": "Dlya tekuschego vybora net dostupnoy gruppovoy statistiki.",
+        "noDistribution": "Dannye o raspredelenii nedostupny."
+      },
+      "tables": {
+        "measure": "Metrika",
+        "column": "Stolbets",
+        "field": "Pole",
+        "value": "Znachenie",
+        "variable": "Peremennaya",
+        "group": "Gruppa",
+        "distinctCategories": "Kolichestvo kategoriy",
+        "mostFrequentValue": "Samoe chastoe znachenie",
+        "count": "Kolichestvo",
+        "topValues": "Top znacheniy",
+        "topValuesFor": "Top znacheniy: {column}",
+        "earliest": "Samoe rannee",
+        "latest": "Samoe pozdnee",
+        "range": "Razmah",
+        "mode": "Moda",
+        "medianRank": "Medianovyy rang",
+        "percent": "Protsent"
+      },
+      "groupedBy": "Sgruppirovano po {name}",
+      "copy": {
+        "default": "Skopirovat tablicu",
+        "copied": "Skopirovano",
+        "failed": "Ne udalos skopirovat",
+        "noData": "Net dannyh dlya kopirovaniya"
+      }
+    },
+    "formatters": {
+      "rowsCount": "{count} strok",
+      "rangeSeconds": "{value} sek",
+      "rangeMinutes": "{value} min",
+      "rangeHours": "{value} ch",
+      "rangeDays": "{value} dney"
     }
   },
   "home": {
