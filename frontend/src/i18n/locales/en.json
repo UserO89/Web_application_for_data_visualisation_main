@@ -177,6 +177,55 @@
       "emptyAction": "Create your first project"
     }
   },
+  "admin": {
+    "stats": {
+      "title": "Admin Panel",
+      "subtitle": "Statistics and user management",
+      "refresh": "Refresh",
+      "loading": "Loading statistics...",
+      "loadFailed": "Failed to load statistics.",
+      "cards": {
+        "usersTotal": "Users total",
+        "projectsTotal": "Projects total",
+        "datasetsTotal": "Datasets total",
+        "rowsTotal": "Rows total",
+        "newUsers7d": "New users (7d)",
+        "newProjects7d": "New projects (7d)",
+        "activeSessions24h": "Active sessions (24h)"
+      }
+    },
+    "users": {
+      "title": "Users",
+      "subtitle": "Select a user to manage projects. Until selection, project list stays hidden.",
+      "searchLabel": "Search users",
+      "searchPlaceholder": "Search by name or email",
+      "search": "Search",
+      "clear": "Clear",
+      "loading": "Loading users...",
+      "empty": "No users found.",
+      "loadFailed": "Failed to load users.",
+      "meta": "{email} - joined {date} - {count} projects",
+      "selected": "Selected",
+      "select": "Select",
+      "edit": "Edit user",
+      "delete": "Delete user",
+      "deleting": "Deleting...",
+      "roles": {
+        "admin": "Admin",
+        "user": "User"
+      }
+    },
+    "projects": {
+      "title": "Projects",
+      "managing": "Managing projects of {name}",
+      "selectUser": "Select a user to view available projects.",
+      "newProject": "+ New Project",
+      "hiddenUntilSelected": "Projects are hidden until you select a user above.",
+      "empty": "This user has no projects yet.",
+      "noDescription": "No description",
+      "deleting": "Deleting..."
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Open Dashboard",

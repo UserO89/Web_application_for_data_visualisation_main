@@ -177,6 +177,55 @@
       "emptyAction": "Sozdayte svoy pervyy proekt"
     }
   },
+  "admin": {
+    "stats": {
+      "title": "Panel administratora",
+      "subtitle": "Statistika i upravlenie polzovatelyami",
+      "refresh": "Obnovit",
+      "loading": "Zagruzka statistiki...",
+      "loadFailed": "Ne udalos zagruzit statistiku.",
+      "cards": {
+        "usersTotal": "Polzovateli vsego",
+        "projectsTotal": "Proekty vsego",
+        "datasetsTotal": "Nabory dannyh vsego",
+        "rowsTotal": "Stroki vsego",
+        "newUsers7d": "Novye polzovateli (7d)",
+        "newProjects7d": "Novye proekty (7d)",
+        "activeSessions24h": "Aktivnye sessii (24h)"
+      }
+    },
+    "users": {
+      "title": "Polzovateli",
+      "subtitle": "Vyberite polzovatelya dlya upravleniya proektami. Poka vybor ne sdelan, spisok proektov skryt.",
+      "searchLabel": "Poisk polzovateley",
+      "searchPlaceholder": "Iskat po imeni ili pochte",
+      "search": "Poisk",
+      "clear": "Ochistit",
+      "loading": "Zagruzka polzovateley...",
+      "empty": "Polzovateli ne naydeny.",
+      "loadFailed": "Ne udalos zagruzit polzovateley.",
+      "meta": "{email} - prisoyedinilsya {date} - {count} proektov",
+      "selected": "Vybran",
+      "select": "Vybrat",
+      "edit": "Redaktirovat polzovatelya",
+      "delete": "Udalit polzovatelya",
+      "deleting": "Udalenie...",
+      "roles": {
+        "admin": "Admin",
+        "user": "Polzovatel"
+      }
+    },
+    "projects": {
+      "title": "Proekty",
+      "managing": "Upravlenie proektami polzovatelya {name}",
+      "selectUser": "Vyberite polzovatelya, chtoby prosmotret dostupnye proekty.",
+      "newProject": "+ Novyy proekt",
+      "hiddenUntilSelected": "Proekty skryty, poka vy ne vyberete polzovatelya vyshe.",
+      "empty": "U etogo polzovatelya poka net proektov.",
+      "noDescription": "Bez opisaniya",
+      "deleting": "Udalenie..."
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Otkryt dashboard",

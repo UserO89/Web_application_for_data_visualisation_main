@@ -1,5 +1,6 @@
 import { mount } from '@vue/test-utils'
 import AdminUsersSection from '../../../src/components/admin/AdminUsersSection.vue'
+import { withI18n } from '../../support/i18n'
 
 const buildUsers = () => ([
   {
@@ -34,9 +35,9 @@ const buildProps = (overrides = {}) => ({
 
 describe('AdminUsersSection', () => {
   it('renders users and keeps current-user delete action disabled', () => {
-    const wrapper = mount(AdminUsersSection, {
+    const wrapper = mount(AdminUsersSection, withI18n({
       props: buildProps(),
-    })
+    }))
 
     expect(wrapper.text()).toContain('Users')
     expect(wrapper.text()).toContain('Alice Admin')
@@ -52,9 +53,9 @@ describe('AdminUsersSection', () => {
   })
 
   it('emits search, clear and row actions', async () => {
-    const wrapper = mount(AdminUsersSection, {
+    const wrapper = mount(AdminUsersSection, withI18n({
       props: buildProps({ search: 'alice', selectedUserId: null, currentUserId: null }),
-    })
+    }))
 
     await wrapper.find('.search-row').trigger('submit')
     expect(wrapper.emitted('search')).toHaveLength(1)

@@ -2,12 +2,12 @@
   <section class="panel">
     <div class="section-head">
       <div>
-        <div class="section-title">Projects</div>
+        <div class="section-title">{{ $t('admin.projects.title') }}</div>
         <div class="section-subtitle" v-if="selectedUser">
-          Managing projects of <strong>{{ selectedUser.name }}</strong>
+          {{ $t('admin.projects.managing', { name: selectedUser.name }) }}
         </div>
         <div class="section-subtitle" v-else>
-          Select a user to view available projects.
+          {{ $t('admin.projects.selectUser') }}
         </div>
       </div>
       <button
@@ -16,33 +16,33 @@
         :disabled="!selectedUser"
         @click="$emit('create-project')"
       >
-        + New Project
+        {{ $t('admin.projects.newProject') }}
       </button>
     </div>
 
     <div v-if="!selectedUser" class="empty-state">
-      Projects are hidden until you select a user above.
+      {{ $t('admin.projects.hiddenUntilSelected') }}
     </div>
     <div v-else-if="!selectedUser.projects?.length" class="empty-state">
-      This user has no projects yet.
+      {{ $t('admin.projects.empty') }}
     </div>
     <div v-else class="project-list">
       <div v-for="project in selectedUser.projects" :key="project.id" class="project-row">
         <div class="project-info">
           <div class="project-title">{{ project.title }}</div>
           <div class="project-meta">
-            {{ project.description || 'No description' }}
+            {{ project.description || $t('admin.projects.noDescription') }}
           </div>
         </div>
         <div class="project-actions">
-          <button class="btn" type="button" @click="$emit('edit-project', project)">Edit</button>
+          <button class="btn" type="button" @click="$emit('edit-project', project)">{{ $t('common.edit') }}</button>
           <button
             class="btn danger"
             type="button"
             :disabled="deletingProjectId === project.id"
             @click="$emit('delete-project', project)"
           >
-            {{ deletingProjectId === project.id ? 'Deleting...' : 'Delete' }}
+            {{ deletingProjectId === project.id ? $t('admin.projects.deleting') : $t('common.delete') }}
           </button>
         </div>
       </div>

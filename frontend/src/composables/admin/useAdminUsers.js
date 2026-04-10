@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue'
 import { adminApi } from '../../api/admin'
+import { translate } from '../../i18n'
 import { extractAdminApiError } from '../../utils/admin'
 import { useNotifications } from '../useNotifications'
 
@@ -52,7 +53,7 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
         selectedUserId.value = null
       }
     } catch (error) {
-      usersError.value = extractAdminApiError(error, 'Failed to load users.')
+      usersError.value = extractAdminApiError(error, translate('admin.users.loadFailed'))
     } finally {
       loadingUsers.value = false
     }

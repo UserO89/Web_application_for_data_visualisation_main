@@ -2,16 +2,16 @@
   <section class="panel">
     <div class="section-head">
       <div>
-        <div class="section-title">Admin Panel</div>
-        <div class="section-subtitle">Statistics and user management</div>
+        <div class="section-title">{{ $t('admin.stats.title') }}</div>
+        <div class="section-subtitle">{{ $t('admin.stats.subtitle') }}</div>
       </div>
       <button class="btn" type="button" :disabled="refreshDisabled" @click="$emit('refresh')">
-        Refresh
+        {{ $t('admin.stats.refresh') }}
       </button>
     </div>
 
     <div v-if="error" class="error-text">{{ error }}</div>
-    <div v-if="loading" class="loading">Loading statistics...</div>
+    <div v-if="loading" class="loading">{{ $t('admin.stats.loading') }}</div>
     <div v-else class="stats-grid">
       <div v-for="card in cards" :key="card.key" class="stat-card">
         <div class="stat-title">{{ card.label }}</div>

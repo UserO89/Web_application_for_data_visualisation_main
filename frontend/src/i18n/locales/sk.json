@@ -177,6 +177,55 @@
       "emptyAction": "Vytvorte svoj prvy projekt"
     }
   },
+  "admin": {
+    "stats": {
+      "title": "Administracny panel",
+      "subtitle": "Statistiky a sprava pouzivatelov",
+      "refresh": "Obnovit",
+      "loading": "Nacitavaju sa statistiky...",
+      "loadFailed": "Statistiky sa nepodarilo nacitat.",
+      "cards": {
+        "usersTotal": "Pouzivatelia spolu",
+        "projectsTotal": "Projekty spolu",
+        "datasetsTotal": "Datasety spolu",
+        "rowsTotal": "Riadky spolu",
+        "newUsers7d": "Novi pouzivatelia (7d)",
+        "newProjects7d": "Nove projekty (7d)",
+        "activeSessions24h": "Aktivne relacie (24h)"
+      }
+    },
+    "users": {
+      "title": "Pouzivatelia",
+      "subtitle": "Vyberte pouzivatela na spravu projektov. Kym nie je vybrany, zoznam projektov zostava skryty.",
+      "searchLabel": "Hladat pouzivatelov",
+      "searchPlaceholder": "Hladat podla mena alebo e-mailu",
+      "search": "Hladat",
+      "clear": "Vycistit",
+      "loading": "Nacitavaju sa pouzivatelia...",
+      "empty": "Nenasli sa ziadni pouzivatelia.",
+      "loadFailed": "Pouzivatelov sa nepodarilo nacitat.",
+      "meta": "{email} - pridal sa {date} - {count} projektov",
+      "selected": "Vybrany",
+      "select": "Vybrat",
+      "edit": "Upravit pouzivatela",
+      "delete": "Odstranit pouzivatela",
+      "deleting": "Odstranuje sa...",
+      "roles": {
+        "admin": "Admin",
+        "user": "Pouzivatel"
+      }
+    },
+    "projects": {
+      "title": "Projekty",
+      "managing": "Spravuju sa projekty pouzivatela {name}",
+      "selectUser": "Vyberte pouzivatela na zobrazenie dostupnych projektov.",
+      "newProject": "+ Novy projekt",
+      "hiddenUntilSelected": "Projekty su skryte, kym nevyberiete pouzivatela vyssie.",
+      "empty": "Tento pouzivatel este nema ziadne projekty.",
+      "noDescription": "Bez popisu",
+      "deleting": "Odstranuje sa..."
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Otvorit dashboard",

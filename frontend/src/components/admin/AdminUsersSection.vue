@@ -2,30 +2,28 @@
   <section class="panel">
     <div class="section-head">
       <div>
-        <div class="section-title">Users</div>
-        <div class="section-subtitle">
-          Select a user to manage projects. Until selection, project list stays hidden.
-        </div>
+        <div class="section-title">{{ $t('admin.users.title') }}</div>
+        <div class="section-subtitle">{{ $t('admin.users.subtitle') }}</div>
       </div>
     </div>
 
     <form class="search-row" @submit.prevent="$emit('search')">
-      <label for="admin-users-search" class="sr-only">Search users</label>
+      <label for="admin-users-search" class="sr-only">{{ $t('admin.users.searchLabel') }}</label>
       <input
         id="admin-users-search"
         :value="search"
         name="search"
         type="text"
-        placeholder="Search by name or email"
+        :placeholder="$t('admin.users.searchPlaceholder')"
         @input="$emit('update:search', $event.target.value)"
       />
-      <button class="btn" type="submit">Search</button>
-      <button v-if="search" class="btn" type="button" @click="$emit('clear')">Clear</button>
+      <button class="btn" type="submit">{{ $t('admin.users.search') }}</button>
+      <button v-if="search" class="btn" type="button" @click="$emit('clear')">{{ $t('admin.users.clear') }}</button>
     </form>
 
     <div v-if="error" class="error-text">{{ error }}</div>
-    <div v-if="loading" class="loading">Loading users...</div>
-    <div v-else-if="users.length === 0" class="empty-state">No users found.</div>
+    <div v-if="loading" class="loading">{{ $t('admin.users.loading') }}</div>
+    <div v-else-if="users.length === 0" class="empty-state">{{ $t('admin.users.empty') }}</div>
     <div v-else class="user-list">
       <article
         v-for="user in users"
@@ -37,38 +35,35 @@
             <img
               v-if="user.avatar_url"
               :src="user.avatar_url"
-              alt="avatar"
+              :alt="$t('nav.avatarAlt')"
               class="user-avatar"
             />
             <div v-else class="user-avatar user-avatar-fallback">{{ getAdminInitials(user.name) }}</div>
             <div>
               <div class="user-name">{{ user.name }}</div>
-              <div class="user-meta">
-                {{ user.email }} - joined {{ formatAdminDate(user.created_at) }} -
-                {{ projectCount(user) }} projects
-              </div>
+              <div class="user-meta">{{ userMeta(user) }}</div>
             </div>
           </div>
 
           <div class="user-actions">
             <span :class="['badge', user.role === 'admin' ? 'badge-admin' : 'badge-user']">
-              {{ user.role }}
+              {{ roleLabel(user.role) }}
             </span>
             <button
               type="button"
               :class="['btn', selectedUserId === user.id ? 'primary' : '']"
               @click="$emit('select-user', user)"
             >
-              {{ selectedUserId === user.id ? 'Selected' : 'Select' }}
+              {{ selectedUserId === user.id ? $t('admin.users.selected') : $t('admin.users.select') }}
             </button>
-            <button class="btn" type="button" @click="$emit('edit-user', user)">Edit user</button>
+            <button class="btn" type="button" @click="$emit('edit-user', user)">{{ $t('admin.users.edit') }}</button>
             <button
               class="btn danger"
               type="button"
               :disabled="deletingUserId === user.id || user.id === currentUserId"
               @click="$emit('delete-user', user)"
             >
-              {{ deletingUserId === user.id ? 'Deleting...' : 'Delete user' }}
+              {{ deletingUserId === user.id ? $t('admin.users.deleting') : $t('admin.users.delete') }}
             </button>
           </div>
         </div>
@@ -78,6 +73,7 @@
 </template>
 
 <script>
+import { useI18n } from 'vue-i18n'
 import { formatAdminDate, getAdminInitials } from '../../utils/admin'
 
 export default {
@@ -114,12 +110,19 @@ export default {
   },
   emits: ['update:search', 'search', 'clear', 'select-user', 'edit-user', 'delete-user'],
   setup() {
+    const { t } = useI18n({ useScope: 'global' })
     const projectCount = (user) => user.projects_count ?? user.projects?.length ?? 0
+    const roleLabel = (role) => t(`admin.users.roles.${role}`) || role
+    const userMeta = (user) => t('admin.users.meta', {
+      email: user.email,
+      date: formatAdminDate(user.created_at),
+      count: projectCount(user),
+    })
 
     return {
-      formatAdminDate,
       getAdminInitials,
-      projectCount,
+      roleLabel,
+      userMeta,
     }
   },
 }

@@ -177,6 +177,55 @@
       "emptyAction": "Stvoryt sviy pershyi proyekt"
     }
   },
+  "admin": {
+    "stats": {
+      "title": "Panel administratora",
+      "subtitle": "Statystyka ta keruvannya korystuvachamy",
+      "refresh": "Onovyty",
+      "loading": "Zavantazhennya statystyky...",
+      "loadFailed": "Ne vdalosya zavantazhyty statystyku.",
+      "cards": {
+        "usersTotal": "Korystuvachi vsogo",
+        "projectsTotal": "Proyekty vsogo",
+        "datasetsTotal": "Nabory danyh vsogo",
+        "rowsTotal": "Ryadkiv vsogo",
+        "newUsers7d": "Novi korystuvachi (7d)",
+        "newProjects7d": "Novi proyekty (7d)",
+        "activeSessions24h": "Aktyvni sesiyi (24h)"
+      }
+    },
+    "users": {
+      "title": "Korystuvachi",
+      "subtitle": "Vyberit korystuvacha dlya keruvannya proektamy. Doky vybir ne zrobleno, spysok proektiv prykhovano.",
+      "searchLabel": "Poshuk korystuvachiv",
+      "searchPlaceholder": "Shukaty za imyam abo poshtoyu",
+      "search": "Poshuk",
+      "clear": "Ochystyty",
+      "loading": "Zavantazhennya korystuvachiv...",
+      "empty": "Korystuvachiv ne znaydeno.",
+      "loadFailed": "Ne vdalosya zavantazhyty korystuvachiv.",
+      "meta": "{email} - pryednavsya {date} - {count} proektiv",
+      "selected": "Vybrano",
+      "select": "Vybraty",
+      "edit": "Redaguvaty korystuvacha",
+      "delete": "Vydalyty korystuvacha",
+      "deleting": "Vydalennya...",
+      "roles": {
+        "admin": "Admin",
+        "user": "Korystuvach"
+      }
+    },
+    "projects": {
+      "title": "Proyekty",
+      "managing": "Keruvannya proektamy korystuvacha {name}",
+      "selectUser": "Vyberit korystuvacha, shchob perehlyanuty dostupni proyekty.",
+      "newProject": "+ Novyy proyekt",
+      "hiddenUntilSelected": "Proyekty prykhovani, doky vy ne vyberete korystuvacha vyshe.",
+      "empty": "U tsogo korystuvacha poky nemae proektiv.",
+      "noDescription": "Bez opysu",
+      "deleting": "Vydalennya..."
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Vidkryty dashboard",
