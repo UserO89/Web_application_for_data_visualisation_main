@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getLocale } from '../i18n'
 
 function resolveApiBaseUrl() {
   const value = import.meta.env.VITE_API_BASE_URL
@@ -19,6 +20,14 @@ function resolveCsrfUrl(apiBaseUrl) {
 const baseURL = resolveApiBaseUrl()
 const csrfUrl = resolveCsrfUrl(baseURL)
 let csrfRequestPromise = null
+
+function buildLocaleHeaders() {
+  const locale = getLocale()
+  return {
+    'Accept-Language': locale,
+    'X-Locale': locale,
+  }
+}
 
 function isMutationMethod(method) {
   const normalized = String(method || '').toLowerCase()
@@ -43,7 +52,10 @@ export const http = axios.create({
 export async function csrf() {
   if (!csrfRequestPromise) {
     csrfRequestPromise = axios
-      .get(csrfUrl, { withCredentials: true })
+      .get(csrfUrl, {
+        withCredentials: true,
+        headers: buildLocaleHeaders(),
+      })
       .finally(() => {
         csrfRequestPromise = null
       })
@@ -79,3 +91,15 @@ http.interceptors.response.use(
     return Promise.reject(error)
   }
 )
+
+http.interceptors.request.use((config) => {
+  const nextConfig = {
+    ...config,
+    headers: {
+      ...(config.headers || {}),
+      ...buildLocaleHeaders(),
+    },
+  }
+
+  return nextConfig
+})
