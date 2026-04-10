@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import { adminApi } from '../../api/admin'
+import { translate } from '../../i18n'
 import { extractAdminApiError } from '../../utils/admin'
 import { useNotifications } from '../useNotifications'
 
@@ -66,7 +67,7 @@ export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh 
     }
 
     if (!payload.title) {
-      projectFormError.value = 'Project title is required.'
+      projectFormError.value = translate('projects.titleRequired')
       return
     }
 
@@ -100,9 +101,9 @@ export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh 
 
       closeProjectModal()
       await onStatsRefresh()
-      notify.success(projectForm.value.mode === 'create' ? 'Project created successfully.' : 'Project updated successfully.')
+      notify.success(projectForm.value.mode === 'create' ? translate('projects.created') : translate('projects.updated'))
     } catch (error) {
-      projectFormError.value = extractAdminApiError(error, 'Failed to save project.')
+      projectFormError.value = extractAdminApiError(error, translate('projects.saveFailed'))
     } finally {
       savingProject.value = false
     }
@@ -111,7 +112,7 @@ export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh 
   const handleDeleteProject = async (project) => {
     if (!selectedUser.value || !project?.id) return
 
-    const confirmed = window.confirm(`Delete project "${project.title}"?`)
+    const confirmed = window.confirm(translate('projects.deleteConfirm', { title: project.title }))
     if (!confirmed) return
 
     deletingProjectId.value = project.id
@@ -126,9 +127,9 @@ export const useAdminProjects = ({ selectedUser, updateUserById, onStatsRefresh 
         }
       })
       await onStatsRefresh()
-      notify.success('Project deleted successfully.')
+      notify.success(translate('projects.deleted'))
     } catch (error) {
-      notify.error(extractAdminApiError(error, 'Failed to delete project.'))
+      notify.error(extractAdminApiError(error, translate('projects.deleteFailed')))
     } finally {
       deletingProjectId.value = null
     }

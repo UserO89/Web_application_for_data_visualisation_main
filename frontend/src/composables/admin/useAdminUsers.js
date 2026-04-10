@@ -123,7 +123,7 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
     }
 
     if (!payload.name || !payload.email) {
-      userFormError.value = 'Name and email are required.'
+      userFormError.value = translate('admin.users.requiredFields')
       return
     }
 
@@ -151,9 +151,9 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
       }
 
       closeUserModal()
-      notify.success('User updated successfully.')
+      notify.success(translate('admin.users.updated'))
     } catch (error) {
-      userFormError.value = extractAdminApiError(error, 'Failed to update user.')
+      userFormError.value = extractAdminApiError(error, translate('admin.users.updateFailed'))
     } finally {
       savingUser.value = false
     }
@@ -162,7 +162,7 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
   const handleDeleteUser = async (user) => {
     if (!user?.id || isCurrentUser(user)) return
 
-    const confirmed = window.confirm(`Delete user "${user.name}" and all related projects?`)
+    const confirmed = window.confirm(translate('admin.users.deleteConfirm', { name: user.name }))
     if (!confirmed) return
 
     deletingUserId.value = user.id
@@ -173,9 +173,9 @@ export const useAdminUsers = ({ authStore, onStatsRefresh }) => {
         selectedUserId.value = null
       }
       await onStatsRefresh()
-      notify.success('User deleted successfully.')
+      notify.success(translate('admin.users.deleted'))
     } catch (error) {
-      notify.error(extractAdminApiError(error, 'Failed to delete user.'))
+      notify.error(extractAdminApiError(error, translate('admin.users.deleteFailed')))
     } finally {
       deletingUserId.value = null
     }
