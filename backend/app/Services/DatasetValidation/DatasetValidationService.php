@@ -165,14 +165,14 @@ class DatasetValidationService
             if (($issue['severity'] ?? null) === 'error') {
                 return [
                     'code' => (string) ($issue['code'] ?? 'validation_blocked'),
-                    'message' => (string) ($issue['message'] ?? 'Import blocked due to validation errors.'),
+                    'message' => (string) ($issue['message'] ?? __('api.import.validation_blocked')),
                 ];
             }
         }
 
         return [
             'code' => 'validation_blocked',
-            'message' => 'Import blocked due to validation errors.',
+            'message' => __('api.import.validation_blocked'),
         ];
     }
 }

@@ -26,7 +26,7 @@ class AuthController extends Controller
     public function login(LoginRequest $request)
     {
         if (!Auth::attempt($request->validated())) {
-            return response()->json(['message' => 'Invalid credentials'], 422);
+            return response()->json(['message' => __('api.auth.invalid_credentials')], 422);
         }
 
         if ($request->hasSession()) {
@@ -79,7 +79,7 @@ class AuthController extends Controller
 
         if (!Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
-                'current_password' => ['Current password is incorrect.'],
+                'current_password' => [__('api.auth.current_password_incorrect')],
             ]);
         }
 
@@ -99,7 +99,7 @@ class AuthController extends Controller
 
         if (!Hash::check($validated['current_password'], $user->password)) {
             throw ValidationException::withMessages([
-                'current_password' => ['Current password is incorrect.'],
+                'current_password' => [__('api.auth.current_password_incorrect')],
             ]);
         }
 

@@ -22,7 +22,7 @@ class DatasetRowController extends Controller
 
         $dataset = $project->dataset;
         if (!$dataset) {
-            return response()->json(['message' => 'No dataset found'], 404);
+            return response()->json(['message' => __('api.datasets.no_dataset')], 404);
         }
 
         $page = $request->input('page', 1);
@@ -41,7 +41,7 @@ class DatasetRowController extends Controller
 
         $dataset = $project->dataset;
         if (!$dataset || $row->dataset_id !== $dataset->id) {
-            return response()->json(['message' => 'Row does not belong to this project'], 403);
+            return response()->json(['message' => __('api.datasets.row_project_mismatch')], 403);
         }
 
         DB::transaction(function () use ($request, $row, $dataset) {

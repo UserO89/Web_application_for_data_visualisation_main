@@ -108,11 +108,11 @@ class AdminApiTest extends TestCase
             'role' => 'user',
         ])
             ->assertStatus(422)
-            ->assertJsonPath('message', 'You cannot change your own role from admin panel.');
+            ->assertJsonPath('message', app('translator')->get('api.admin.cannot_change_own_role'));
 
         $this->deleteJson("/api/v1/admin/users/{$admin->id}")
             ->assertStatus(422)
-            ->assertJsonPath('message', 'You cannot delete your own account from admin panel.');
+            ->assertJsonPath('message', app('translator')->get('api.admin.cannot_delete_own_account'));
     }
 
     public function test_admin_can_create_update_and_delete_user_projects_and_reject_mismatched_project_routes(): void
@@ -150,17 +150,27 @@ class AdminApiTest extends TestCase
             'description' => 'Mismatch',
         ])
             ->assertStatus(422)
-            ->assertJsonPath('message', 'Project does not belong to selected user.');
+            ->assertJsonPath('message', app('translator')->get('api.admin.project_user_mismatch'));
 
         $this->deleteJson("/api/v1/admin/users/{$targetUser->id}/projects/{$foreignProject->id}")
             ->assertStatus(422)
-            ->assertJsonPath('message', 'Project does not belong to selected user.');
+            ->assertJsonPath('message', app('translator')->get('api.admin.project_user_mismatch'));
 
         $this->deleteJson("/api/v1/admin/users/{$targetUser->id}/projects/{$projectId}")
             ->assertOk()
             ->assertJsonPath('ok', true);
 
         $this->assertDatabaseMissing('projects', ['id' => $projectId]);
+    }
+
+    public function test_admin_routes_use_request_locale_for_forbidden_message(): void
+    {
+        Sanctum::actingAs($this->createUser('user'));
+
+        $this->withHeader('X-Locale', 'sk')
+            ->getJson('/api/v1/admin/stats')
+            ->assertStatus(403)
+            ->assertJsonPath('message', app('translator')->get('api.common.forbidden', [], 'sk'));
     }
 
     private function createProjectForUser(User $user, string $title): Project

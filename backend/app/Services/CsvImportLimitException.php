@@ -19,7 +19,10 @@ class CsvImportLimitException extends RuntimeException
     {
         return new self(
             'file_too_many_rows',
-            "Import blocked: this file contains {$detectedRows} data rows, but the current limit is {$limit}. Split the dataset into a smaller file before importing.",
+            __('api.import.too_many_rows', [
+                'limit' => $limit,
+                'detected_rows' => $detectedRows,
+            ]),
             [
                 'limit' => $limit,
                 'detected_rows' => $detectedRows,
@@ -37,7 +40,11 @@ class CsvImportLimitException extends RuntimeException
     {
         return new self(
             'file_too_many_columns',
-            "Import blocked: line {$lineNumber} contains {$detectedColumns} columns, but the current limit is {$limit}. Remove extra columns or split the dataset before importing.",
+            __('api.import.too_many_columns', [
+                'limit' => $limit,
+                'detected_columns' => $detectedColumns,
+                'line' => $lineNumber,
+            ]),
             [
                 'limit' => $limit,
                 'detected_columns' => $detectedColumns,

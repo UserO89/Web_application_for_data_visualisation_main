@@ -49,7 +49,7 @@ class AuthApiTest extends TestCase
                 'password' => 'wrong-password',
             ])
             ->assertStatus(422)
-            ->assertJsonPath('message', 'Invalid credentials');
+            ->assertJsonPath('message', app('translator')->get('api.auth.invalid_credentials'));
 
         $this
             ->withSession([])
@@ -67,6 +67,24 @@ class AuthApiTest extends TestCase
             ->postJson('/api/v1/auth/logout')
             ->assertOk()
             ->assertJsonPath('ok', true);
+    }
+
+    public function test_login_uses_request_locale_for_error_messages(): void
+    {
+        $user = $this->createUser([
+            'email' => 'localized-login@example.test',
+            'password' => 'password123',
+        ]);
+
+        $this
+            ->withSession([])
+            ->withHeader('X-Locale', 'ru')
+            ->postJson('/api/v1/auth/login', [
+                'email' => $user->email,
+                'password' => 'wrong-password',
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', app('translator')->get('api.auth.invalid_credentials', [], 'ru'));
     }
 
     public function test_authenticated_user_can_fetch_profile_update_name_and_change_password(): void

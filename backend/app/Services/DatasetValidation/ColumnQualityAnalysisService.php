@@ -69,7 +69,10 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 'warning',
                 'column_high_null_ratio',
-                "{$columnName}: high null ratio (" . round($stats['nullRatio'] * 100, 1) . '%).',
+                __('api.import.column_high_null_ratio', [
+                    'column' => $columnName,
+                    'percent' => round($stats['nullRatio'] * 100, 1),
+                ]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['nullRatio' => round($stats['nullRatio'], 6), 'nullCount' => $stats['nullCount']]
@@ -81,7 +84,10 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 'warning',
                 'column_invalid_numeric_values',
-                "{$columnName}: {$stats['invalidNumericCount']} values could not be parsed as numbers.",
+                __('api.import.column_invalid_numeric_values', [
+                    'column' => $columnName,
+                    'count' => $stats['invalidNumericCount'],
+                ]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['invalidCount' => $stats['invalidNumericCount'], 'parseSuccess' => round($stats['numericRatio'], 6)]
@@ -93,7 +99,10 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 'warning',
                 'column_invalid_date_values',
-                "{$columnName}: {$stats['invalidDateCount']} values could not be parsed as dates.",
+                __('api.import.column_invalid_date_values', [
+                    'column' => $columnName,
+                    'count' => $stats['invalidDateCount'],
+                ]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['invalidCount' => $stats['invalidDateCount'], 'parseSuccess' => round($stats['dateRatio'], 6)]
@@ -104,7 +113,10 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 'warning',
                 'column_invalid_boolean_values',
-                "{$columnName}: {$stats['invalidBooleanCount']} values could not be parsed as booleans.",
+                __('api.import.column_invalid_boolean_values', [
+                    'column' => $columnName,
+                    'count' => $stats['invalidBooleanCount'],
+                ]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['invalidCount' => $stats['invalidBooleanCount'], 'parseSuccess' => round($stats['booleanRatio'], 6)]
@@ -116,7 +128,7 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 'warning',
                 'column_case_variants',
-                "{$columnName}: inconsistent category casing detected.",
+                __('api.import.column_case_variants', ['column' => $columnName]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['groups' => $stats['caseVariantGroups']]
@@ -129,7 +141,7 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 $severity,
                 'column_constant_values',
-                "{$columnName}: column is nearly constant.",
+                __('api.import.column_constant_values', ['column' => $columnName]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['dominantRatio' => round($stats['topValueRatio'], 6)]
@@ -144,7 +156,7 @@ class ColumnQualityAnalysisService
             $issues[] = $this->makeIssue(
                 $identifierByUniqueness ? 'warning' : 'info',
                 'column_identifier_like',
-                "{$columnName}: looks like an identifier column.",
+                __('api.import.column_identifier_like', ['column' => $columnName]),
                 'column',
                 ['column' => $columnName, 'column_index' => $position + 1],
                 ['identifierByName' => $identifierByName, 'uniqueRatio' => round($stats['uniqueRatio'], 6)]
@@ -152,7 +164,7 @@ class ColumnQualityAnalysisService
         }
 
         $status = $this->resolveColumnStatus($issues);
-        $note = $issues[0]['message'] ?? 'No quality issues detected.';
+        $note = $issues[0]['message'] ?? __('api.import.column_no_quality_issues');
         $parseSuccess = [
             'number' => round($stats['numericRatio'], 6),
             'date' => round($stats['dateRatio'], 6),

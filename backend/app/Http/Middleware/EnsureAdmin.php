@@ -10,7 +10,7 @@ class EnsureAdmin
     public function handle(Request $request, Closure $next)
     {
         if ($request->user()?->role !== 'admin') {
-            return response()->json(['message' => 'Forbidden'], 403);
+            return response()->json(['message' => __('api.common.forbidden')], 403);
         }
 
         return $next($request);

@@ -36,7 +36,7 @@ class DatasetImportControllerErrorPathsTest extends TestCase
 
         $this->importCsv($project->id, "Region,Revenue\nNorth,100\n")
             ->assertStatus(422)
-            ->assertJsonPath('message', 'Could not parse uploaded file.')
+            ->assertJsonPath('message', app('translator')->get('api.import.file_unreadable'))
             ->assertJsonPath('validation.blocking_error.code', 'file_unreadable');
 
         $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);
@@ -74,7 +74,7 @@ class DatasetImportControllerErrorPathsTest extends TestCase
             ->assertStatus(409)
             ->assertJsonPath(
                 'message',
-                'This project already has a dataset. Create a new project to import another file.'
+                app('translator')->get('api.import.dataset_exists')
             );
 
         $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);

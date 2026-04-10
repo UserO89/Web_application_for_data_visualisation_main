@@ -230,7 +230,10 @@ CSV
             ->assertStatus(422)
             ->assertJsonPath(
                 'message',
-                'Import blocked: this file contains 3 data rows, but the current limit is 2. Split the dataset into a smaller file before importing.'
+                app('translator')->get('api.import.too_many_rows', [
+                    'detected_rows' => 3,
+                    'limit' => 2,
+                ])
             )
             ->assertJsonPath('validation.summary.import_status', 'blocked')
             ->assertJsonPath('validation.summary.rows_total', 3)
@@ -263,7 +266,11 @@ CSV
             ->assertStatus(422)
             ->assertJsonPath(
                 'message',
-                'Import blocked: line 2 contains 3 columns, but the current limit is 2. Remove extra columns or split the dataset before importing.'
+                app('translator')->get('api.import.too_many_columns', [
+                    'line' => 2,
+                    'detected_columns' => 3,
+                    'limit' => 2,
+                ])
             )
             ->assertJsonPath('validation.summary.import_status', 'blocked')
             ->assertJsonPath('validation.summary.rows_total', 1)
@@ -276,6 +283,34 @@ CSV
             ->assertJsonPath('validation.blocking_error.metadata.line', 2);
 
         $this->assertDatabaseMissing('datasets', ['project_id' => $project->id]);
+    }
+
+    public function test_import_limit_errors_use_request_locale(): void
+    {
+        Storage::fake('local');
+        config()->set('dataset_import.max_data_rows', 2);
+
+        $user = $this->authenticateUser();
+        $project = $this->createProjectForUser($user, 'Localized import limit');
+
+        $this->withHeader('X-Locale', 'sk')
+            ->withHeader('Accept', 'application/json')
+            ->post("/api/v1/projects/{$project->id}/import", [
+                'file' => UploadedFile::fake()->createWithContent('dataset.csv', <<<'CSV'
+Region,Revenue
+North,100
+South,200
+West,300
+CSV
+                ),
+                'delimiter' => ',',
+                'has_header' => true,
+            ])
+            ->assertStatus(422)
+            ->assertJsonPath('message', app('translator')->get('api.import.too_many_rows', [
+                'detected_rows' => 3,
+                'limit' => 2,
+            ], 'sk'));
     }
 
     public function test_descriptive_statistics_result_builds_correctly(): void

@@ -18,7 +18,7 @@ class DatasetSuggestionController extends Controller
 
         $dataset = $project->dataset;
         if (!$dataset) {
-            return response()->json(['message' => 'No dataset found'], 404);
+            return response()->json(['message' => __('api.datasets.no_dataset')], 404);
         }
 
         $suggestions = $this->suggestionService->suggest($dataset);

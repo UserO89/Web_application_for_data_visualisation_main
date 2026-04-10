@@ -77,7 +77,7 @@ class AdminController extends Controller
         ]);
 
         if ($request->user()->id === $user->id && $validated['role'] !== $request->user()->role) {
-            return response()->json(['message' => 'You cannot change your own role from admin panel.'], 422);
+            return response()->json(['message' => __('api.admin.cannot_change_own_role')], 422);
         }
 
         $payload = Arr::except($validated, ['password']);
@@ -104,7 +104,7 @@ class AdminController extends Controller
     public function destroyUser(Request $request, User $user)
     {
         if ($request->user()->id === $user->id) {
-            return response()->json(['message' => 'You cannot delete your own account from admin panel.'], 422);
+            return response()->json(['message' => __('api.admin.cannot_delete_own_account')], 422);
         }
 
         $avatarPath = $user->avatar_path;
@@ -168,6 +168,6 @@ class AdminController extends Controller
             return null;
         }
 
-        return response()->json(['message' => 'Project does not belong to selected user.'], 422);
+        return response()->json(['message' => __('api.admin.project_user_mismatch')], 422);
     }
 }

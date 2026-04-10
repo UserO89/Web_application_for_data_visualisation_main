@@ -26,7 +26,7 @@ class StructuralValidationService
                 'can_proceed' => false,
                 'summary_overrides' => [],
                 'issues' => [
-                    $this->makeIssue('error', 'file_no_rows', 'The uploaded file has no readable rows.', 'dataset'),
+                    $this->makeIssue('error', 'file_no_rows', __('api.import.file_no_rows'), 'dataset'),
                 ],
             ];
         }
@@ -43,7 +43,7 @@ class StructuralValidationService
                 'can_proceed' => false,
                 'summary_overrides' => [],
                 'issues' => [
-                    $this->makeIssue('error', 'file_no_columns', 'No columns were detected in the uploaded file.', 'dataset'),
+                    $this->makeIssue('error', 'file_no_columns', __('api.import.file_no_columns'), 'dataset'),
                 ],
             ];
         }
@@ -61,7 +61,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'error',
                 'file_no_data_rows',
-                'No data rows remain after safe normalization.',
+                __('api.import.file_no_data_rows'),
                 'dataset'
             );
 
@@ -217,7 +217,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'info',
                 'header_trimmed',
-                "{$count} headers were trimmed.",
+                __('api.import.headers_trimmed', ['count' => $count]),
                 'dataset',
                 [],
                 ['count' => $count]
@@ -229,7 +229,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'info',
                 'header_placeholder_replaced',
-                "{$count} placeholder headers were replaced.",
+                __('api.import.headers_placeholder_replaced', ['count' => $count]),
                 'dataset',
                 [],
                 ['count' => $count]
@@ -241,7 +241,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'info',
                 'header_duplicates_renamed',
-                "{$count} duplicate headers were renamed deterministically.",
+                __('api.import.headers_duplicates_renamed', ['count' => $count]),
                 'dataset',
                 [],
                 ['count' => $count]
@@ -253,7 +253,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'warning',
                 'header_too_long',
-                "{$count} headers exceeded max length and were truncated.",
+                __('api.import.headers_truncated', ['count' => $count]),
                 'dataset',
                 [],
                 ['count' => $count]
@@ -272,7 +272,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'info',
                 'rows_empty_skipped',
-                "{$count} completely empty rows were skipped.",
+                __('api.import.rows_empty_skipped', ['count' => $count]),
                 'dataset',
                 [],
                 ['count' => $count]
@@ -284,7 +284,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'warning',
                 'rows_padded_with_nulls',
-                "{$count} rows had missing cells and were padded with nulls.",
+                __('api.import.rows_padded', ['count' => $count]),
                 'dataset',
                 [],
                 [
@@ -299,7 +299,7 @@ class StructuralValidationService
             $issues[] = $this->makeIssue(
                 'warning',
                 'rows_truncated',
-                "{$count} rows had extra cells and were truncated to detected column count.",
+                __('api.import.rows_truncated', ['count' => $count]),
                 'dataset',
                 [],
                 [

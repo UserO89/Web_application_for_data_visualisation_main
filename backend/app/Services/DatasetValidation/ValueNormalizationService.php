@@ -60,7 +60,10 @@ class ValueNormalizationService
                         'code' => 'value_row_shape',
                         'row' => $rowIndex + 1,
                         'column' => null,
-                        'message' => 'Row had ' . count($sourceRow) . " cells, normalized to {$expectedCount}.",
+                        'message' => __('api.import.value_row_shape', [
+                            'original' => count($sourceRow),
+                            'fixed' => $expectedCount,
+                        ]),
                         'metadata' => [
                             'type' => 'row_shape',
                             'original' => count($sourceRow),
@@ -185,7 +188,7 @@ class ValueNormalizationService
             $issues[] = $this->makeIssue(
                 'info',
                 'cells_normalized',
-                "{$fixedCells} cells were normalized during import sanitation.",
+                __('api.import.cells_normalized', ['count' => $fixedCells]),
                 'dataset',
                 [],
                 ['count' => $fixedCells]
@@ -197,7 +200,7 @@ class ValueNormalizationService
             $issues[] = $this->makeIssue(
                 $severity,
                 'cells_nullified',
-                "{$nullifiedCells} cells were converted to null during sanitation.",
+                __('api.import.cells_nullified', ['count' => $nullifiedCells]),
                 'dataset',
                 [],
                 [
@@ -214,7 +217,7 @@ class ValueNormalizationService
             $issues[] = $this->makeIssue(
                 (string) ($sample['severity'] ?? 'info'),
                 (string) ($sample['code'] ?? 'value_normalized'),
-                (string) ($sample['message'] ?? 'Value was normalized.'),
+                (string) ($sample['message'] ?? __('api.import.value_normalized')),
                 'row',
                 [
                     'row' => $row,
@@ -228,7 +231,7 @@ class ValueNormalizationService
             $issues[] = $this->makeIssue(
                 'info',
                 'value_issue_samples_truncated',
-                "{$omittedIssues} normalization issues were omitted from issue samples.",
+                __('api.import.issue_samples_truncated', ['omittedCount' => $omittedIssues]),
                 'dataset',
                 [],
                 ['omittedCount' => $omittedIssues]
@@ -255,7 +258,7 @@ class ValueNormalizationService
                 'value' => null,
                 'changed' => true,
                 'issue_type' => 'empty_normalized',
-                'message' => 'Converted empty marker to null.',
+                'message' => __('api.import.value_empty_normalized'),
             ];
         }
 
@@ -269,7 +272,7 @@ class ValueNormalizationService
                 'value' => $normalized,
                 'changed' => $normalized !== (string) ($value ?? ''),
                 'issue_type' => 'string_trimmed',
-                'message' => 'Trimmed extra whitespace.',
+                'message' => __('api.import.value_string_trimmed'),
             ],
         };
     }
@@ -282,7 +285,7 @@ class ValueNormalizationService
                 'value' => null,
                 'changed' => true,
                 'issue_type' => 'invalid_integer',
-                'message' => 'Invalid integer value replaced with null.',
+                'message' => __('api.import.value_invalid_integer'),
             ];
         }
 
@@ -291,7 +294,7 @@ class ValueNormalizationService
                 'value' => null,
                 'changed' => true,
                 'issue_type' => 'invalid_integer',
-                'message' => 'Non-integer numeric value replaced with null.',
+                'message' => __('api.import.value_invalid_integer_fractional'),
             ];
         }
 
@@ -300,7 +303,7 @@ class ValueNormalizationService
             'value' => $integerValue,
             'changed' => (string) $integerValue !== $normalized,
             'issue_type' => 'number_normalized',
-            'message' => 'Normalized numeric value.',
+            'message' => __('api.import.value_number_normalized'),
         ];
     }
 
@@ -312,7 +315,7 @@ class ValueNormalizationService
                 'value' => null,
                 'changed' => true,
                 'issue_type' => 'invalid_number',
-                'message' => 'Invalid numeric value replaced with null.',
+                'message' => __('api.import.value_invalid_number'),
             ];
         }
 
@@ -324,7 +327,7 @@ class ValueNormalizationService
             'value' => $value,
             'changed' => (string) $value !== $normalized,
             'issue_type' => 'number_normalized',
-            'message' => 'Normalized numeric value.',
+            'message' => __('api.import.value_number_normalized'),
         ];
     }
 
@@ -336,7 +339,7 @@ class ValueNormalizationService
                 'value' => null,
                 'changed' => true,
                 'issue_type' => 'invalid_boolean',
-                'message' => 'Invalid boolean value replaced with null.',
+                'message' => __('api.import.value_invalid_boolean'),
             ];
         }
 
@@ -345,7 +348,7 @@ class ValueNormalizationService
             'value' => $parsed,
             'changed' => mb_strtolower($normalized) !== $normalizedLiteral,
             'issue_type' => 'boolean_normalized',
-            'message' => 'Normalized boolean value.',
+            'message' => __('api.import.value_boolean_normalized'),
         ];
     }
 
@@ -357,7 +360,7 @@ class ValueNormalizationService
                 'value' => null,
                 'changed' => true,
                 'issue_type' => 'invalid_date',
-                'message' => 'Invalid date value replaced with null.',
+                'message' => __('api.import.value_invalid_date'),
             ];
         }
 
@@ -371,8 +374,8 @@ class ValueNormalizationService
             'changed' => $normalizedTemporal !== $normalized,
             'issue_type' => 'date_normalized',
             'message' => $type === 'datetime'
-                ? 'Normalized datetime format to YYYY-MM-DD HH:mm:ss.'
-                : 'Normalized date format to DD.MM.YYYY.',
+                ? __('api.import.value_datetime_normalized')
+                : __('api.import.value_date_normalized'),
         ];
     }
 
@@ -491,13 +494,13 @@ class ValueNormalizationService
     private function resolveReviewReason(string $issueType, string $fallback): string
     {
         return match ($issueType) {
-            'invalid_number' => 'Invalid numeric value',
-            'invalid_integer' => 'Invalid integer value',
-            'invalid_boolean' => 'Invalid boolean value',
-            'invalid_date' => 'Invalid date or datetime value',
-            'number_normalized' => 'Numeric format normalized',
-            'date_normalized' => 'Date/datetime format normalized',
-            'boolean_normalized' => 'Boolean value normalized',
+            'invalid_number' => __('api.import.review_reasons.invalid_number'),
+            'invalid_integer' => __('api.import.review_reasons.invalid_integer'),
+            'invalid_boolean' => __('api.import.review_reasons.invalid_boolean'),
+            'invalid_date' => __('api.import.review_reasons.invalid_date'),
+            'number_normalized' => __('api.import.review_reasons.number_normalized'),
+            'date_normalized' => __('api.import.review_reasons.date_normalized'),
+            'boolean_normalized' => __('api.import.review_reasons.boolean_normalized'),
             default => $fallback,
         };
     }

@@ -19,7 +19,6 @@ use Throwable;
 
 class DatasetImportController extends Controller
 {
-    private const DATASET_ALREADY_EXISTS_MESSAGE = 'This project already has a dataset. Create a new project to import another file.';
     private const DEFAULT_COLUMN_INSERT_CHUNK_SIZE = 250;
     private const DEFAULT_ROW_INSERT_CHUNK_SIZE = 500;
 
@@ -42,10 +41,10 @@ class DatasetImportController extends Controller
         if (!$file) {
             $report = $this->datasetValidationService->buildFatalReport(
                 'file_missing',
-                'No file was uploaded.'
+                __('api.import.file_missing')
             );
             return response()->json([
-                'message' => 'No file was uploaded.',
+                'message' => __('api.import.file_missing'),
                 'validation' => $report,
             ], 422);
         }
@@ -57,10 +56,10 @@ class DatasetImportController extends Controller
         if (($file->getSize() ?? 0) <= 0) {
             $report = $this->datasetValidationService->buildFatalReport(
                 'file_empty',
-                'Uploaded file is empty.'
+                __('api.import.file_empty')
             );
             return response()->json([
-                'message' => 'Uploaded file is empty.',
+                'message' => __('api.import.file_empty'),
                 'validation' => $report,
             ], 422);
         }
@@ -82,10 +81,10 @@ class DatasetImportController extends Controller
         } catch (Throwable $e) {
             $report = $this->datasetValidationService->buildFatalReport(
                 'file_unreadable',
-                'Could not parse uploaded file.'
+                __('api.import.file_unreadable')
             );
             return response()->json([
-                'message' => 'Could not parse uploaded file.',
+                'message' => __('api.import.file_unreadable'),
                 'validation' => $report,
             ], 422);
         }
@@ -93,7 +92,7 @@ class DatasetImportController extends Controller
         $importPlan = $this->datasetValidationService->buildImportPlan($parsed['rows'], $hasHeader);
         if (!$importPlan['canImport']) {
             $blockingError = (array) ($importPlan['report']['blocking_error'] ?? []);
-            $message = (string) ($blockingError['message'] ?? 'Import blocked due to critical file/structure errors.');
+            $message = (string) ($blockingError['message'] ?? __('api.import.blocked'));
             return response()->json([
                 'message' => $message,
                 'validation' => $importPlan['report'],
@@ -161,7 +160,7 @@ class DatasetImportController extends Controller
     private function datasetAlreadyExistsResponse()
     {
         return response()->json([
-            'message' => self::DATASET_ALREADY_EXISTS_MESSAGE,
+            'message' => __('api.import.dataset_exists'),
         ], 409);
     }
 

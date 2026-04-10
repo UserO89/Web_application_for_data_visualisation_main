@@ -25,7 +25,7 @@ class DatasetSchemaController extends Controller
 
         $dataset = $project->dataset;
         if (!$dataset) {
-            return response()->json(['message' => 'No dataset found'], 404);
+            return response()->json(['message' => __('api.datasets.no_dataset')], 404);
         }
 
         $rebuild = $request->boolean('rebuild', false);
@@ -43,7 +43,7 @@ class DatasetSchemaController extends Controller
 
         $dataset = $project->dataset;
         if (!$dataset || (int) $column->dataset_id !== (int) $dataset->id) {
-            return response()->json(['message' => 'Column does not belong to this project'], 403);
+            return response()->json(['message' => __('api.datasets.column_project_mismatch')], 403);
         }
 
         $payload = $request->validated();
@@ -74,7 +74,7 @@ class DatasetSchemaController extends Controller
 
         $dataset = $project->dataset;
         if (!$dataset || (int) $column->dataset_id !== (int) $dataset->id) {
-            return response()->json(['message' => 'Column does not belong to this project'], 403);
+            return response()->json(['message' => __('api.datasets.column_project_mismatch')], 403);
         }
 
         $updated = DB::transaction(function () use ($column, $request, $dataset) {

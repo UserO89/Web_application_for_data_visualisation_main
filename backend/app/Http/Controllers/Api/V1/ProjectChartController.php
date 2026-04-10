@@ -32,7 +32,9 @@ class ProjectChartController extends Controller
 
         $title = trim((string) ($validated['title'] ?? ''));
         if ($title === '') {
-            $title = ucfirst((string) $validated['type']) . ' chart';
+            $title = __('api.charts.default_title', [
+                'type' => ucfirst((string) $validated['type']),
+            ]);
         }
 
         $chart = $project->charts()->create([
@@ -49,7 +51,7 @@ class ProjectChartController extends Controller
         $this->authorize('update', $project);
 
         if ((int) $chart->project_id !== (int) $project->id) {
-            return response()->json(['message' => 'Chart not found for this project'], 404);
+            return response()->json(['message' => __('api.charts.not_found')], 404);
         }
 
         $chart->delete();
@@ -62,7 +64,7 @@ class ProjectChartController extends Controller
         $this->authorize('update', $project);
 
         if ((int) $chart->project_id !== (int) $project->id) {
-            return response()->json(['message' => 'Chart not found for this project'], 404);
+            return response()->json(['message' => __('api.charts.not_found')], 404);
         }
 
         $validated = $request->validate([
@@ -72,9 +74,9 @@ class ProjectChartController extends Controller
         $title = trim((string) $validated['title']);
         if ($title === '') {
             return response()->json([
-                'message' => 'Validation failed.',
+                'message' => __('api.common.validation_failed'),
                 'errors' => [
-                    'title' => ['Chart title is required.'],
+                    'title' => [__('api.charts.title_required')],
                 ],
             ], 422);
         }
