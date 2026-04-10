@@ -1,6 +1,7 @@
 import { RouterLinkStub, flushPromises, mount } from '@vue/test-utils'
 import { vi } from 'vitest'
 import ProfilePage from '../../src/pages/ProfilePage.vue'
+import { withI18n } from '../support/i18n'
 
 const mockRouter = vi.hoisted(() => ({
   push: vi.fn(),
@@ -46,7 +47,7 @@ vi.mock('../../src/composables/useNotifications', () => ({
 }))
 
 const mountPage = () =>
-  mount(ProfilePage, {
+  mount(ProfilePage, withI18n({
     global: {
       stubs: {
         RouterLink: RouterLinkStub,
@@ -55,7 +56,7 @@ const mountPage = () =>
         $router: mockRouter,
       },
     },
-  })
+  }))
 
 describe('ProfilePage', () => {
   beforeEach(() => {

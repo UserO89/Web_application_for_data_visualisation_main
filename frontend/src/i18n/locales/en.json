@@ -122,6 +122,61 @@
       "importReview": "Import Review"
     }
   },
+  "profile": {
+    "title": "Profile",
+    "subtitle": "Account settings",
+    "avatar": {
+      "alt": "profile avatar",
+      "uploadAriaLabel": "Upload profile photo",
+      "upload": "Upload Photo",
+      "uploading": "Uploading...",
+      "hint": "PNG/JPG/WEBP up to 5MB",
+      "tooLarge": "Image is too large. Maximum size is 5MB.",
+      "updated": "Profile photo updated successfully.",
+      "uploadFailed": "Failed to upload image."
+    },
+    "details": {
+      "name": "Name",
+      "email": "Email",
+      "registered": "Registered"
+    },
+    "publicProfile": {
+      "title": "Public profile",
+      "nickname": "Nickname",
+      "saving": "Saving...",
+      "save": "Save nickname",
+      "required": "Nickname is required.",
+      "updated": "Nickname updated successfully.",
+      "updateFailed": "Failed to update nickname."
+    },
+    "password": {
+      "title": "Change password",
+      "currentPassword": "Current password",
+      "newPassword": "New password",
+      "confirmPassword": "Confirm new password",
+      "updating": "Updating...",
+      "update": "Update password",
+      "mismatch": "Password confirmation does not match.",
+      "updated": "Password updated successfully.",
+      "updateFailed": "Failed to update password."
+    },
+    "danger": {
+      "title": "Danger zone",
+      "description": "Deleting your account permanently removes your profile and all projects.",
+      "currentPassword": "Current password",
+      "deleting": "Deleting...",
+      "delete": "Delete account",
+      "required": "Current password is required.",
+      "confirm": "Delete your account permanently? This action cannot be undone.",
+      "deleted": "Account deleted successfully.",
+      "deleteFailed": "Failed to delete account."
+    },
+    "projects": {
+      "title": "My Projects",
+      "emptyPrefix": "No projects yet.",
+      "emptyAction": "Create your first project"
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Open Dashboard",

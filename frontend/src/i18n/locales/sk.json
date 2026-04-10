@@ -122,6 +122,61 @@
       "importReview": "Kontrola importu"
     }
   },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Nastavenia uctu",
+    "avatar": {
+      "alt": "profilovy avatar",
+      "uploadAriaLabel": "Nahrat profilovu fotografiu",
+      "upload": "Nahrat fotografiu",
+      "uploading": "Nahrava sa...",
+      "hint": "PNG/JPG/WEBP do 5 MB",
+      "tooLarge": "Obrazok je prilis velky. Maximalna velkost je 5 MB.",
+      "updated": "Profilova fotografia bola uspesne aktualizovana.",
+      "uploadFailed": "Obrazok sa nepodarilo nahrat."
+    },
+    "details": {
+      "name": "Meno",
+      "email": "E-mail",
+      "registered": "Registrovany"
+    },
+    "publicProfile": {
+      "title": "Verejny profil",
+      "nickname": "Prezivka",
+      "saving": "Uklada sa...",
+      "save": "Ulozit prezivku",
+      "required": "Prezivka je povinna.",
+      "updated": "Prezivka bola uspesne aktualizovana.",
+      "updateFailed": "Prezivku sa nepodarilo aktualizovat."
+    },
+    "password": {
+      "title": "Zmena hesla",
+      "currentPassword": "Aktualne heslo",
+      "newPassword": "Nove heslo",
+      "confirmPassword": "Potvrdit nove heslo",
+      "updating": "Aktualizuje sa...",
+      "update": "Aktualizovat heslo",
+      "mismatch": "Potvrdenie hesla sa nezhoduje.",
+      "updated": "Heslo bolo uspesne aktualizovane.",
+      "updateFailed": "Heslo sa nepodarilo aktualizovat."
+    },
+    "danger": {
+      "title": "Rizikova zona",
+      "description": "Odstranenie uctu natrvalo odstrani vas profil aj vsetky projekty.",
+      "currentPassword": "Aktualne heslo",
+      "deleting": "Odstranuje sa...",
+      "delete": "Odstranit ucet",
+      "required": "Aktualne heslo je povinne.",
+      "confirm": "Odstranit ucet natrvalo? Tuto akciu nie je mozne vratit.",
+      "deleted": "Ucet bol uspesne odstraneny.",
+      "deleteFailed": "Ucet sa nepodarilo odstranit."
+    },
+    "projects": {
+      "title": "Moje projekty",
+      "emptyPrefix": "Zatial ziadne projekty.",
+      "emptyAction": "Vytvorte svoj prvy projekt"
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Otvorit dashboard",

@@ -122,6 +122,61 @@
       "importReview": "Perevirka importu"
     }
   },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Nalashtuvannya akaunta",
+    "avatar": {
+      "alt": "avatar profilyu",
+      "uploadAriaLabel": "Zavantazhyty foto profilyu",
+      "upload": "Zavantazhyty foto",
+      "uploading": "Zavantazhennya...",
+      "hint": "PNG/JPG/WEBP do 5 MB",
+      "tooLarge": "Zobrazhennya zanadto velyke. Maksymalnyy rozmir 5 MB.",
+      "updated": "Foto profilyu uspishno onovleno.",
+      "uploadFailed": "Ne vdalosya zavantazhyty zobrazhennya."
+    },
+    "details": {
+      "name": "Imya",
+      "email": "El. poshta",
+      "registered": "Zareyestrovano"
+    },
+    "publicProfile": {
+      "title": "Publichnyi profil",
+      "nickname": "Nikneym",
+      "saving": "Zberezhennya...",
+      "save": "Zberehty nikneym",
+      "required": "Nikneym obovyazkovyy.",
+      "updated": "Nikneym uspishno onovleno.",
+      "updateFailed": "Ne vdalosya onovyty nikneym."
+    },
+    "password": {
+      "title": "Zmina parolya",
+      "currentPassword": "Potochnyy parol",
+      "newPassword": "Novyy parol",
+      "confirmPassword": "Pidtverdit novyy parol",
+      "updating": "Onovlennya...",
+      "update": "Onovyty parol",
+      "mismatch": "Pidtverdzhennya parolya ne spivpadaye.",
+      "updated": "Parol uspishno onovleno.",
+      "updateFailed": "Ne vdalosya onovyty parol."
+    },
+    "danger": {
+      "title": "Nebezpechna zona",
+      "description": "Vydalennya akaunta nazavzhdy vydalyt vash profil i vsi proyekty.",
+      "currentPassword": "Potochnyy parol",
+      "deleting": "Vydalennya...",
+      "delete": "Vydalyty akaunt",
+      "required": "Potochnyy parol obovyazkovyy.",
+      "confirm": "Vydalyty akaunt nazavzhdy? Tsyu diyu nemozhlyvo skasuvaty.",
+      "deleted": "Akaunt uspishno vydaleno.",
+      "deleteFailed": "Ne vdalosya vydalyty akaunt."
+    },
+    "projects": {
+      "title": "Moyi proyekty",
+      "emptyPrefix": "Poky shcho nemae proektiv.",
+      "emptyAction": "Stvoryt sviy pershyi proyekt"
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Vidkryty dashboard",

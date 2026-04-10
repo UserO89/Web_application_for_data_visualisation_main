@@ -122,6 +122,61 @@
       "importReview": "Proverka importa"
     }
   },
+  "profile": {
+    "title": "Profil",
+    "subtitle": "Nastroyki akkaunta",
+    "avatar": {
+      "alt": "avatar profilya",
+      "uploadAriaLabel": "Zagruzit foto profilya",
+      "upload": "Zagruzit foto",
+      "uploading": "Zagruzka...",
+      "hint": "PNG/JPG/WEBP do 5 MB",
+      "tooLarge": "Izobrazhenie slishkom bolshoe. Maksimalnyy razmer 5 MB.",
+      "updated": "Foto profilya uspeshno obnovleno.",
+      "uploadFailed": "Ne udalos zagruzit izobrazhenie."
+    },
+    "details": {
+      "name": "Imya",
+      "email": "El. pochta",
+      "registered": "Registratsiya"
+    },
+    "publicProfile": {
+      "title": "Publichnyy profil",
+      "nickname": "Nikneym",
+      "saving": "Sohranenie...",
+      "save": "Sohranit nikneym",
+      "required": "Nikneym obyazatelen.",
+      "updated": "Nikneym uspeshno obnovlen.",
+      "updateFailed": "Ne udalos obnovit nikneym."
+    },
+    "password": {
+      "title": "Smena parolya",
+      "currentPassword": "Tekuschiy parol",
+      "newPassword": "Novyy parol",
+      "confirmPassword": "Podtverdite novyy parol",
+      "updating": "Obnovlenie...",
+      "update": "Obnovit parol",
+      "mismatch": "Podtverzhdenie parolya ne sovpadaet.",
+      "updated": "Parol uspeshno obnovlen.",
+      "updateFailed": "Ne udalos obnovit parol."
+    },
+    "danger": {
+      "title": "Opasnaya zona",
+      "description": "Udalenie akkaunta navsegda udalit vash profil i vse proekty.",
+      "currentPassword": "Tekuschiy parol",
+      "deleting": "Udalenie...",
+      "delete": "Udalit akkaunt",
+      "required": "Tekuschiy parol obyazatelen.",
+      "confirm": "Udalit akkaunt navsegda? Eto deystvie nelzya otmenit.",
+      "deleted": "Akkaunt uspeshno udalen.",
+      "deleteFailed": "Ne udalos udalit akkaunt."
+    },
+    "projects": {
+      "title": "Moi proekty",
+      "emptyPrefix": "Poka net proektov.",
+      "emptyAction": "Sozdayte svoy pervyy proekt"
+    }
+  },
   "home": {
     "actions": {
       "openDashboard": "Otkryt dashboard",
