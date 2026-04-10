@@ -2,11 +2,11 @@
   <div v-if="isOpen" class="modal-overlay" @click="$emit('close')">
     <div class="modal panel" @click.stop>
       <h2 class="modal-title">
-        {{ form.mode === 'create' ? 'Create Project' : 'Edit Project' }}
+        {{ form.mode === 'create' ? $t('admin.projects.modal.createTitle') : $t('admin.projects.modal.editTitle') }}
       </h2>
       <form @submit.prevent="$emit('save')">
         <div class="form-group">
-          <label for="admin-project-title">Title</label>
+          <label for="admin-project-title">{{ $t('projects.projectTitle') }}</label>
           <input
             id="admin-project-title"
             :value="form.title"
@@ -18,7 +18,7 @@
           />
         </div>
         <div class="form-group">
-          <label for="admin-project-description">Description</label>
+          <label for="admin-project-description">{{ $t('projects.projectDescription') }}</label>
           <textarea
             id="admin-project-description"
             :value="form.description"
@@ -32,9 +32,9 @@
         <div v-if="error" class="error-text">{{ error }}</div>
 
         <div class="modal-actions">
-          <button class="btn" type="button" @click="$emit('close')">Cancel</button>
+          <button class="btn" type="button" @click="$emit('close')">{{ $t('common.cancel') }}</button>
           <button class="btn primary" type="submit" :disabled="saving">
-            {{ saving ? 'Saving...' : (form.mode === 'create' ? 'Create' : 'Save') }}
+            {{ saving ? $t('admin.projects.modal.saving') : (form.mode === 'create' ? $t('common.create') : $t('common.saveChanges')) }}
           </button>
         </div>
       </form>

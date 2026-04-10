@@ -1,10 +1,10 @@
 <template>
   <div v-if="isOpen" class="modal-overlay" @click="$emit('close')">
     <div class="modal panel" @click.stop>
-      <h2 class="modal-title">Edit User</h2>
+      <h2 class="modal-title">{{ $t('admin.users.modal.title') }}</h2>
       <form @submit.prevent="$emit('save')">
         <div class="form-group">
-          <label for="admin-user-name">Name</label>
+          <label for="admin-user-name">{{ $t('profile.details.name') }}</label>
           <input
             id="admin-user-name"
             :value="form.name"
@@ -16,7 +16,7 @@
           />
         </div>
         <div class="form-group">
-          <label for="admin-user-email">Email</label>
+          <label for="admin-user-email">{{ $t('profile.details.email') }}</label>
           <input
             id="admin-user-email"
             :value="form.email"
@@ -28,7 +28,7 @@
           />
         </div>
         <div class="form-group">
-          <label for="admin-user-role">Role</label>
+          <label for="admin-user-role">{{ $t('admin.users.modal.role') }}</label>
           <select
             id="admin-user-role"
             :value="form.role"
@@ -36,12 +36,12 @@
             :disabled="form.id === currentUserId"
             @change="updateField('role', $event.target.value)"
           >
-            <option value="user">user</option>
-            <option value="admin">admin</option>
+            <option value="user">{{ $t('admin.users.roles.user') }}</option>
+            <option value="admin">{{ $t('admin.users.roles.admin') }}</option>
           </select>
         </div>
         <div class="form-group">
-          <label for="admin-user-password">New password (optional)</label>
+          <label for="admin-user-password">{{ $t('admin.users.modal.newPassword') }}</label>
           <input
             id="admin-user-password"
             :value="form.password"
@@ -55,9 +55,9 @@
         <div v-if="error" class="error-text">{{ error }}</div>
 
         <div class="modal-actions">
-          <button class="btn" type="button" @click="$emit('close')">Cancel</button>
+          <button class="btn" type="button" @click="$emit('close')">{{ $t('common.cancel') }}</button>
           <button class="btn primary" type="submit" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save' }}
+            {{ saving ? $t('admin.users.modal.saving') : $t('common.saveChanges') }}
           </button>
         </div>
       </form>

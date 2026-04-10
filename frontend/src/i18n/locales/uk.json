@@ -210,6 +210,12 @@
       "edit": "Redaguvaty korystuvacha",
       "delete": "Vydalyty korystuvacha",
       "deleting": "Vydalennya...",
+      "modal": {
+        "title": "Redaguvaty korystuvacha",
+        "role": "Rol",
+        "newPassword": "Novyy parol (neobovyazkovo)",
+        "saving": "Zberezhennya..."
+      },
       "roles": {
         "admin": "Admin",
         "user": "Korystuvach"
@@ -223,7 +229,12 @@
       "hiddenUntilSelected": "Proyekty prykhovani, doky vy ne vyberete korystuvacha vyshe.",
       "empty": "U tsogo korystuvacha poky nemae proektiv.",
       "noDescription": "Bez opysu",
-      "deleting": "Vydalennya..."
+      "deleting": "Vydalennya...",
+      "modal": {
+        "createTitle": "Stvoryty proyekt",
+        "editTitle": "Redaguvaty proyekt",
+        "saving": "Zberezhennya..."
+      }
     }
   },
   "home": {

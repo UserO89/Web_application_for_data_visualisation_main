@@ -210,6 +210,12 @@
       "edit": "Upravit pouzivatela",
       "delete": "Odstranit pouzivatela",
       "deleting": "Odstranuje sa...",
+      "modal": {
+        "title": "Upravit pouzivatela",
+        "role": "Rola",
+        "newPassword": "Nove heslo (volitelne)",
+        "saving": "Uklada sa..."
+      },
       "roles": {
         "admin": "Admin",
         "user": "Pouzivatel"
@@ -223,7 +229,12 @@
       "hiddenUntilSelected": "Projekty su skryte, kym nevyberiete pouzivatela vyssie.",
       "empty": "Tento pouzivatel este nema ziadne projekty.",
       "noDescription": "Bez popisu",
-      "deleting": "Odstranuje sa..."
+      "deleting": "Odstranuje sa...",
+      "modal": {
+        "createTitle": "Vytvorit projekt",
+        "editTitle": "Upravit projekt",
+        "saving": "Uklada sa..."
+      }
     }
   },
   "home": {

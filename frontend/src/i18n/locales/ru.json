@@ -210,6 +210,12 @@
       "edit": "Redaktirovat polzovatelya",
       "delete": "Udalit polzovatelya",
       "deleting": "Udalenie...",
+      "modal": {
+        "title": "Redaktirovat polzovatelya",
+        "role": "Rol",
+        "newPassword": "Novyy parol (neobyazatelno)",
+        "saving": "Sohranenie..."
+      },
       "roles": {
         "admin": "Admin",
         "user": "Polzovatel"
@@ -223,7 +229,12 @@
       "hiddenUntilSelected": "Proekty skryty, poka vy ne vyberete polzovatelya vyshe.",
       "empty": "U etogo polzovatelya poka net proektov.",
       "noDescription": "Bez opisaniya",
-      "deleting": "Udalenie..."
+      "deleting": "Udalenie...",
+      "modal": {
+        "createTitle": "Sozdat proekt",
+        "editTitle": "Redaktirovat proekt",
+        "saving": "Sohranenie..."
+      }
     }
   },
   "home": {

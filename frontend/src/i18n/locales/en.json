@@ -210,6 +210,12 @@
       "edit": "Edit user",
       "delete": "Delete user",
       "deleting": "Deleting...",
+      "modal": {
+        "title": "Edit User",
+        "role": "Role",
+        "newPassword": "New password (optional)",
+        "saving": "Saving..."
+      },
       "roles": {
         "admin": "Admin",
         "user": "User"
@@ -223,7 +229,12 @@
       "hiddenUntilSelected": "Projects are hidden until you select a user above.",
       "empty": "This user has no projects yet.",
       "noDescription": "No description",
-      "deleting": "Deleting..."
+      "deleting": "Deleting...",
+      "modal": {
+        "createTitle": "Create Project",
+        "editTitle": "Edit Project",
+        "saving": "Saving..."
+      }
     }
   },
   "home": {
