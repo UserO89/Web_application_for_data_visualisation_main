@@ -8,7 +8,7 @@
         </router-link>
 
         <div class="desktop-nav-group">
-          <router-link :to="{ name: 'home' }" class="nav-btn">Home</router-link>
+          <router-link :to="{ name: 'home' }" class="nav-btn">{{ t('nav.home') }}</router-link>
           <div v-if="authStore.isAuthenticated" class="projects-nav" ref="projectsWrap">
             <button
               class="nav-btn nav-dropdown"
@@ -18,7 +18,7 @@
               aria-haspopup="menu"
               @click="toggleProjectsMenu"
             >
-              <span>Projects</span>
+              <span>{{ t('nav.projects') }}</span>
               <span class="dropdown-chevron" :class="{ open: projectsMenuOpen }" aria-hidden="true">
                 <svg viewBox="0 0 16 16" fill="none">
                   <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -29,12 +29,12 @@
             <transition name="fade-slide">
               <div v-if="projectsMenuOpen" class="projects-menu" role="menu">
                 <router-link :to="{ name: 'projects' }" class="projects-item projects-all" @click="closeProjectsMenu">
-                  Open Projects
+                  {{ t('nav.openProjects') }}
                 </router-link>
                 <div class="projects-divider"></div>
 
                 <div v-if="projectsStore.loading && !quickProjects.length" class="projects-empty">
-                  Loading projects...
+                  {{ t('nav.loadingProjects') }}
                 </div>
                 <template v-else-if="quickProjects.length">
                   <router-link
@@ -47,11 +47,11 @@
                     <span class="projects-item-title">{{ projectTitle(project) }}</span>
                   </router-link>
                 </template>
-                <div v-else class="projects-empty">No projects yet.</div>
+                <div v-else class="projects-empty">{{ t('nav.noProjects') }}</div>
               </div>
             </transition>
           </div>
-          <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="nav-btn">Admin</router-link>
+          <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="nav-btn">{{ t('nav.admin') }}</router-link>
         </div>
       </div>
 
@@ -64,7 +64,7 @@
           class="compact-menu-btn"
           :aria-expanded="compactNavOpen.toString()"
           aria-controls="compact-nav-accordion"
-          aria-label="Toggle navigation menu"
+          :aria-label="t('nav.toggleNavigation')"
           @click.stop="toggleCompactNav"
         >
           <svg v-if="!compactNavOpen" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -77,7 +77,7 @@
 
         <div class="header-right" ref="profileWrap">
           <router-link v-if="showGuestLogin" :to="{ name: 'login' }" class="btn">
-            Log in
+            {{ t('nav.login') }}
           </router-link>
 
           <template v-else-if="authStore.isAuthenticated">
@@ -92,7 +92,7 @@
               <img
                 v-if="avatarUrl"
                 :src="avatarUrl"
-                alt="avatar"
+                :alt="t('nav.avatarAlt')"
                 class="avatar"
               />
               <div v-else class="avatar avatar-fallback">{{ initials }}</div>
@@ -104,20 +104,20 @@
                   <span class="menu-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none"><path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" stroke="currentColor" stroke-width="1.8"/></svg>
                   </span>
-                  Projects
+                  {{ t('nav.projects') }}
                 </router-link>
                 <router-link :to="{ name: 'profile' }" class="menu-item" @click="closeMenu">
                   <span class="menu-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none"><path d="M12 12a4 4 0 1 0-0.001-8.001A4 4 0 0 0 12 12zm0 2c-4.2 0-7 2.1-7 5v1h14v-1c0-2.9-2.8-5-7-5z" stroke="currentColor" stroke-width="1.8"/></svg>
                   </span>
-                  Profile
+                  {{ t('nav.profile') }}
                 </router-link>
                 <div class="menu-divider"></div>
                 <button class="menu-item menu-danger" @click="handleLogout" type="button">
                   <span class="menu-icon" aria-hidden="true">
                     <svg viewBox="0 0 24 24" fill="none"><path d="M14 7V4h6v16h-6v-3M10 12h10M10 12l3-3M10 12l3 3M4 4h6v4H8v8h2v4H4z" stroke="currentColor" stroke-width="1.8"/></svg>
                   </span>
-                  Logout
+                  {{ t('nav.logout') }}
                 </button>
               </div>
             </transition>
@@ -135,7 +135,7 @@
         @click.stop
       >
         <router-link :to="{ name: 'home' }" class="compact-nav-item" @click="closeCompactNav">
-          Home
+          {{ t('nav.home') }}
         </router-link>
 
         <button
@@ -145,7 +145,7 @@
           :aria-expanded="compactProjectsOpen.toString()"
           @click="toggleCompactProjects"
         >
-          <span>Projects</span>
+          <span>{{ t('nav.projects') }}</span>
           <span class="compact-chevron" :class="{ open: compactProjectsOpen }" aria-hidden="true">
             <svg viewBox="0 0 16 16" fill="none">
               <path d="M3 6l5 5 5-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
@@ -155,7 +155,7 @@
 
         <div v-if="authStore.isAuthenticated && compactProjectsOpen" class="compact-projects-list">
           <router-link :to="{ name: 'projects' }" class="compact-project-item" @click="closeCompactNav">
-            Open Projects
+            {{ t('nav.openProjects') }}
           </router-link>
           <router-link
             v-for="project in quickProjects"
@@ -169,7 +169,7 @@
         </div>
 
         <router-link v-if="isAdmin" :to="{ name: 'admin' }" class="compact-nav-item" @click="closeCompactNav">
-          Admin
+          {{ t('nav.admin') }}
         </router-link>
       </div>
     </transition>
@@ -178,6 +178,7 @@
 
 <script>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useProjectsStore } from '../stores/projects'
@@ -190,6 +191,7 @@ export default {
   name: 'AppHeader',
   components: { LanguageSwitcher },
   setup() {
+    const { t } = useI18n({ useScope: 'global' })
     const route = useRoute()
     const router = useRouter()
     const authStore = useAuthStore()
@@ -220,11 +222,12 @@ export default {
         .slice(0, 12)
     })
 
-    const displayName = computed(() => authStore.user?.name || 'User')
+    const displayName = computed(() => authStore.user?.name || t('common.user'))
     const avatarUrl = computed(() => authStore.user?.avatar_url || null)
 
     const initials = computed(() => {
-      return getInitials(authStore.user?.name || 'User', 'U')
+      const fallbackName = displayName.value || t('common.user')
+      return getInitials(fallbackName, fallbackName.charAt(0).toUpperCase() || 'U')
     })
 
     const closeMenu = () => {
@@ -323,17 +326,17 @@ export default {
         closeMenu()
         closeProjectsMenu()
         closeCompactNav()
-        notify.success('Logged out successfully.')
+        notify.success(t('nav.logoutSuccess'))
         router.push({ name: 'home' })
       } catch (error) {
-        notify.error(extractApiErrorMessage(error, 'Failed to log out.'))
+        notify.error(extractApiErrorMessage(error, t('nav.logoutFailed')))
       }
     }
 
     const projectTitle = (project) => {
       const value = String(project?.title || '').trim()
       if (value) return value
-      return `Project #${project?.id ?? ''}`.trim()
+      return t('nav.projectFallback', { id: project?.id ?? '' }).trim()
     }
 
     onMounted(() => {
@@ -355,6 +358,7 @@ export default {
     return {
       authStore,
       projectsStore,
+      t,
       menuOpen,
       projectsMenuOpen,
       compactNavOpen,
