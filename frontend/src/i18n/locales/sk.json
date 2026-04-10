@@ -38,7 +38,7 @@
     "name": "Meno",
     "namePlaceholder": "Vase meno",
     "email": "E-mail",
-    "emailPlaceholder": "vas@email.com",
+    "emailPlaceholder": "name@example.com",
     "password": "Heslo",
     "passwordPlaceholder": "Heslo",
     "login": "Prihlasit sa",
