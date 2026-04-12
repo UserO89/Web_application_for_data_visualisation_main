@@ -130,12 +130,12 @@ import { ProjectDatasetImportSection, ProjectValidationModal, ProjectPageToolbar
 import { projectsApi } from '../api/projects'
 import { demoProjectsApi } from '../api/demo'
 import { useDatasetSchemaStore } from '../stores/datasetSchema'
-import { createDefaultChartDefinition, mergeChartDefinition } from '../charts/chartDefinitions/createUniversalChartDefinition'
-import { normalizeChartDefinition } from '../charts/rules/chartDefinitionValidator'
-import { cellField, buildCsvLines, buildRowUpdateValues } from '../utils/project'
+import { cellField, buildCsvLines } from '../utils/project'
 import { useManualDatasetBuilder, useValidationReport, useProjectDataLoader, useProjectWorkspace, useProjectChartState, } from '../composables/project'
+import { useProjectPageDataFlow } from '../composables/project/useProjectPageDataFlow'
 import { useProjectSavedCharts } from '../composables/project/useProjectSavedCharts'
 import { useProjectChartViewportObserver } from '../composables/project/useProjectChartViewportObserver'
+import { useProjectDatasetImport } from '../composables/project/useProjectDatasetImport'
 import { useNotifications } from '../composables/useNotifications'
 import { extractApiErrorMessage } from '../utils/api/errors'
 
@@ -175,14 +175,6 @@ export default {
     const chartViewportRef = ref(null)
     const schemaStore = useDatasetSchemaStore()
     const notify = useNotifications()
-    const tableSaving = ref(false)
-    const tableEditing = ref(false)
-    const pendingTableRows = ref(new Map())
-
-    const selectedFile = ref(null)
-    const importing = ref(false)
-    const importOptions = ref({ has_header: true, delimiter: ',' })
-    const importMode = ref('file')
 
     const {
       manualHeaders,
@@ -234,7 +226,6 @@ export default {
         .sort((a, b) => Number(a.position) - Number(b.position))
     )
     const schemaUpdatingColumnId = computed(() => schemaStore.updatingColumnId)
-    const tableHasUnsavedChanges = computed(() => pendingTableRows.value.size > 0)
 
     const {
       importValidation,
@@ -381,309 +372,82 @@ export default {
       startResize(panelId, dir, event)
     }
 
-    const areChartDefinitionsEqual = (left, right) =>
-      left === right || JSON.stringify(normalizeChartDefinition(left)) === JSON.stringify(normalizeChartDefinition(right))
-
-    const handleChartDefinitionUpdate = (nextDefinition) => {
-      const normalized = normalizeChartDefinition(nextDefinition)
-      if (areChartDefinitionsEqual(chartDefinition.value, normalized)) return
-      chartDefinition.value = normalized
-    }
-
     const handleSetSeriesColor = ({ label, index, color }) => {
       setSeriesColor(label, index, color)
     }
 
-    let chartBuildFrameId = null
-    let pendingChartDefinition = null
+    const {
+      tableSaving,
+      tableEditing,
+      tableHasUnsavedChanges,
+      loadAnalysisRowsForUi,
+      handleChartDefinitionUpdate,
+      scheduleBuildChart,
+      clearScheduledChartBuild,
+      loadProjectPage,
+      refreshData,
+      handleLoadAnalysisRows,
+      handleBuildChart,
+      refreshDerivedData,
+      resetDatasetState,
+      handleCellEdit,
+      handleSaveTable,
+    } = useProjectPageDataFlow({
+      projectId,
+      isReadOnly,
+      tableRows,
+      analysisRows,
+      analysisRowsReady,
+      analysisRowsError,
+      suggestions,
+      sortedDatasetColumns,
+      schemaStore,
+      loadProject,
+      loadAnalysisRows,
+      ensureAnalysisRowsLoaded,
+      loadSuggestions,
+      loadStatisticsSummary,
+      reloadProjectData,
+      refreshProjectData,
+      resetProjectDataState,
+      setValidationReport,
+      applyValidationReportFromProject,
+      chartDefinition,
+      chartViewportHeight,
+      chartViewportCustom,
+      chartLabels,
+      chartDatasets,
+      chartMeta,
+      seriesColors,
+      loadSeriesColors,
+      buildChart,
+      clearChart,
+      loadSavedCharts,
+      resetSavedChartsState,
+      ensureWorkspaceInitializedForProject,
+      notify,
+      t,
+    })
 
-    const scheduleBuildChart = (definition = chartDefinition.value) => {
-      pendingChartDefinition = definition
-      if (chartBuildFrameId !== null) return
-
-      chartBuildFrameId = requestAnimationFrame(() => {
-        chartBuildFrameId = null
-        const nextDefinition = pendingChartDefinition || chartDefinition.value
-        pendingChartDefinition = null
-        buildChart(nextDefinition)
-      })
-    }
-
-    const loadAnalysisRowsForUi = async ({ force = false, notifyOnError = false } = {}) => {
-      const loader = force ? loadAnalysisRows : ensureAnalysisRowsLoaded
-      const rows = await loader({
-        columns: sortedDatasetColumns.value,
-        force,
-      })
-
-      if (rows) {
-        applyPendingTableRows(analysisRows)
-      }
-
-      if (!rows && notifyOnError && analysisRowsError.value) {
-        notify.error(analysisRowsError.value)
-      }
-
-      return rows ? analysisRows.value : rows
-    }
-
-    const ensureAnalysisRowsForChart = async (definition = chartDefinition.value) => {
-      const rows = await loadAnalysisRowsForUi({ notifyOnError: true })
-      if (!rows) return false
-      scheduleBuildChart(definition)
-      return true
-    }
-
-    const reloadAllProjectData = async ({ rebuildSchema = true, includeAnalysisRows = false } = {}) => {
-      await reloadProjectData({
-        rebuildSchema,
-        columns: sortedDatasetColumns.value,
-        includeAnalysisRows,
-      })
-    }
-
-    const resetDatasetState = ({ clearValidationReport = false } = {}) => {
-      if (clearValidationReport) {
-        setValidationReport(null)
-      }
-      clearPendingTableChanges()
-      seriesColors.value = {}
-      resetProjectDataState()
-      chartLabels.value = []
-      chartDatasets.value = []
-      chartMeta.value = {}
-      chartDefinition.value = createDefaultChartDefinition('line')
-      chartViewportHeight.value = 320
-      chartViewportCustom.value = false
-      resetSavedChartsState()
-      schemaStore.applySchema(null)
-    }
-
-    const applySuggestedChartDefinition = () => {
-      const suggested = suggestions.value[0]?.definition
-      if (!suggested) {
-        clearChart()
-        return
-      }
-      chartDefinition.value = normalizeChartDefinition(
-        mergeChartDefinition(createDefaultChartDefinition(suggested.chartType || 'line'), suggested)
-      )
-      if (analysisRowsReady.value) {
-        scheduleBuildChart(chartDefinition.value)
-      } else {
-        clearChart()
-      }
-    }
-
-    const handleProjectWithDataset = async (loadedProject) => {
-      seriesColors.value = loadSeriesColors()
-      await reloadAllProjectData({ rebuildSchema: false })
-      if (!isReadOnly.value) {
-        await loadSavedCharts()
-      }
-      applySuggestedChartDefinition()
-      applyValidationReportFromProject(loadedProject?.dataset?.validation_report_json)
-      await ensureWorkspaceInitializedForProject()
-    }
-
-    const loadProjectPage = async () => {
-      await loadProject({
-        onDatasetMissing: async () => {
-          resetDatasetState({ clearValidationReport: true })
-        },
-        onDatasetLoaded: handleProjectWithDataset,
-      })
-    }
-
-    const refreshData = async () => {
-      const includeAnalysisRows = analysisRowsReady.value
-      await refreshProjectData({
-        columns: sortedDatasetColumns.value,
-        includeAnalysisRows,
-      })
-      applyPendingTableRows(tableRows)
-      if (includeAnalysisRows) {
-        applyPendingTableRows(analysisRows)
-        scheduleBuildChart(chartDefinition.value)
-      }
-    }
-
-    const handleLoadAnalysisRows = async () => {
-      const rows = await loadAnalysisRowsForUi({
-        force: analysisRowsReady.value,
-        notifyOnError: true,
-      })
-      if (!rows) return
-      scheduleBuildChart(chartDefinition.value)
-    }
-
-    const handleBuildChart = async (definition = chartDefinition.value) => {
-      await ensureAnalysisRowsForChart(definition)
-    }
-
-    const handleFileSelect = (e) => {
-      selectedFile.value = e.target.files?.[0] || null
-    }
-
-    const afterDatasetImport = async (response) => {
-      setValidationReport(response?.validation || null)
-      await loadProjectPage()
-      openValidationModal()
-      notify.success(t('project.page.dataset.imported'))
-    }
-
-    const applyImportValidationError = (error) => {
-      const validation = error?.response?.data?.validation
-      if (!validation) return false
-      setValidationReport(validation)
-      openValidationModal()
-      const validationMessage = validation?.blocking_error?.message
-      notify.warning(validationMessage || t('project.page.dataset.importValidationIssues'))
-      return true
-    }
-
-    const handleImport = async () => {
-      if (isReadOnly.value) {
-        notify.info(t('project.page.readOnly.importDisabled'))
-        return
-      }
-      if (!selectedFile.value) {
-        notify.warning(t('project.page.dataset.chooseFile'))
-        return
-      }
-      importing.value = true
-      manualError.value = ''
-      try {
-        const response = await projectsApi.importDataset(projectId.value, selectedFile.value, importOptions.value)
-        await afterDatasetImport(response)
-      } catch (e) {
-        if (!applyImportValidationError(e)) {
-          notify.error(extractApiErrorMessage(e, t('project.page.dataset.importFailed')))
-        }
-      } finally {
-        importing.value = false
-      }
-    }
-
-    const handleManualImport = async () => {
-      if (isReadOnly.value) {
-        notify.info(t('project.page.readOnly.importDisabled'))
-        return
-      }
-      const file = prepareManualImportFile()
-      if (!file) return
-
-      importing.value = true
-      try {
-        const response = await projectsApi.importDataset(projectId.value, file, { has_header: true, delimiter: ',' })
-        await afterDatasetImport(response)
-      } catch (e) {
-        if (applyImportValidationError(e)) {
-          manualError.value = ''
-        } else {
-          manualError.value = extractApiErrorMessage(e, t('project.page.dataset.manualImportFailed'))
-          notify.error(manualError.value)
-        }
-      } finally {
-        importing.value = false
-      }
-    }
-
-    const refreshDerivedData = async () => {
-      await Promise.all([loadSuggestions(), loadStatisticsSummary()])
-      if (analysisRowsReady.value) {
-        scheduleBuildChart(chartDefinition.value)
-      }
-    }
-
-    const replaceLocalRow = (rowsRef, nextRow) => {
-      if (!nextRow?.id || !Array.isArray(rowsRef.value) || !rowsRef.value.length) return
-
-      let hasMatch = false
-      const updatedRows = rowsRef.value.map((row) => {
-        if (Number(row?.id) !== Number(nextRow.id)) return row
-        hasMatch = true
-        return nextRow
-      })
-
-      if (hasMatch) {
-        rowsRef.value = updatedRows
-      }
-    }
-
-    const setPendingTableRow = (nextRow) => {
-      if (!nextRow?.id) return
-
-      const updatedPendingRows = new Map(pendingTableRows.value)
-      updatedPendingRows.set(Number(nextRow.id), { ...nextRow })
-      pendingTableRows.value = updatedPendingRows
-    }
-
-    const clearPendingTableChanges = () => {
-      pendingTableRows.value = new Map()
-      tableSaving.value = false
-      tableEditing.value = false
-    }
-
-    const applyPendingTableRows = (rowsRef) => {
-      if (!Array.isArray(rowsRef.value) || !rowsRef.value.length || !pendingTableRows.value.size) return
-
-      rowsRef.value = rowsRef.value.map((row) => {
-        const pendingRow = pendingTableRows.value.get(Number(row?.id))
-        return pendingRow ? { ...row, ...pendingRow } : row
-      })
-    }
-
-    const handleCellEdit = async (data) => {
-      if (isReadOnly.value) {
-        notify.info(t('project.page.readOnly.tableEditsDisabled'))
-        return
-      }
-
-      const nextRow = { ...data.row }
-
-      if (nextRow) {
-        replaceLocalRow(tableRows, nextRow)
-        replaceLocalRow(analysisRows, nextRow)
-        setPendingTableRow(nextRow)
-      }
-
-      tableEditing.value = false
-
-      if (analysisRowsReady.value) {
-        scheduleBuildChart(chartDefinition.value)
-      }
-    }
-
-    const handleSaveTable = async () => {
-      if (isReadOnly.value) {
-        notify.info(t('project.page.readOnly.tableEditsDisabled'))
-        return
-      }
-      await nextTick()
-      if (!tableHasUnsavedChanges.value || tableSaving.value) return
-
-      tableSaving.value = true
-      const rowsToSave = Array.from(pendingTableRows.value.values())
-
-      try {
-        for (const row of rowsToSave) {
-          const values = buildRowUpdateValues(row, sortedDatasetColumns.value)
-          await projectsApi.updateRow(projectId.value, row.id, values)
-
-          const updatedPendingRows = new Map(pendingTableRows.value)
-          updatedPendingRows.delete(Number(row.id))
-          pendingTableRows.value = updatedPendingRows
-        }
-
-        await refreshData()
-        notify.success(t('project.page.dataset.tableSaved'))
-      } catch (e) {
-        notify.error(extractApiErrorMessage(e, t('project.page.dataset.tableSaveFailed')))
-      } finally {
-        tableSaving.value = false
-      }
-    }
+    const {
+      selectedFile,
+      importing,
+      importOptions,
+      importMode,
+      handleFileSelect,
+      handleImport,
+      handleManualImport,
+    } = useProjectDatasetImport({
+      projectId,
+      isReadOnly,
+      manualError,
+      prepareManualImportFile,
+      setValidationReport,
+      openValidationModal,
+      loadProjectPage,
+      notify,
+      t,
+    })
 
     const handleSemanticTypeChange = async ({ columnId, semanticType, analyticalRole, isExcludedFromAnalysis }) => {
       if (isReadOnly.value) {
@@ -760,11 +524,7 @@ export default {
       detachWorkspaceListeners()
       window.removeEventListener('keydown', onEsc)
       disconnectChartViewportObserver()
-      if (chartBuildFrameId !== null) {
-        cancelAnimationFrame(chartBuildFrameId)
-        chartBuildFrameId = null
-      }
-      pendingChartDefinition = null
+      clearScheduledChartBuild()
       saveLayouts()
     })
 
