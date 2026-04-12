@@ -1,5 +1,8 @@
 <template>
-  <div ref="el" class="tabulator-host"></div>
+  <div
+    ref="el"
+    :class="['tabulator-host', { 'tabulator-host-auto': !fillHeight }]"
+  ></div>
 </template>
 
 <script>
@@ -19,6 +22,10 @@ export default {
       required: true,
     },
     active: {
+      type: Boolean,
+      default: true,
+    },
+    fillHeight: {
       type: Boolean,
       default: true,
     },
@@ -119,11 +126,10 @@ export default {
     onMounted(() => {
       if (!el.value) return
 
-      table = new Tabulator(el.value, {
+      const config = {
         data: props.rows,
         columns: mapColumns(props.columns),
         index: 'id',
-        height: '100%',
         layout: 'fitColumns',
         reactiveData: false,
         pagination: true,
@@ -135,7 +141,12 @@ export default {
           tableReady = true
           flushPendingUpdates()
         },
-      })
+      }
+      if (props.fillHeight) {
+        config.height = '100%'
+      }
+
+      table = new Tabulator(el.value, config)
 
       if (typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver(() => {
@@ -230,6 +241,15 @@ export default {
   border-radius: 10px;
   overflow: hidden;
   border: 1px solid var(--border);
+}
+
+.tabulator-host-auto {
+  height: auto;
+}
+
+.tabulator-host-auto .tabulator-tableholder {
+  max-height: none !important;
+  overflow-y: visible !important;
 }
 
 .tabulator-host .tabulator {

@@ -8,10 +8,14 @@ vi.mock('../../../src/components/project/DataTable.vue', async () => {
   return {
     default: defineComponent({
       name: 'DataTable',
+      props: {
+        fillHeight: { type: Boolean, default: true },
+      },
       emits: ['cell-edited', 'cell-editing-state'],
-      setup(_, { emit }) {
+      setup(props, { emit }) {
         return () => h('button', {
           class: 'data-table-stub',
+          'data-fill-height': String(props.fillHeight),
           onClick: () => {
             emit('cell-editing-state', true)
             emit('cell-edited', { row: { id: 1 }, field: 'revenue', value: 250 })
@@ -98,9 +102,15 @@ vi.mock('../../../src/components/project/StatisticsWorkspace.vue', async () => {
   return {
     default: defineComponent({
       name: 'StatisticsWorkspace',
+      props: {
+        fullPage: { type: Boolean, default: false },
+      },
       emits: ['load-rows', 'change-semantic', 'change-ordinal-order'],
-      setup(_, { emit }) {
-        return () => h('div', { class: 'statistics-workspace-stub' }, [
+      setup(props, { emit }) {
+        return () => h('div', {
+          class: 'statistics-workspace-stub',
+          'data-full-page': String(props.fullPage),
+        }, [
           h('button', { class: 'stats-load-rows', onClick: () => emit('load-rows') }, 'Stats load rows'),
           h('button', {
             class: 'stats-change-semantic',
@@ -242,6 +252,17 @@ describe('ProjectWorkspaceCanvas', () => {
     expect(wrapper.emitted('save-table')).toHaveLength(1)
   })
 
+  it('uses natural-height table mode on the standalone table page', () => {
+    const wrapper = mountCanvas({
+      viewMode: 'table',
+      visiblePanelIds: ['table'],
+      panelConfig: { table: buildPanelConfig().table },
+    })
+
+    expect(wrapper.findComponent({ name: 'DataTable' }).props('fillHeight')).toBe(false)
+    expect(wrapper.classes()).toContain('workspace-canvas-natural-table')
+  })
+
   it('forwards chart workspace actions and chart builder updates', async () => {
     const wrapper = mountCanvas({
       visiblePanelIds: ['chart'],
@@ -316,9 +337,13 @@ describe('ProjectWorkspaceCanvas', () => {
 
   it('forwards statistics workspace events', async () => {
     const wrapper = mountCanvas({
+      viewMode: 'statistics',
       visiblePanelIds: ['stats'],
       panelConfig: { stats: buildPanelConfig().stats },
     })
+
+    expect(wrapper.findComponent({ name: 'StatisticsWorkspace' }).props('fullPage')).toBe(true)
+    expect(wrapper.classes()).toContain('workspace-canvas-natural-stats')
 
     await wrapper.find('.stats-load-rows').trigger('click')
     await wrapper.find('.stats-change-semantic').trigger('click')

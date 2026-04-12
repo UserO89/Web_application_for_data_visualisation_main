@@ -50,6 +50,7 @@ const buildProps = (overrides = {}) => ({
     { id: 1, revenue: 100 },
   ],
   active: true,
+  fillHeight: true,
   editable: true,
   ...overrides,
 })
@@ -169,6 +170,17 @@ describe('DataTable', () => {
       editor: false,
       editable: false,
     })
+  })
+
+  it('omits the fixed height when fillHeight is false', () => {
+    mount(DataTable, {
+      props: buildProps({
+        fillHeight: false,
+      }),
+      attachTo: document.body,
+    })
+
+    expect(tabulatorState.config.height).toBeUndefined()
   })
 
   it('flushes pending rows and columns after tableBuilt and cleans up on unmount', async () => {

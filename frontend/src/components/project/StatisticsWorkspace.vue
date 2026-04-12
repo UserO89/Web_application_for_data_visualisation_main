@@ -1,5 +1,5 @@
 <template>
-  <div class="stats-workspace panel">
+  <div :class="['stats-workspace', 'panel', { 'stats-workspace-full-page': fullPage }]">
     <div class="stats-head">
       <div>
         <div class="section-title">{{ $t('statistics.workspace.title') }}</div>
@@ -155,6 +155,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    fullPage: {
+      type: Boolean,
+      default: false,
+    },
   },
   emits: ['change-semantic', 'change-ordinal-order', 'load-rows'],
   setup(props, { emit }) {
@@ -202,6 +206,16 @@ export default {
   border-radius: 10px;
   background: #171717;
   padding: 10px;
+}
+
+.stats-workspace-full-page :deep(.table-wrap) {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.stats-workspace-full-page :deep(.compact-wrap) {
+  max-height: none;
 }
 
 @media (max-width: 760px) {

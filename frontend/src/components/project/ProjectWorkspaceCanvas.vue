@@ -1,7 +1,14 @@
 <template>
   <div
     :ref="setWorkspaceRef"
-    :class="['workspace-canvas', { 'workspace-canvas-compact': isCompactWorkspace }]"
+    :class="[
+      'workspace-canvas',
+      {
+        'workspace-canvas-compact': isCompactWorkspace,
+        'workspace-canvas-natural-table': isStandaloneTableView,
+        'workspace-canvas-natural-stats': isStandaloneStatisticsView,
+      },
+    ]"
     :style="canvasStyle"
   >
     <section
@@ -37,10 +44,12 @@
           <template v-else>
             <div class="table-wrap table-fill">
               <DataTable
+                :key="`table-${tableHeightMode}`"
                 :columns="tableColumns"
                 :rows="tableRows"
                 :active="isPanelVisible('table')"
                 :editable="tableEditable"
+                :fill-height="!isStandaloneTableView"
                 @cell-edited="$emit('cell-edit', $event)"
                 @cell-editing-state="$emit('table-editing-state', $event)"
               />
@@ -142,6 +151,7 @@
               :error="statisticsError"
               :updating-column-id="schemaUpdatingColumnId"
               :read-only="readOnly"
+              :full-page="isStandaloneStatisticsView"
               @load-rows="$emit('load-analysis-rows')"
               @change-semantic="$emit('change-semantic', $event)"
               @change-ordinal-order="$emit('change-ordinal-order', $event)"
@@ -315,9 +325,18 @@ export default {
     const { t, locale } = useI18n({ useScope: 'global' })
     const panelIds = computed(() => Object.keys(props.panelConfig || {}))
     const isPanelVisible = (panelId) => props.visiblePanelIds.includes(panelId)
-    const canvasStyle = computed(() =>
-      props.isCompactWorkspace ? {} : { height: `${props.workspaceHeight}px` }
+    const isStandaloneTableView = computed(() => props.viewMode === 'table')
+    const isStandaloneStatisticsView = computed(() => props.viewMode === 'statistics')
+    const usesNaturalFocusLayout = computed(() =>
+      isStandaloneTableView.value || isStandaloneStatisticsView.value
     )
+    const tableHeightMode = computed(() =>
+      isStandaloneTableView.value ? 'natural' : 'fill'
+    )
+    const canvasStyle = computed(() => {
+      if (props.isCompactWorkspace || usesNaturalFocusLayout.value) return {}
+      return { height: `${props.workspaceHeight}px` }
+    })
     const panelInlineStyle = (panelId) =>
       props.isCompactWorkspace ? {} : props.panelStyle(panelId)
     const requiresLandscapeForTable = ref(false)
@@ -471,6 +490,9 @@ export default {
     return {
       panelIds,
       isPanelVisible,
+      isStandaloneTableView,
+      isStandaloneStatisticsView,
+      tableHeightMode,
       canvasStyle,
       panelInlineStyle,
       requiresLandscapeForTable,
@@ -658,6 +680,47 @@ export default {
 .workspace-canvas-compact .chart-main-resizable {
   min-width: 0;
   resize: vertical;
+}
+
+.workspace-canvas-natural-table,
+.workspace-canvas-natural-stats {
+  min-height: 0;
+  height: auto !important;
+}
+
+.workspace-canvas-natural-table .workspace-panel,
+.workspace-canvas-natural-stats .workspace-panel {
+  position: relative;
+  left: auto !important;
+  top: auto !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0;
+}
+
+.workspace-canvas-natural-table .drag-handle,
+.workspace-canvas-natural-stats .drag-handle {
+  cursor: default;
+}
+
+.workspace-canvas-natural-table .panel-content,
+.workspace-canvas-natural-stats .panel-content,
+.workspace-canvas-natural-table .table-content,
+.workspace-canvas-natural-stats .stats-content {
+  height: auto;
+  overflow: visible;
+}
+
+.workspace-canvas-natural-table .table-fill {
+  height: auto !important;
+  max-height: none;
+  min-height: 260px;
+}
+
+.workspace-canvas-natural-stats .stats-shell {
+  height: auto;
+  overflow: visible;
+  padding-right: 0;
 }
 
 @media (max-width: 760px) {
