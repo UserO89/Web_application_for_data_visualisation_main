@@ -34,6 +34,16 @@
         }
     },
     "scripts": {
+        "test": [
+            "@php artisan test"
+        ],
+        "format:check": [
+            "@php vendor/bin/pint --test"
+        ],
+        "quality": [
+            "@test",
+            "@format:check"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"
