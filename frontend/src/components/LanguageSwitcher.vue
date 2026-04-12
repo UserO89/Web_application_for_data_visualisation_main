@@ -12,9 +12,14 @@
       :title="languageLabel"
       @click="toggleMenu"
     >
-      <svg class="language-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M4 5h8M8 5c0 6-2.2 10.7-6 14M12 5h8M16 5c0 5.4 1.8 10.2 5 14M7 12h10M12 12c1.2 2.7 3 5.1 5.3 7M12 12c-1.1-2.5-2.8-4.8-5-7M10 19h8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
+<svg class="language-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+  <path d="M4.5 5.5h9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M8.7 5.5l0.8-1.3 0.8 1.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M6.8 9.3l4 4.2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M12.8 9.5l-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+  <path d="M14.5 18l3-9 3 9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M15.8 13.8h3.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
     </button>
 
     <transition name="fade-pop">
@@ -179,8 +184,9 @@ export default {
   border: 1px solid var(--border);
   background: #1f1f1f;
   color: var(--muted);
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
+  padding: 0;
   border-radius: 10px;
   display: inline-flex;
   align-items: center;
@@ -204,8 +210,8 @@ export default {
 }
 
 .language-icon {
-  width: 19px;
-  height: 19px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 
