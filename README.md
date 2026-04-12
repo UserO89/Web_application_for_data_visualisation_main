@@ -163,7 +163,7 @@ cd frontend
 npm install
 Copy-Item .env.example .env.development
 # optional for production builds:
-# Copy-Item .env.example .env.production
+# Copy-Item .env.production.example .env.production
 
 npm run dev
 ```
@@ -237,6 +237,39 @@ Watch mode:
 cd frontend
 npm run test:watch
 ```
+
+Frontend quality gate:
+
+```bash
+cd frontend
+npm run check
+```
+
+Backend quality gate:
+
+```bash
+cd backend
+composer test
+composer format:check
+```
+
+## Clean Release Build
+
+Generate a clean local release package without runtime data:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
+```
+
+What the release script excludes:
+- uploaded avatars and imported datasets,
+- backend logs, cache, sessions, compiled views,
+- local SQLite databases,
+- local development artifacts.
+
+Production env templates are tracked in:
+- `backend/.env.production.example`
+- `frontend/.env.production.example`
 
 ## Screenshots
 

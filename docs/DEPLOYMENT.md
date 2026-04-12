@@ -7,6 +7,14 @@ Practical production runbook for VPS / typical PHP hosting.
 - Frontend is built with Vite and deployed as static files (`frontend/dist`) on your SPA domain.
 - HTTPS is enabled in production.
 
+Optional local packaging helper:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\build-release.ps1
+```
+
+The release packaging script intentionally excludes runtime data such as uploaded files, logs, sessions, cache artifacts, and local SQLite databases.
+
 ## 1) Required Production Environment Variables
 
 ### Backend (`backend/.env`)
@@ -46,6 +54,10 @@ VITE_API_BASE_URL=https://api.your-domain.com/api/v1
 ```
 
 `VITE_BACKEND_URL` is optional for production builds (mainly useful for preview/proxy tooling).
+
+Tracked production env templates:
+- `backend/.env.production.example`
+- `frontend/.env.production.example`
 
 ## 2) Backend Deploy Steps
 
