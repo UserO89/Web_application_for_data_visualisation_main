@@ -32,7 +32,6 @@ export const buildEChartOption = (definition) => {
   const type = definition?.type || 'line'
   const builder = optionBuilders[type]
   if (!builder) {
-    // TODO: add a dedicated option builder when introducing new chart types.
     return buildFallbackOption(type)
   }
 
