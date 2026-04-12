@@ -107,6 +107,8 @@
         "importFailed": "Import failed.",
         "manualImportFailed": "Failed to create table from manual data.",
         "rowSaveFailed": "Failed to save row changes.",
+        "tableSaved": "Table changes saved successfully.",
+        "tableSaveFailed": "Failed to save table changes.",
         "noTableData": "No table data to export."
       },
       "schema": {
@@ -135,7 +137,9 @@
         "rotateTitle": "Rotate device to landscape",
         "rotateText": "Table editing is optimized for horizontal view on phones.",
         "rotateContinue": "Continue without rotating",
-        "exportCsv": "Export Table CSV"
+        "exportCsv": "Export Table CSV",
+        "save": "Save Table",
+        "saving": "Saving..."
       },
       "chart": {
         "refreshData": "Refresh Data",

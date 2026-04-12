@@ -27,7 +27,7 @@ export default {
       default: true,
     },
   },
-  emits: ['cell-edited'],
+  emits: ['cell-edited', 'cell-editing-state'],
   setup(props, { emit }) {
     const el = ref(null)
     let table = null
@@ -40,14 +40,42 @@ export default {
     const mapColumns = (columns) =>
       columns.map((column) => {
         const { metaType, ...mapped } = column
+        const interactiveHandlers = {
+          cellClick: (_e, cell) => {
+            if (!props.editable) return
+            if (cell) cell.edit(true)
+          },
+          cellEditing: () => {
+            if (!props.editable) return
+            emit('cell-editing-state', true)
+          },
+          cellEdited: (cell) => {
+            if (!props.editable) return
+            emit('cell-edited', {
+              row: cell.getRow().getData(),
+              field: cell.getField(),
+              value: cell.getValue(),
+            })
+            emit('cell-editing-state', false)
+          },
+          cellEditCancelled: () => {
+            if (!props.editable) return
+            emit('cell-editing-state', false)
+          },
+        }
+
         if (!props.editable) {
           return {
             ...mapped,
             editor: false,
             editable: false,
+            ...interactiveHandlers,
           }
         }
-        return mapped
+        return {
+          ...mapped,
+          ...interactiveHandlers,
+        }
       })
 
     const canUseTable = () =>
@@ -106,18 +134,6 @@ export default {
         tableBuilt: () => {
           tableReady = true
           flushPendingUpdates()
-        },
-        cellClick: (_e, cell) => {
-          if (!props.editable) return
-          if (cell) cell.edit(true)
-        },
-        cellEdited: (cell) => {
-          if (!props.editable) return
-          emit('cell-edited', {
-            row: cell.getRow().getData(),
-            field: cell.getField(),
-            value: cell.getValue(),
-          })
         },
       })
 

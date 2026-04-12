@@ -42,10 +42,19 @@
                 :active="isPanelVisible('table')"
                 :editable="tableEditable"
                 @cell-edited="$emit('cell-edit', $event)"
+                @cell-editing-state="$emit('table-editing-state', $event)"
               />
             </div>
             <div class="table-bottom-actions">
               <button class="btn" type="button" @click="$emit('export-csv')">{{ $t('project.workspace.table.exportCsv') }}</button>
+              <button
+                class="btn primary"
+                type="button"
+                :disabled="readOnly || tableSaving || (!tableHasUnsavedChanges && !tableEditing)"
+                @click="handleSaveTableClick"
+              >
+                {{ tableSaving ? $t('project.workspace.table.saving') : $t('project.workspace.table.save') }}
+              </button>
             </div>
           </template>
         </template>
@@ -221,7 +230,7 @@
 </template>
 
 <script>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ChartPanel from './ChartPanel.vue'
 import ChartBuilder from './ChartBuilder.vue'
@@ -275,12 +284,17 @@ export default {
     getSeriesColor: { type: Function, default: () => '#1db954' },
     readOnly: { type: Boolean, default: false },
     tableEditable: { type: Boolean, default: true },
+    tableSaving: { type: Boolean, default: false },
+    tableHasUnsavedChanges: { type: Boolean, default: false },
+    tableEditing: { type: Boolean, default: false },
   },
   emits: [
     'bring-to-front',
     'start-drag',
     'start-resize',
     'cell-edit',
+    'table-editing-state',
+    'save-table',
     'refresh-data',
     'export-csv',
     'load-analysis-rows',
@@ -423,6 +437,15 @@ export default {
       emit('build-chart', chartDefinitionModel.value)
     }
 
+    const handleSaveTableClick = async () => {
+      const activeElement = typeof document !== 'undefined' ? document.activeElement : null
+      if (activeElement && typeof activeElement.blur === 'function') {
+        activeElement.blur()
+      }
+      await nextTick()
+      emit('save-table')
+    }
+
     const handleQuickChartAction = (action) => {
       if (!action?.definition) return
       emit('update-chart-definition', action.definition)
@@ -463,6 +486,7 @@ export default {
       canBuildChart,
       quickActions,
       emitBuildChart,
+      handleSaveTableClick,
       handleQuickChartAction,
     }
   },
@@ -543,7 +567,7 @@ export default {
 .series-color-input { width: 32px; height: 22px; border: none; border-radius: 6px; background: transparent; padding: 0; cursor: pointer; }
 .series-color-input::-webkit-color-swatch-wrapper { padding: 0; }
 .series-color-input::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 6px; }
-.table-bottom-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
+.table-bottom-actions { margin-top: 8px; display: flex; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
 .analysis-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
 .rotate-device-lock {
   min-height: 260px;
@@ -637,6 +661,10 @@ export default {
 }
 
 @media (max-width: 760px) {
+  .table-bottom-actions .btn {
+    width: 100%;
+  }
+
   .controls .btn {
     width: 100%;
   }

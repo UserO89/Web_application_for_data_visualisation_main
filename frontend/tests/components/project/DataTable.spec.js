@@ -76,7 +76,7 @@ describe('DataTable', () => {
     vi.unstubAllGlobals()
   })
 
-  it('initializes Tabulator with mapped columns and emits cell-edited in editable mode', async () => {
+  it('initializes Tabulator with mapped columns and emits edit lifecycle in editable mode', async () => {
     const wrapper = mount(DataTable, {
       props: buildProps(),
       attachTo: document.body,
@@ -84,25 +84,35 @@ describe('DataTable', () => {
 
     expect(tabulatorState.constructorSpy).toHaveBeenCalledTimes(1)
     expect(tabulatorState.config.data).toEqual([{ id: 1, revenue: 100 }])
-    expect(tabulatorState.config.columns).toEqual([
-      { title: 'Revenue', field: 'revenue', editor: 'input' },
-    ])
+    expect(tabulatorState.config.columns).toHaveLength(1)
+    expect(tabulatorState.config.columns[0]).toMatchObject({
+      title: 'Revenue',
+      field: 'revenue',
+      editor: 'input',
+    })
     expect(resizeObserverMock.observe).toHaveBeenCalled()
 
     tabulatorState.config.tableBuilt()
 
     const editSpy = vi.fn()
-    tabulatorState.config.cellClick(null, { edit: editSpy })
+    tabulatorState.config.columns[0].cellClick(null, { edit: editSpy })
     expect(editSpy).toHaveBeenCalledWith(true)
 
-    tabulatorState.config.cellEdited({
+    tabulatorState.config.columns[0].cellEditing()
+    tabulatorState.config.columns[0].cellEdited({
       getRow: () => ({ getData: () => ({ id: 1, revenue: 250 }) }),
       getField: () => 'revenue',
       getValue: () => 250,
     })
+    tabulatorState.config.columns[0].cellEditCancelled()
 
     expect(wrapper.emitted('cell-edited')).toEqual([
       [{ row: { id: 1, revenue: 250 }, field: 'revenue', value: 250 }],
+    ])
+    expect(wrapper.emitted('cell-editing-state')).toEqual([
+      [true],
+      [false],
+      [false],
     ])
   })
 
@@ -114,12 +124,16 @@ describe('DataTable', () => {
       attachTo: document.body,
     })
 
-    expect(tabulatorState.config.columns).toEqual([
-      { title: 'Revenue', field: 'revenue', editor: false, editable: false },
-    ])
+    expect(tabulatorState.config.columns).toHaveLength(1)
+    expect(tabulatorState.config.columns[0]).toMatchObject({
+      title: 'Revenue',
+      field: 'revenue',
+      editor: false,
+      editable: false,
+    })
 
     const editSpy = vi.fn()
-    tabulatorState.config.cellClick(null, { edit: editSpy })
+    tabulatorState.config.columns[0].cellClick(null, { edit: editSpy })
     expect(editSpy).not.toHaveBeenCalled()
   })
 
@@ -140,16 +154,21 @@ describe('DataTable', () => {
     await wrapper.setProps({
       columns: [{ title: 'Cost', field: 'cost', metaType: 'metric' }],
     })
-    expect(tabulatorState.instance.setColumns).toHaveBeenCalledWith([
-      { title: 'Cost', field: 'cost' },
-    ])
+    expect(tabulatorState.instance.setColumns).toHaveBeenCalled()
+    expect(tabulatorState.instance.setColumns.mock.calls.at(-1)?.[0]?.[0]).toMatchObject({
+      title: 'Cost',
+      field: 'cost',
+    })
 
     await wrapper.setProps({
       editable: false,
     })
-    expect(tabulatorState.instance.setColumns).toHaveBeenLastCalledWith([
-      { title: 'Cost', field: 'cost', editor: false, editable: false },
-    ])
+    expect(tabulatorState.instance.setColumns.mock.calls.at(-1)?.[0]?.[0]).toMatchObject({
+      title: 'Cost',
+      field: 'cost',
+      editor: false,
+      editable: false,
+    })
   })
 
   it('flushes pending rows and columns after tableBuilt and cleans up on unmount', async () => {
@@ -168,9 +187,11 @@ describe('DataTable', () => {
 
     tabulatorState.config.tableBuilt()
 
-    expect(tabulatorState.instance.setColumns).toHaveBeenCalledWith([
-      { title: 'Amount', field: 'amount' },
-    ])
+    expect(tabulatorState.instance.setColumns).toHaveBeenCalled()
+    expect(tabulatorState.instance.setColumns.mock.calls.at(-1)?.[0]?.[0]).toMatchObject({
+      title: 'Amount',
+      field: 'amount',
+    })
     expect(tabulatorState.instance.replaceData).toHaveBeenCalledWith([{ id: 3, revenue: 400 }])
 
     wrapper.unmount()

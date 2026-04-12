@@ -292,7 +292,7 @@ describe('ProjectPage actions', () => {
     }
     mockProjectState.loading = false
     mockProjectState.tableRows = [{ id: 7, col_1: 'Jan', col_2: 100 }]
-    mockProjectState.analysisRows = [{ id: 7, Month: 'Jan', Revenue: 100 }]
+    mockProjectState.analysisRows = [{ id: 7, col_1: 'Jan', col_2: 100 }]
     mockProjectState.analysisRowsReady = true
     mockProjectState.chartType = 'line'
     mockProjectState.chartDefinition = {
@@ -448,9 +448,10 @@ describe('ProjectPage actions', () => {
       row: {
         id: 7,
         col_1: 'Jan',
-        col_2: 100,
+        col_2: 250,
       },
     })
+    await wrapper.vm.handleSaveTable()
     await wrapper.vm.handleSemanticTypeChange({
       columnId: 12,
       semanticType: 'metric',
@@ -463,7 +464,12 @@ describe('ProjectPage actions', () => {
     })
     await flushPromises()
 
-    expect(mockProjectsApi.updateRow).toHaveBeenCalledWith('1', 7, ['Jan', 100])
+    expect(mockProjectsApi.updateRow).not.toHaveBeenCalledWith('1', 7, ['Jan', 100])
+    expect(mockProjectsApi.updateRow).toHaveBeenCalledWith('1', 7, ['Jan', 250])
+    expect(wrapper.vm.tableRows).toEqual([{ id: 7, col_1: 'Jan', col_2: 250 }])
+    expect(wrapper.vm.analysisRows).toEqual([{ id: 7, col_1: 'Jan', col_2: 250 }])
+    expect(wrapper.vm.tableHasUnsavedChanges).toBe(false)
+    expect(mockProjectDataLoader.refreshData).toHaveBeenCalled()
     expect(mockSchemaStore.setSemanticType).toHaveBeenCalledWith('1', 12, {
       semantic_type: 'metric',
       analytical_role: 'measure',
@@ -473,6 +479,7 @@ describe('ProjectPage actions', () => {
     expect(mockProjectDataLoader.loadSuggestions).toHaveBeenCalled()
     expect(mockProjectDataLoader.loadStatisticsSummary).toHaveBeenCalled()
     expect(mockProjectChartState.buildChart).toHaveBeenCalledWith(mockProjectState.chartDefinition)
+    expect(mockNotifications.success).toHaveBeenCalledWith(i18n.global.t('project.page.dataset.tableSaved'))
   })
 
   it('loads, renames, deletes, and exports project data through page actions', async () => {
@@ -544,6 +551,7 @@ describe('ProjectPage actions', () => {
     await wrapper.vm.loadSavedCharts()
     await wrapper.vm.saveCurrentChart()
     await wrapper.vm.handleCellEdit({ row: { id: 7, col_1: 'Jan', col_2: 100 } })
+    await wrapper.vm.handleSaveTable()
     await wrapper.vm.handleSemanticTypeChange({
       columnId: 12,
       semanticType: 'metric',
@@ -560,6 +568,7 @@ describe('ProjectPage actions', () => {
     expect(mockRouter.push).toHaveBeenCalledWith({ name: 'home' })
     expect(mockRouter.push).toHaveBeenCalledWith({ name: 'project-demo' })
     expect(mockProjectsApi.listSavedCharts).not.toHaveBeenCalled()
+    expect(mockProjectsApi.updateRow).not.toHaveBeenCalled()
     expect(mockNotifications.info).toHaveBeenCalledWith(i18n.global.t('project.page.readOnly.saveChartsDisabled'))
     expect(mockNotifications.info).toHaveBeenCalledWith(i18n.global.t('project.page.readOnly.tableEditsDisabled'))
     expect(mockNotifications.info).toHaveBeenCalledWith(i18n.global.t('project.page.readOnly.semanticEditsDisabled'))

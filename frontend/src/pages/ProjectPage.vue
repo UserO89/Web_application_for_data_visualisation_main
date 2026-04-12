@@ -81,10 +81,15 @@
         :get-series-color="getSeriesColor"
         :read-only="isReadOnly"
         :table-editable="!isReadOnly"
+        :table-saving="tableSaving"
+        :table-has-unsaved-changes="tableHasUnsavedChanges"
+        :table-editing="tableEditing"
         @bring-to-front="handleBringToFront"
         @start-drag="handleStartDrag"
         @start-resize="handleStartResize"
         @cell-edit="handleCellEdit"
+        @table-editing-state="tableEditing = $event"
+        @save-table="handleSaveTable"
         @refresh-data="refreshData"
         @export-csv="exportTableCsv"
         @load-analysis-rows="handleLoadAnalysisRows"
@@ -170,6 +175,9 @@ export default {
     const chartViewportRef = ref(null)
     const schemaStore = useDatasetSchemaStore()
     const notify = useNotifications()
+    const tableSaving = ref(false)
+    const tableEditing = ref(false)
+    const pendingTableRows = ref(new Map())
 
     const selectedFile = ref(null)
     const importing = ref(false)
@@ -226,6 +234,7 @@ export default {
         .sort((a, b) => Number(a.position) - Number(b.position))
     )
     const schemaUpdatingColumnId = computed(() => schemaStore.updatingColumnId)
+    const tableHasUnsavedChanges = computed(() => pendingTableRows.value.size > 0)
 
     const {
       importValidation,
@@ -407,11 +416,15 @@ export default {
         force,
       })
 
+      if (rows) {
+        applyPendingTableRows(analysisRows)
+      }
+
       if (!rows && notifyOnError && analysisRowsError.value) {
         notify.error(analysisRowsError.value)
       }
 
-      return rows
+      return rows ? analysisRows.value : rows
     }
 
     const ensureAnalysisRowsForChart = async (definition = chartDefinition.value) => {
@@ -433,6 +446,7 @@ export default {
       if (clearValidationReport) {
         setValidationReport(null)
       }
+      clearPendingTableChanges()
       seriesColors.value = {}
       resetProjectDataState()
       chartLabels.value = []
@@ -486,12 +500,12 @@ export default {
       await refreshProjectData({
         columns: sortedDatasetColumns.value,
         includeAnalysisRows,
-        onAfterRefresh: () => {
-          if (includeAnalysisRows) {
-            scheduleBuildChart(chartDefinition.value)
-          }
-        },
       })
+      applyPendingTableRows(tableRows)
+      if (includeAnalysisRows) {
+        applyPendingTableRows(analysisRows)
+        scheduleBuildChart(chartDefinition.value)
+      }
     }
 
     const handleLoadAnalysisRows = async () => {
@@ -575,23 +589,99 @@ export default {
       }
     }
 
+    const refreshDerivedData = async () => {
+      await Promise.all([loadSuggestions(), loadStatisticsSummary()])
+      if (analysisRowsReady.value) {
+        scheduleBuildChart(chartDefinition.value)
+      }
+    }
+
+    const replaceLocalRow = (rowsRef, nextRow) => {
+      if (!nextRow?.id || !Array.isArray(rowsRef.value) || !rowsRef.value.length) return
+
+      let hasMatch = false
+      const updatedRows = rowsRef.value.map((row) => {
+        if (Number(row?.id) !== Number(nextRow.id)) return row
+        hasMatch = true
+        return nextRow
+      })
+
+      if (hasMatch) {
+        rowsRef.value = updatedRows
+      }
+    }
+
+    const setPendingTableRow = (nextRow) => {
+      if (!nextRow?.id) return
+
+      const updatedPendingRows = new Map(pendingTableRows.value)
+      updatedPendingRows.set(Number(nextRow.id), { ...nextRow })
+      pendingTableRows.value = updatedPendingRows
+    }
+
+    const clearPendingTableChanges = () => {
+      pendingTableRows.value = new Map()
+      tableSaving.value = false
+      tableEditing.value = false
+    }
+
+    const applyPendingTableRows = (rowsRef) => {
+      if (!Array.isArray(rowsRef.value) || !rowsRef.value.length || !pendingTableRows.value.size) return
+
+      rowsRef.value = rowsRef.value.map((row) => {
+        const pendingRow = pendingTableRows.value.get(Number(row?.id))
+        return pendingRow ? { ...row, ...pendingRow } : row
+      })
+    }
+
     const handleCellEdit = async (data) => {
       if (isReadOnly.value) {
         notify.info(t('project.page.readOnly.tableEditsDisabled'))
         return
       }
-      try {
-        const values = buildRowUpdateValues(data.row, sortedDatasetColumns.value)
-        await projectsApi.updateRow(projectId.value, data.row.id, values)
-      } catch (e) {
-        notify.error(extractApiErrorMessage(e, t('project.page.dataset.rowSaveFailed')))
+
+      const nextRow = { ...data.row }
+
+      if (nextRow) {
+        replaceLocalRow(tableRows, nextRow)
+        replaceLocalRow(analysisRows, nextRow)
+        setPendingTableRow(nextRow)
+      }
+
+      tableEditing.value = false
+
+      if (analysisRowsReady.value) {
+        scheduleBuildChart(chartDefinition.value)
       }
     }
 
-    const refreshDerivedData = async () => {
-      await Promise.all([loadSuggestions(), loadStatisticsSummary()])
-      if (analysisRowsReady.value) {
-        scheduleBuildChart(chartDefinition.value)
+    const handleSaveTable = async () => {
+      if (isReadOnly.value) {
+        notify.info(t('project.page.readOnly.tableEditsDisabled'))
+        return
+      }
+      await nextTick()
+      if (!tableHasUnsavedChanges.value || tableSaving.value) return
+
+      tableSaving.value = true
+      const rowsToSave = Array.from(pendingTableRows.value.values())
+
+      try {
+        for (const row of rowsToSave) {
+          const values = buildRowUpdateValues(row, sortedDatasetColumns.value)
+          await projectsApi.updateRow(projectId.value, row.id, values)
+
+          const updatedPendingRows = new Map(pendingTableRows.value)
+          updatedPendingRows.delete(Number(row.id))
+          pendingTableRows.value = updatedPendingRows
+        }
+
+        await refreshData()
+        notify.success(t('project.page.dataset.tableSaved'))
+      } catch (e) {
+        notify.error(extractApiErrorMessage(e, t('project.page.dataset.tableSaveFailed')))
+      } finally {
+        tableSaving.value = false
       }
     }
 
@@ -731,13 +821,14 @@ export default {
       tableRows, tableColumns, analysisRows, analysisRowsReady, analysisRowsLoading, analysisRowsError, schemaColumns, schemaUpdatingColumnId,
       suggestions, statisticsSummary, statisticsLoading, statisticsError,
       savedCharts, savedChartsLoading, savedChartsError,
+      tableSaving, tableHasUnsavedChanges, tableEditing,
       chartType, chartDefinition,
       chartViewportPresetValue, chartViewportStyle, setChartViewportHeight,
       chartLabels, chartDatasets, chartMeta, workspaceHeight, workspacePanelConfig, resizeDirs, panelStyle,
       setWorkspaceCanvasRef, setChartViewportElementRef,
       handleBringToFront, handleStartDrag, handleStartResize, handleChartDefinitionUpdate, handleSetSeriesColor,
       handleFileSelect, handleImport, handleLoadAnalysisRows, handleBuildChart,
-      addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit,
+      addManualColumn, removeManualColumn, addManualRow, removeManualRow, handleManualImport, handleCellEdit, handleSaveTable,
       handleSemanticTypeChange, handleOrdinalOrderChange,
       loadSavedCharts, saveCurrentChart, renameSavedChart, downloadSavedChart, deleteSavedChart,
       refreshData, exportTableCsv,

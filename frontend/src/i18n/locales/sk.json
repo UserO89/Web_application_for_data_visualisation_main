@@ -107,6 +107,8 @@
         "importFailed": "Import zlyhal.",
         "manualImportFailed": "Z manualnych udajov sa nepodarilo vytvorit tabulku.",
         "rowSaveFailed": "Zmeny riadka sa nepodarilo ulozit.",
+        "tableSaved": "Zmeny tabulky boli uspesne ulozene.",
+        "tableSaveFailed": "Zmeny tabulky sa nepodarilo ulozit.",
         "noTableData": "Nie su k dispozicii ziadne tabulkove udaje na export."
       },
       "schema": {
@@ -135,7 +137,9 @@
         "rotateTitle": "Otocit zariadenie na sirku",
         "rotateText": "Uprava tabulky je na telefonoch optimalizovana pre horizontalne zobrazenie.",
         "rotateContinue": "Pokracovat bez otocenia",
-        "exportCsv": "Exportovat CSV tabulky"
+        "exportCsv": "Exportovat CSV tabulky",
+        "save": "Ulozit tabulku",
+        "saving": "Ukladanie..."
       },
       "chart": {
         "refreshData": "Obnovit data",

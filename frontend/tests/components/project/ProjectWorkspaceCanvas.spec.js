@@ -8,11 +8,15 @@ vi.mock('../../../src/components/project/DataTable.vue', async () => {
   return {
     default: defineComponent({
       name: 'DataTable',
-      emits: ['cell-edited'],
+      emits: ['cell-edited', 'cell-editing-state'],
       setup(_, { emit }) {
         return () => h('button', {
           class: 'data-table-stub',
-          onClick: () => emit('cell-edited', { row: { id: 1 }, field: 'revenue', value: 250 }),
+          onClick: () => {
+            emit('cell-editing-state', true)
+            emit('cell-edited', { row: { id: 1 }, field: 'revenue', value: 250 })
+            emit('cell-editing-state', false)
+          },
         }, 'Emit cell edit')
       },
     }),
@@ -188,6 +192,8 @@ const buildProps = (overrides = {}) => ({
   getSeriesColor: (label, index) => (label === 'Revenue' && index === 0 ? '#123456' : '#abcdef'),
   readOnly: false,
   tableEditable: true,
+  tableSaving: false,
+  tableHasUnsavedChanges: true,
   ...overrides,
 })
 
@@ -226,10 +232,14 @@ describe('ProjectWorkspaceCanvas', () => {
     expect(wrapper.emitted('cell-edit')).toEqual([
       [{ row: { id: 1 }, field: 'revenue', value: 250 }],
     ])
+    expect(wrapper.emitted('table-editing-state')).toEqual([[true], [false]])
 
     const exportButton = wrapper.findAll('button').find((button) => button.text() === 'Export Table CSV')
+    const saveButton = wrapper.findAll('button').find((button) => button.text() === 'Save Table')
     await exportButton.trigger('click')
+    await saveButton.trigger('click')
     expect(wrapper.emitted('export-csv')).toHaveLength(1)
+    expect(wrapper.emitted('save-table')).toHaveLength(1)
   })
 
   it('forwards chart workspace actions and chart builder updates', async () => {
