@@ -86,6 +86,7 @@ export default defineConfig(({ mode }) => {
       globals: true,
       include: ['tests/**/*.spec.js'],
       exclude: ['tests/system/**'],
+      setupFiles: ['tests/setup.js'],
       coverage: {
         exclude: ['src/**/index.js'],
       },

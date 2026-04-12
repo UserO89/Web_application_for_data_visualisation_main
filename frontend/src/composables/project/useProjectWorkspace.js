@@ -196,13 +196,14 @@ export const useProjectWorkspace = ({
       return layouts
     }
 
-    let nextChartWidth = Math.round(available / (TOP_ROW_TARGET_TABLE_TO_CHART_RATIO + 1))
-    nextChartWidth = Math.max(MIN.chart.w, nextChartWidth)
+    const preferredChartWidth = Math.max(
+      MIN.chart.w,
+      Math.round(available / (TOP_ROW_TARGET_TABLE_TO_CHART_RATIO + 1))
+    )
 
-    let nextTableWidth = available - nextChartWidth
+    let nextTableWidth = available - preferredChartWidth
     if (nextTableWidth < MIN.table.w) {
       nextTableWidth = MIN.table.w
-      nextChartWidth = Math.max(MIN.chart.w, available - nextTableWidth)
     }
 
     table.x = 0

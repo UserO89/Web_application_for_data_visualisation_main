@@ -228,13 +228,14 @@
         </template>
       </div>
 
-      <div
-        v-if="viewMode === 'workspace' && !isCompactWorkspace"
-        v-for="d in resizeDirs"
-        :key="`${panelId}-${d}`"
-        :class="['resize-handle', `h-${d}`]"
-        @mousedown.left.stop.prevent="$emit('start-resize', { panelId, dir: d, event: $event })"
-      ></div>
+      <template v-if="viewMode === 'workspace' && !isCompactWorkspace">
+        <div
+          v-for="d in resizeDirs"
+          :key="`${panelId}-${d}`"
+          :class="['resize-handle', `h-${d}`]"
+          @mousedown.left.stop.prevent="$emit('start-resize', { panelId, dir: d, event: $event })"
+        ></div>
+      </template>
     </section>
   </div>
 </template>

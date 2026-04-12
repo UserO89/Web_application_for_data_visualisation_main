@@ -95,13 +95,10 @@ const buildLineOrBar = ({ type, definition, schemaColumns, rows, getSeriesColor 
       const group = groupColumn
         ? (toCleanString(rowValue(row, groupColumn)) || chartCommonLabel('unknown', 'Unknown'))
         : chartCommonLabel('series', 'Series')
-    let y = null
-    if (yBinding.aggregation === 'count') {
-      y = 1
-    } else {
-      y = toNumber(rowValue(row, yColumn))
-      if (!Number.isFinite(y)) return
-    }
+    const y = yBinding.aggregation === 'count'
+      ? 1
+      : toNumber(rowValue(row, yColumn))
+    if (!Number.isFinite(y)) return
 
     if (!xGroupBuckets.has(x)) {
       xGroupBuckets.set(x, new Map())
@@ -316,13 +313,10 @@ const buildPie = ({ definition, schemaColumns, rows, getSeriesColor }) => {
     const category = toCleanString(rowValue(row, categoryColumn))
     if (!category) return
 
-    let value = null
-    if (valueBinding.aggregation === 'count') {
-      value = 1
-    } else {
-      value = toNumber(rowValue(row, valueColumn))
-      if (!Number.isFinite(value)) return
-    }
+    const value = valueBinding.aggregation === 'count'
+      ? 1
+      : toNumber(rowValue(row, valueColumn))
+    if (!Number.isFinite(value)) return
 
     if (!bucket.has(category)) bucket.set(category, [])
     bucket.get(category).push(value)

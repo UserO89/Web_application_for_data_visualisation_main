@@ -1,7 +1,7 @@
 <template>
   <div>
     <div class="import-top-row">
-      <button class="btn" @click="$emit('back')"><- Back to Projects</button>
+      <button class="btn" @click="$emit('back')">&larr; Back to Projects</button>
     </div>
     <div class="panel">
       <div class="section-title">Add Data</div>

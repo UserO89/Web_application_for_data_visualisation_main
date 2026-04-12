@@ -327,15 +327,13 @@ export function useStatisticsResultsCopy(props, t) {
     textarea.focus()
     textarea.select()
 
-    let copied = false
     try {
-      copied = document.execCommand('copy')
+      return document.execCommand('copy')
     } catch {
-      copied = false
+      return false
+    } finally {
+      document.body.removeChild(textarea)
     }
-
-    document.body.removeChild(textarea)
-    return copied
   }
 
   const writeToClipboard = async (text) => {
