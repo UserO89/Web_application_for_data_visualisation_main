@@ -1,4 +1,4 @@
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, unref } from 'vue'
 
 const EASE_OUT_CUBIC = (t) => 1 - Math.pow(1 - t, 3)
 const EASE_IN_OUT_CUBIC = (t) => (t < 0.5
@@ -30,7 +30,9 @@ export const useHomeMotion = ({
     if (statsStarted.value) return
     statsStarted.value = true
 
-    statsItems.forEach((item, index) => {
+    const resolvedStatsItems = unref(statsItems) || []
+
+    resolvedStatsItems.forEach((item, index) => {
       const duration = 950 + index * 160
       const startTime = performance.now()
 
